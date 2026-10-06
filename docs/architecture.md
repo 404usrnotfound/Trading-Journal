@@ -2,11 +2,11 @@
 
 ## Status and source of authority
 
-Status: **Architecture approved by the user. Platform foundations are implemented; financial and product workflows remain planned.** Date: 2026-10-06. See [scaffold validation](scaffold-validation.md) for current implementation evidence.
+Status: **Proposed architecture, documentation complete subject to review; not implemented.** Date: 2026-10-06.
 
 This design uses [Trading_Journal_Codex_Prompt.md](../Trading_Journal_Codex_Prompt.md) in full and [the Phase 0 requirements analysis](requirements-analysis.md). It is based on the merged Phase 0 repository at `7f5f7a479ca79d1b897e1e59d9e8771b33a7f468`. The product specification remains authoritative; this architecture selects technical defaults and identifies financial-method gates without reducing product scope. The current request overrides the source prompt's instruction to implement immediately.
 
-Phase 1 created architecture documentation only. The subsequent user-authorized Phase 3 scaffold implements platform foundations; it does not implement the financial/product scope below. Phase 1 claimed no application build/test or deployment; current platform checks are recorded separately in scaffold validation. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
+No application features, scaffolding, dependencies, schema, migrations, configuration files, services, or seed data are created in Phase 1. No application build/test or deployment is claimed. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
 
 ## Architecture in one view
 

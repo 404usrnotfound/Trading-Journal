@@ -1,6 +1,6 @@
 # ADR-0007: Private files, PostgreSQL-backed jobs, and verified restore
 
-- **Status:** Accepted by user; implementation tracked in scaffold validation and development plan
+- **Status:** Proposed
 - **Date:** 2026-10-06
 - **Requirements:** Specification §4, §10–14; F-AS-01–03, F-IM-01–08, N-IM-01–02, F-IN-02, F-SE-03–04; decisions D-13–17; acceptance scenarios AC-11, AC-14–16.
 

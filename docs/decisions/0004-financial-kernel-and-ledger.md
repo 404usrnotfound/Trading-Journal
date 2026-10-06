@@ -1,6 +1,6 @@
 # ADR 0004: Deterministic financial kernel and balanced cash ledger
 
-- **Status:** Accepted by user; implementation tracked in scaffold validation and development plan
+- **Status:** Proposed
 - **Date:** 2026-10-06
 - **Scope:** Financial numeric contracts, cash/control postings, atomic financial commands, correction history, and calculation-versioned projections.
 - **Requirements decisions:** D-03, D-04, financial invariants in D-07, and D-13 in [the requirements analysis](../requirements-analysis.md).

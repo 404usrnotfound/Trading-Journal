@@ -1,6 +1,6 @@
 # ADR 0005: Versioned trading domain and multi-currency reporting
 
-- **Status:** Accepted by user; implementation tracked in scaffold validation and development plan
+- **Status:** Proposed
 - **Date:** 2026-10-06
 - **Scope:** Domain boundaries, inventory versus idea attribution, temporal provenance, plans/risk/strategy history, instrument capabilities, and native/reporting-currency views.
 - **Requirements decisions:** D-05–D-12 and temporal aspects of D-13 in [the requirements analysis](../requirements-analysis.md).

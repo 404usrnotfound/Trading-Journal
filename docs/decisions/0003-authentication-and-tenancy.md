@@ -1,6 +1,6 @@
 # ADR-0003: Database-backed authentication and workspace authorization
 
-- **Status:** Accepted by user; implementation tracked in scaffold validation and development plan
+- **Status:** Proposed
 - **Date:** 2026-10-06
 - **Requirements:** Specification §1, §4, §13–14; F-AU-01–04, N-AU-01, F-SE-01–03; decisions D-02 and D-17; acceptance scenario AC-14.
 
