@@ -1,6 +1,6 @@
 # ADR 0001: Modular monolith and compatible TypeScript stack
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted by user; implementation tracked in scaffold validation and development plan
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-01 and the topology portion of D-16–D-17
 

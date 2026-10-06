@@ -1,6 +1,6 @@
 # ADR 0002: Explicit HTTP contracts and bounded browser state
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted by user; implementation tracked in scaffold validation and development plan
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-01 API/UI portions, D-16 query contract, D-18
 

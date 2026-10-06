@@ -1,6 +1,6 @@
 # ADR 0008: Independent financial tests and vendor-neutral operations
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted by user; implementation tracked in scaffold validation and development plan
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-16 performance, D-17 operations, D-18 verification, D-20
 
