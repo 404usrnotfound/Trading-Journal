@@ -1,6 +1,6 @@
 # ADR 0001: Modular monolith and compatible TypeScript stack
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted in Phase 1; documentation baseline, not currently implemented
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-01 and the topology portion of D-16–D-17
 
@@ -36,7 +36,7 @@ Imports flow from entrypoints toward application/domain. The `server` package's 
 
 ### Version policy
 
-The versions above are selected architecture targets, **not installed or locked dependencies**. Use supported stable releases, no prereleases, and verify compatible exact patches in Phase 2 through official release documentation, package engines/peers, a frozen install, type-check, and a real build. Record the chosen versions in version pins and lockfiles then. Review upgrades as normal changes, with fixtures and migrations tested before adoption.
+The versions above are selected architecture targets, **not installed or locked dependencies**. Use supported stable releases, no prereleases, and verify compatible exact patches in Phase 3 through official release documentation, package engines/peers, a frozen install, type-check, and a real build. Record the chosen versions in version pins and lockfiles then. Review upgrades as normal changes, with fixtures and migrations tested before adoption.
 
 Read-only verification on 2026-10-06 confirmed that Node 24 satisfies Next's Node >=20.9, pg-boss 12's Node >=22.12, and pnpm 10's Node >=18.12 constraints. PostgreSQL 17 satisfies pg-boss's PostgreSQL >=13 requirement. This is compatibility evidence, not an executed application build.
 
@@ -52,7 +52,7 @@ Read-only verification on 2026-10-06 confirmed that Node 24 satisfies Next's Nod
 
 Deployment has one application release and one database. Modules, not brokers or asset families, define code boundaries. A process can scale horizontally later, but all replicas must use shared storage and PostgreSQL-backed state. Financial computation stays reusable in unit tests, API commands, jobs and future adapters. The workspace adds build-order and import-boundary checks; it does not create separate business services.
 
-## Validation required in Phase 2
+## Validation required in Phase 3
 
 Verify dependency peers/engines, strict type-check and package-boundary lint; generate API types; build the Next Node runtime and worker; run them against PostgreSQL 17; prove browser bundles exclude server packages; prove local setup does not require external provider credentials. No such application validation has run in Phase 1.
 

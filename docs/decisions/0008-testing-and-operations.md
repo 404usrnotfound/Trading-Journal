@@ -1,6 +1,6 @@
 # ADR 0008: Independent financial tests and vendor-neutral operations
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted in Phase 1; documentation baseline, not currently implemented
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-16 performance, D-17 operations, D-18 verification, D-20
 
@@ -22,7 +22,7 @@ A successful build does not establish accounting accuracy, restore fidelity, aut
 
 The [development plan](../development-plan.md) maps every AC-01–AC-16 scenario to a phase and evidence. Capability status may become native only after its independent fixtures pass. A fixture generated solely by the calculation code under test is not independent verification. Property checks supplement, rather than replace, economic examples. E2E assertions must examine persisted quantities, cash and results, not just visible success banners.
 
-Use ESLint directly (Next 16 has no `next lint` workflow), strict `tsc`, Prettier, package-boundary checks, generated-contract drift checks and a real Next/worker build. Pin exact compatible test/tool patches in Phase 2; no test suite or build is being installed/run in Phase 1.
+Use ESLint directly (Next 16 has no `next lint` workflow), strict `tsc`, Prettier, package-boundary checks, generated-contract drift checks and a real Next/worker build. Pin exact compatible test/tool patches in Phase 3; no application test suite or build is being installed/run in Phase 1 or Phase 2.
 
 ### Initial performance targets
 

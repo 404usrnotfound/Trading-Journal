@@ -1,6 +1,6 @@
 # ADR-0003: Database-backed authentication and workspace authorization
 
-- **Status:** Proposed
+- **Status:** Accepted in Phase 1; documentation baseline, not currently implemented
 - **Date:** 2026-10-06
 - **Requirements:** Specification §1, §4, §13–14; F-AU-01–04, N-AU-01, F-SE-01–03; decisions D-02 and D-17; acceptance scenario AC-14.
 
@@ -22,7 +22,7 @@ Production session cookies are host-only, `HttpOnly`, `Secure`, and `SameSite=La
 
 Resolve the session on the server and project it into an explicit public user/profile DTO. Raw authentication-account rows, session tokens, hashes, verification records, IP addresses, and provider credentials are not application response models. Better Auth's standard email-sign-in response includes `session.token`, so an unfiltered public catch-all handler does not satisfy this contract.
 
-Use a **route-specific authentication transport gateway** around the pinned library's supported server APIs/handler or documented response hooks. The library still performs authentication, hashing, session persistence, CSRF/origin checks, and auth rate limiting; the gateway authorizes the exposed route and shapes its response without replacing those mechanisms. Preserve every individual `Set-Cookie` header, required status/redirect/security headers, and cookie expiry/revocation behavior while emitting an allowlisted application-owned DTO. Do not fold multiple `Set-Cookie` headers into one comma-separated value or silently drop headers when rewriting JSON. Prove the supported gateway/hook integration against the exact release in Phase 2 before accepting the auth foundation.
+Use a **route-specific authentication transport gateway** around the pinned library's supported server APIs/handler or documented response hooks. The library still performs authentication, hashing, session persistence, CSRF/origin checks, and auth rate limiting; the gateway authorizes the exposed route and shapes its response without replacing those mechanisms. Preserve every individual `Set-Cookie` header, required status/redirect/security headers, and cookie expiry/revocation behavior while emitting an allowlisted application-owned DTO. Do not fold multiple `Set-Cookie` headers into one comma-separated value or silently drop headers when rewriting JSON. Prove the supported gateway/hook integration against the exact release in Phase 3 before accepting the auth foundation.
 
 The browser uses an application-owned typed auth client contract, not a client that assumes the library's complete public session response. Expose only needed sign-in/sign-out/password/recovery endpoints and safe profile/session-status DTOs; do not mount an unrestricted public catch-all or raw `get-session`/`list-sessions` routes. Obtain authorization sessions through the supported **server** API. For self-session management, return safe session IDs and approved device/time descriptors; the authenticated server checks ownership, resolves the corresponding token internally, and invokes the library's supported revocation API. No browser request or response needs to carry that token. UI capability hints never authorize a command.
 
