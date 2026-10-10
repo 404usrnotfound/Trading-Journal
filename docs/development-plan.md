@@ -4,69 +4,69 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current task authorizes Phase 2 financial-domain documentation only.** Phase 0 requirements are complete and Phase 1 architecture documentation is approved. Phase 2 supplies the missing financial-domain design before any new implementation. The previous Phase 3 scaffold was explicitly reverted at the user's request; the repository currently contains no application implementation. Phase 3 must be reauthorized and rebuilt against this design before Phase 4 core-ledger implementation. No package installation, application code, SQL migrations, infrastructure provisioning, seed data, or application tests belong to the current documentation task.
+**The current task authorizes Phase 3 application foundations only.** Phases 0–2 are approved and merged. The earlier scaffold was reverted; this implementation is rebuilt against the accepted financial-domain design. Current verification is recorded in [scaffold-validation.md](scaffold-validation.md). Phase 4 financial features and dashboards have not started.
 
-| Phase | Result | Current status |
-| --- | --- | --- |
-| 0 | Requirements extraction and ambiguity/decision inventory | Complete: requirements-analysis document exists |
-| 1 | Approved architecture, ADRs, boundaries, and gated plan | Approved documentation; no currently retained implementation |
-| 2 | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Documentation and independent review/validation complete; ready for user review, no implementation |
-| 3 | Runnable platform scaffolding and security foundations | Previously implemented, then reverted; not currently present; requires a new implementation instruction and fresh checks |
-| 4 | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX | Not started; the attempted early Phase 4 was withdrawn without retained implementation |
-| 5 | Strategies, frozen plans, trade workflows, and reviewable allocations | Not started |
-| 6 | Universal imports, corrections, and reconciliation | Not started |
-| 7 | Recording/review and settlement workflows for every asset family | Not started |
-| 8 | Risk monitoring, portfolio performance, and drill-down analytics | Not started |
-| 9 | Journal workflows, attachments, saved views, exports, and restore | Not started |
-| 10 | Complete security/accessibility/performance verification and delivery | Not started |
-| Optional track | Chosen broker/provider integrations and optional metrics | Unscheduled; not a prerequisite for the manual core |
+| Phase          | Result                                                                                                 | Current status                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| 0              | Requirements extraction and ambiguity/decision inventory                                               | Complete: requirements-analysis document exists                                        |
+| 1              | Approved architecture, ADRs, boundaries, and gated plan                                                | Approved; platform selections used by Phase 3                                          |
+| 2              | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Approved and merged; financial implementation deferred                                 |
+| 3              | Runnable platform scaffolding and security foundations                                                 | New foundation implemented; current clean-environment verification recorded separately |
+| 4              | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX                             | Not started; the attempted early Phase 4 was withdrawn without retained implementation |
+| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Not started                                                                            |
+| 6              | Universal imports, corrections, and reconciliation                                                     | Not started                                                                            |
+| 7              | Recording/review and settlement workflows for every asset family                                       | Not started                                                                            |
+| 8              | Risk monitoring, portfolio performance, and drill-down analytics                                       | Not started                                                                            |
+| 9              | Journal workflows, attachments, saved views, exports, and restore                                      | Not started                                                                            |
+| 10             | Complete security/accessibility/performance verification and delivery                                  | Not started                                                                            |
+| Optional track | Chosen broker/provider integrations and optional metrics                                               | Unscheduled; not a prerequisite for the manual core                                    |
 
 Implementation statuses and acceptance evidence must be updated after actual work. Documentation completion does not imply a runnable application or any passing application check.
 
-The Phase 3 rollback is local commit `ccb17c4` and has not been pushed. Its removal of the scaffold is intentional. The earlier scaffold's historical validation results do not certify the present documentation-only checkout, and generated/runtime files archived outside this repository are not retained implementation. The Phase 2 verification record must distinguish documentation checks from unavailable application commands.
+The old scaffold rollback remains part of history. Its previous checks do not certify the new implementation; preserved runtime archives and old database volumes are not reused as evidence.
 
 ### Phase 2 documentation index
 
-| Artifact | Purpose |
-| --- | --- |
-| [domain-model.md](domain-model.md) | Complete logical entities, ownership, relationships, lifecycle/state, financial invariants and command boundaries. |
-| [financial-calculations.md](financial-calculations.md) | Decimal/rounding, lots/basis, cash, charges, realized/unrealized results and multi-currency calculation conventions. |
-| [instrument-capabilities.md](instrument-capabilities.md) | Asset identities, units, per-operation support, all-family manual paths and native-module validation gates. |
-| [financial-fixtures.md](financial-fixtures.md) | Independent worked examples, expected outcomes and required future unit/integration/property coverage. |
-| [phase-2-validation.md](phase-2-validation.md) | Verification of Phase 0, Phase 1 and Phase 2 documents, reported changes, and explicit application-check limitations. |
+| Artifact                                                 | Purpose                                                                                                               |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [domain-model.md](domain-model.md)                       | Complete logical entities, ownership, relationships, lifecycle/state, financial invariants and command boundaries.    |
+| [financial-calculations.md](financial-calculations.md)   | Decimal/rounding, lots/basis, cash, charges, realized/unrealized results and multi-currency calculation conventions.  |
+| [instrument-capabilities.md](instrument-capabilities.md) | Asset identities, units, per-operation support, all-family manual paths and native-module validation gates.           |
+| [financial-fixtures.md](financial-fixtures.md)           | Independent worked examples, expected outcomes and required future unit/integration/property coverage.                |
+| [phase-2-validation.md](phase-2-validation.md)           | Verification of Phase 0, Phase 1 and Phase 2 documents, reported changes, and explicit application-check limitations. |
 
 ## Approved architecture baseline and future compatibility checks
 
-The following selections are the approved Phase 1 architecture baseline. They are not installed dependencies in the current documentation checkout. Phase 3 must recheck support and compatibility against official sources, select exact supported package patches, pin the toolchain, and create the dependency lockfile. Historical checks of the reverted scaffold do not establish compatibility or runnable status for this checkout. No version pin is fabricated during this documentation phase.
+The following selections remain the approved Phase 1 baseline. Phase 3 rechecks official engines/peers, pins foundation dependencies and the toolchain, and supplies a lockfile. Unused financial/table/charting packages remain deferred. Historical reverted-scaffold checks are separate from current evidence.
 
-| Concern | Approved architectural baseline | Decision reference |
-| --- | --- | --- |
-| Application/runtime | Modular monolith; Next.js 16 App Router, React 19, TypeScript 5.9 compatibility baseline; Node.js 24 LTS and pnpm 10 | [ADR 0001](decisions/0001-monolith-and-stack.md) |
-| Contracts and UI | Typed REST through Next.js Route Handlers, shared Zod 4 DTOs/OpenAPI 3.1; TanStack Query 5/Table 9, React Hook Form, Radix UI, Tailwind CSS, Recharts 3 | [ADR 0002](decisions/0002-contracts-and-ui.md) |
-| Authentication | Better Auth 1 email/password and database sessions; controlled initial-user bootstrap with public signup disabled | [ADR 0003](decisions/0003-authentication-and-tenancy.md) |
-| Financial kernel | Decimal.js; currency/unit-aware deterministic calculations, balanced cash ledger, explicit provenance and unavailable results | [ADR 0004](decisions/0004-financial-kernel-and-ledger.md) |
-| Financial history | Separate intent/execution/holdings/cash/valuations; effective-dated metadata and strategy rules; frozen plans/risk; historical FX | [ADR 0005](decisions/0005-versioned-domain-and-multicurrency.md) |
-| Database | PostgreSQL 17, Drizzle ORM stable 0.45.x/Drizzle Kit 0.31.x compatibility families, node-postgres, reviewed versioned migrations | [ADR 0006](decisions/0006-postgres-drizzle-and-migrations.md) |
-| Files and durable work | Private filesystem storage for local/single-host operation, optional private S3-compatible storage across hosts; pg-boss 12 on PostgreSQL for heavy durable jobs; no required Redis | [ADR 0007](decisions/0007-private-storage-and-durable-jobs.md) |
-| Verification/operations | Vitest 5, fast-check, real-PostgreSQL integration tests, Playwright and axe; ESLint, TypeScript checks, Prettier; Pino redacted structured logs | [ADR 0008](decisions/0008-testing-and-operations.md) |
+| Concern                 | Approved architectural baseline                                                                                                                                                     | Decision reference                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Application/runtime     | Modular monolith; Next.js 16 App Router, React 19, TypeScript 5.9 compatibility baseline; Node.js 24 LTS and pnpm 10                                                                | [ADR 0001](decisions/0001-monolith-and-stack.md)                 |
+| Contracts and UI        | Typed REST through Next.js Route Handlers, shared Zod 4 DTOs/OpenAPI 3.1; TanStack Query 5/Table 9, React Hook Form, Radix UI, Tailwind CSS, Recharts 3                             | [ADR 0002](decisions/0002-contracts-and-ui.md)                   |
+| Authentication          | Better Auth 1 email/password and database sessions; controlled initial-user bootstrap with public signup disabled                                                                   | [ADR 0003](decisions/0003-authentication-and-tenancy.md)         |
+| Financial kernel        | Decimal.js; currency/unit-aware deterministic calculations, balanced cash ledger, explicit provenance and unavailable results                                                       | [ADR 0004](decisions/0004-financial-kernel-and-ledger.md)        |
+| Financial history       | Separate intent/execution/holdings/cash/valuations; effective-dated metadata and strategy rules; frozen plans/risk; historical FX                                                   | [ADR 0005](decisions/0005-versioned-domain-and-multicurrency.md) |
+| Database                | PostgreSQL 17, Drizzle ORM stable 0.45.x/Drizzle Kit 0.31.x compatibility families, node-postgres, reviewed versioned migrations                                                    | [ADR 0006](decisions/0006-postgres-drizzle-and-migrations.md)    |
+| Files and durable work  | Private filesystem storage for local/single-host operation, optional private S3-compatible storage across hosts; pg-boss 12 on PostgreSQL for heavy durable jobs; no required Redis | [ADR 0007](decisions/0007-private-storage-and-durable-jobs.md)   |
+| Verification/operations | Vitest 5, fast-check, real-PostgreSQL integration tests, Playwright and axe; ESLint, TypeScript checks, Prettier; Pino redacted structured logs                                     | [ADR 0008](decisions/0008-testing-and-operations.md)             |
 
 The application and optional worker share domain services and calculation versions. Small atomic financial commands finish synchronously. Large imports, rebuilds, backups, and other durable work may use the worker; queued execution must not split a required atomic write or expose partially valid financial state. External providers never become prerequisites for manual entry, CSV, manual prices/FX, deterministic summaries, or record review.
 
-The proposed pnpm workspace has `apps/web` and `apps/worker`, with shared `packages/domain` (pure financial rules), `contracts` (public Zod contracts), `database` (schema/repositories/migrations), `server` (application services, ports and infrastructure composition), and `ui` (React components). These are future directories; the previous scaffold has been removed and no scaffold is currently retained. The Next.js server exposes `/api/v1` through Route Handlers and calls the same application services as the worker; no separate backend API, microservice tier, tRPC or Turbo dependency is proposed. Financial DTOs use decimal strings; Zod-to-OpenAPI 9 and openapi-typescript 7 generate the documented OpenAPI 3.1 contract/typed client. TypeScript 5.9 is a compatibility selection, not a claim that every latest registry major can be combined safely.
+The Phase 3 pnpm workspace has `apps/web` and `apps/worker`, with shared `packages/domain` (pure financial rules), `contracts` (public Zod contracts), `database` (schema/repositories/migrations), `server` (application services, ports and infrastructure composition), and `ui` (React components). These directories now contain platform foundations; future financial modules remain unimplemented. The Next.js server exposes `/api/v1` through Route Handlers and calls the same application services as the worker; no separate backend API, microservice tier, tRPC or Turbo dependency is proposed. Financial DTOs use decimal strings; Zod-to-OpenAPI 9 and openapi-typescript 7 generate the documented OpenAPI 3.1 contract/typed client. TypeScript 5.9 is a compatibility selection, not a claim that every latest registry major can be combined safely.
 
 ## Gates and dependency order
 
 Each gate has a reviewable artifact and a verification obligation. Engineering can resolve reversible choices within a later authorized scope; missing credentials, incompatible business requirements, or scope reductions remain explicit blockers for the affected work. No trade capital, broker, strategy, or risk limit is assumed.
 
-| Gate | Required before proceeding | Decisions covered |
-| --- | --- | --- |
-| G-01: architecture documentation | Approved ADRs and boundaries remain consistent with the specification; all acceptance scenarios and categories remain scheduled; links/statuses are checked. Phase 1 is approved documentation and its consistency is rechecked with Phase 2. | D-01–D-20, at architecture level |
-| G-02: implementation authorization and tooling | A new user instruction permits the next implementation scope. Official compatibility checks, exact versions, local run topology, private configuration, authentication bootstrap, and test harness are documented. | D-01, D-02, D-17, D-20 |
-| G-03: schema and financial semantics | Logical/physical schema, relationship/state model, ownership constraints, posting examples, decimal/rounding/time conventions, allocation and lot rules, FX decomposition, and correction/recompute policy are reviewed. Migration checks protect these invariants. | D-03–D-09, D-13 |
-| G-04: metric and fixture foundation | A versioned metric dictionary defines populations, formulas, units, costs, time basis, currency handling, availability and edge cases. Independent hand-calculated fixtures and official instrument references define expected ledger/holdings/FX results. Required financial invariants have meaningful unit/property tests. | D-04, D-05, D-07–D-09, D-12, D-20 |
-| G-05: strategy and risk semantics | Frozen/retrospective plans, rule versions and typed fields, lifecycle/reopening, policy precedence, original-R denominator, risk additions, calendars and unknown assessments are defined. | D-06, D-10, D-11 |
-| G-06: safe ingestion and storage | Identity/fingerprint scopes, symbol review, row/batch commit units, corrections, source-file access, reconciliation tolerances and dependency-safe reversal are defined and tested. Private-file and restore contracts cover limits, ownership and calculation/schema versions. | D-14, D-15 |
-| G-07: delivery evidence | All mandatory scenario workflows pass at declared capability levels; security, restore, accessibility/responsiveness and representative performance are actually checked; remaining limitations are visible. | D-16–D-20 and all AC scenarios |
+| Gate                                           | Required before proceeding                                                                                                                                                                                                                                                                                                    | Decisions covered                 |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| G-01: architecture documentation               | Approved ADRs and boundaries remain consistent with the specification; all acceptance scenarios and categories remain scheduled; links/statuses are checked. Phase 1 is approved documentation and its consistency is rechecked with Phase 2.                                                                                 | D-01–D-20, at architecture level  |
+| G-02: implementation authorization and tooling | A new user instruction permits the next implementation scope. Official compatibility checks, exact versions, local run topology, private configuration, authentication bootstrap, and test harness are documented.                                                                                                            | D-01, D-02, D-17, D-20            |
+| G-03: schema and financial semantics           | Logical/physical schema, relationship/state model, ownership constraints, posting examples, decimal/rounding/time conventions, allocation and lot rules, FX decomposition, and correction/recompute policy are reviewed. Migration checks protect these invariants.                                                           | D-03–D-09, D-13                   |
+| G-04: metric and fixture foundation            | A versioned metric dictionary defines populations, formulas, units, costs, time basis, currency handling, availability and edge cases. Independent hand-calculated fixtures and official instrument references define expected ledger/holdings/FX results. Required financial invariants have meaningful unit/property tests. | D-04, D-05, D-07–D-09, D-12, D-20 |
+| G-05: strategy and risk semantics              | Frozen/retrospective plans, rule versions and typed fields, lifecycle/reopening, policy precedence, original-R denominator, risk additions, calendars and unknown assessments are defined.                                                                                                                                    | D-06, D-10, D-11                  |
+| G-06: safe ingestion and storage               | Identity/fingerprint scopes, symbol review, row/batch commit units, corrections, source-file access, reconciliation tolerances and dependency-safe reversal are defined and tested. Private-file and restore contracts cover limits, ownership and calculation/schema versions.                                               | D-14, D-15                        |
+| G-07: delivery evidence                        | All mandatory scenario workflows pass at declared capability levels; security, restore, accessibility/responsiveness and representative performance are actually checked; remaining limitations are visible.                                                                                                                  | D-16–D-20 and all AC scenarios    |
 
 **G-03 and G-04 must pass before the first application financial-write workflow.** Database/authentication setup in Phase 3 may establish platform persistence; it must not post fills, cash events, lots, or financial results before those gates. Schema and metric work is a prerequisite, not retrospective documentation added after calculation code.
 
@@ -76,7 +76,7 @@ Dependency order is requirements → approved architecture → financial-domain 
 
 ## Incremental implementation and acceptance checklist
 
-The checklist is prospective. Checked items indicate documentation that exists; unchecked items are future work. Each implemented increment must remain runnable, preserve previous acceptance fixtures, and present only capabilities it actually provides. Maintain a progress file, assumptions, a metric dictionary, and a scenario-to-feature/test/fallback capability matrix during implementation.
+Checked items have the evidence recorded for their phase; unchecked items remain future work. Each implemented increment must remain runnable, preserve previous acceptance fixtures, and present only capabilities it actually provides. Maintain a progress file, assumptions, a metric dictionary, and a scenario-to-feature/test/fallback capability matrix during implementation.
 
 ### Phase 0: requirements
 
@@ -93,7 +93,7 @@ The checklist is prospective. Checked items indicate documentation that exists; 
 
 Historical Phase 1 validation: independent financial/security/coverage reviews completed. Corrected the auth response contract to keep session tokens out of JSON DTOs and aligned benchmark/startup definitions. Documentation checks passed for the eight Phase 1 ADRs, all local links/tables/fences/whitespace, D-01–D-20 coverage, and AC-01–AC-16 traceability. Git inspection at that phase's completion confirmed only its requested new documentation, with tracked source inputs unchanged and no staged files. Library engines/peers and key behavior were checked read-only through official package metadata and documentation. No application lint, type-check, build, financial tests or deployment was executed as part of Phase 1. Phase 2 rechecks the documentation; historical scaffold results are separate and do not imply an application exists now.
 
-### Phase 2: financial-domain model — current documentation task
+### Phase 2: approved financial-domain model
 
 Design the financial foundation before rebuilding the scaffold or implementing a UI/ledger feature. Use the specification and approved architecture, retain every required asset family, and separate source facts from intent, derived inventory and observations.
 
@@ -108,19 +108,21 @@ Design the financial foundation before rebuilding the scaffold or implementing a
 
 Evidence for this phase is reviewed documentation and independently checked worked examples. It is not passing application tests, a live database, an implemented ledger or a tested capability claim. Do not recreate the scaffold, create a lockfile or claim clean-environment application checks during this phase.
 
-### Phase 3: runnable platform scaffolding — reverted; rebuild only when instructed
+### Phase 3: runnable platform scaffolding — current implementation
 
-After the Phase 2 design review and G-02 authorization, establish the smallest working authenticated application and documented local services. The previous scaffold was reverted; every item below is currently unchecked and must be verified against the newly created source. This phase produces an application shell and infrastructure contracts, not a purportedly complete trading journal.
+After the Phase 2 design review and G-02 authorization, establish the smallest working authenticated application and documented local services. The previous scaffold was reverted; every gate must be verified anew against this implementation. This phase produces an application shell and infrastructure contracts, not a purportedly complete trading journal.
 
-- [ ] Verify the proposed package/toolchain combination against official documentation; pin exact supported versions, lock dependencies, and record consequential deviations in ADRs.
-- [ ] Establish Next.js, TypeScript, PostgreSQL/Drizzle migrations, runtime contracts, lint/format/type checks, Vitest and real-database test infrastructure.
-- [ ] Implement controlled email/password bootstrap, disabled public signup, database sessions, workspace ownership, and centralized server authorization. Use the route-specific auth response gateway to preserve cookies while returning safe DTOs without session tokens; test login/logout/revocation and denial at server boundaries, not only hidden UI links.
-- [ ] Add responsive light/dark shell, keyboard/focus/contrast foundations, English localization-ready labels, locale-aware formatting, configurable IANA timezone and currency preferences, honest empty/loading/error states.
-- [ ] Document local startup/configuration and preferably a container option; configure health checks and Pino redaction with secrets absent from source/logs.
-- [ ] Demonstrate login/logout and persisted workspace preferences across reload/restart. Disable not-yet-implemented primary actions with clear explanations.
-- [ ] From a clean supported environment, verify frozen installation, application startup, database connection, reviewed migrations, tests, lint, type-check and production build. Record exact commands/results; do not proceed to financial features if any gate fails.
+- [x] Verify the proposed package/toolchain combination against official documentation; pin exact supported versions, lock dependencies, and record consequential deviations in ADRs.
+- [x] Establish Next.js, TypeScript, PostgreSQL/Drizzle migrations, runtime contracts, lint/format/type checks, Vitest and real-database test infrastructure.
+- [x] Implement controlled email/password bootstrap, disabled public signup, database sessions, workspace ownership, and centralized server authorization. Use the route-specific auth response gateway to preserve cookies while returning safe DTOs without session tokens; test login/logout/revocation and denial at server boundaries, not only hidden UI links.
+- [x] Add responsive light/dark shell, keyboard/focus/contrast foundations, English localization-ready labels, locale-aware formatting, configurable IANA timezone and currency preferences, honest empty/loading/error states.
+- [x] Document local startup/configuration and preferably a container option; configure health checks and Pino redaction with secrets absent from source/logs.
+- [x] Demonstrate login/logout and persisted workspace preferences across reload/restart. Disable not-yet-implemented primary actions with clear explanations.
+- [x] From a clean supported environment, verify frozen installation, application startup, database connection, reviewed migrations, tests, lint, type-check and production build. Record exact commands/results; do not proceed to financial features if any gate fails.
 
 Evidence: migration/bootstrap/session integration tests and a shell end-to-end journey. Begin **AC-14** and **AC-16** coverage; these scenarios remain incomplete until financial records, exports, attachments and the other core journeys exist.
+
+Current evidence: [scaffold validation](scaffold-validation.md) records all eight clean-environment gates, 86 unit/UI tests, 45 PostgreSQL integration tests, five browser/axe journeys, real development/standalone startup and process-restart persistence. Phase 4 remains unstarted.
 
 ### Phase 4: financial schema and foundations
 
@@ -222,24 +224,24 @@ No phase authorizes live trade placement, live brokerage credential connection o
 
 All application acceptance statuses below are **planned, not executed in the current checkout**. Phase 2 supplies independent fixture designs in [financial-fixtures.md](financial-fixtures.md), not executable financial tests. The eventual capability matrix must add concrete feature names, test identifiers, implemented support level, manual fallback and limitations. Phase 10 reruns the complete product-level matrix.
 
-| Scenario | Required observable outcome | First implementation stages; final verification |
-| --- | --- | --- |
-| AC-01 | EUR account, two EUR/USD conversions/fees, USD stock partial closes, later FX valuation; history unchanged and balances reconcile | 4 financial/FX slice; 6 import route; 8 analytics; 10 end-to-end |
-| AC-02 | Multiple fills/partial exits conserve remaining quantity, cost, fees and completion status | 4 lots/costs; 5 lifecycle/editor; 6 imports; 10 |
-| AC-03 | Concurrent same-instrument strategies split a fill without duplicated quantity/cost | 4 allocation invariants; 5 strategy/campaign journey; 8 populations; 10 |
-| AC-04 | Short position incorporates fees and borrow costs | 4 shorts/carry; 8 financial breakdown; 10 |
-| AC-05 | Option premium/multiplier/multi-leg recording and supported exercise/assignment or explicit settlement | 5 multi-leg campaign model; 7 capability-specific option journey; 10 |
-| AC-06 | Futures tick/multiplier/settlement and supported perpetual funding; no full-notional default debit | 4 posting extension boundary; 7 derivative event journeys; 10 |
-| AC-07 | Fixed-income quantity/price/accrued interest or explicit broker-valued fallback | 7 recording/settlement/support labels; 10 |
-| AC-08 | Structured/custom unsupported automatic pricing still supports recording/manual settlement and honest unavailable metrics | 7 capability/manual journey; 8 unavailable analytics; 10 |
-| AC-09 | Dividend/corporate action, internal transfer, unknown opening basis, post-import correction retain coherent records | 4 opening/transfer; 6 correction; 7 corporate-action event; 10 |
-| AC-10 | External flows are not trade profit; internal transfers are not consolidated external flows | 4 ledger classification; 6 reconciliation; 8 performance curves; 10 |
-| AC-11 | Identical reimport changes no counts/balances; invalid rows cannot corrupt valid records | 6 dry run/idempotency/errors/reversal; 10 |
-| AC-12 | Strategy version updates preserve old plans; absent original risk means unavailable R | 5 versions/plan/risk snapshot; 8 R metrics; 10 |
-| AC-13 | Missing prices/FX, no trades/no losing trades, tiny samples and undefined ratios are transparent | 3 empty-state foundation; 4 missing observations; 8 metric edge cases; 10 |
-| AC-14 | Another user cannot access records, exports or attachments | 3 authentication/ownership; 4–8 record boundaries; 6 source files; 9 files/exports; 10 |
-| AC-15 | Backup/restore reproduces records and derived totals under the same calculation version | 4 deterministic rebuild/version foundation; 9 actual round trip; 10 |
-| AC-16 | Core workflows need no integration and survive reload/server restart | 3 persistent shell; 4–9 each runnable slice; 10 complete journeys |
+| Scenario | Required observable outcome                                                                                                       | First implementation stages; final verification                                        |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| AC-01    | EUR account, two EUR/USD conversions/fees, USD stock partial closes, later FX valuation; history unchanged and balances reconcile | 4 financial/FX slice; 6 import route; 8 analytics; 10 end-to-end                       |
+| AC-02    | Multiple fills/partial exits conserve remaining quantity, cost, fees and completion status                                        | 4 lots/costs; 5 lifecycle/editor; 6 imports; 10                                        |
+| AC-03    | Concurrent same-instrument strategies split a fill without duplicated quantity/cost                                               | 4 allocation invariants; 5 strategy/campaign journey; 8 populations; 10                |
+| AC-04    | Short position incorporates fees and borrow costs                                                                                 | 4 shorts/carry; 8 financial breakdown; 10                                              |
+| AC-05    | Option premium/multiplier/multi-leg recording and supported exercise/assignment or explicit settlement                            | 5 multi-leg campaign model; 7 capability-specific option journey; 10                   |
+| AC-06    | Futures tick/multiplier/settlement and supported perpetual funding; no full-notional default debit                                | 4 posting extension boundary; 7 derivative event journeys; 10                          |
+| AC-07    | Fixed-income quantity/price/accrued interest or explicit broker-valued fallback                                                   | 7 recording/settlement/support labels; 10                                              |
+| AC-08    | Structured/custom unsupported automatic pricing still supports recording/manual settlement and honest unavailable metrics         | 7 capability/manual journey; 8 unavailable analytics; 10                               |
+| AC-09    | Dividend/corporate action, internal transfer, unknown opening basis, post-import correction retain coherent records               | 4 opening/transfer; 6 correction; 7 corporate-action event; 10                         |
+| AC-10    | External flows are not trade profit; internal transfers are not consolidated external flows                                       | 4 ledger classification; 6 reconciliation; 8 performance curves; 10                    |
+| AC-11    | Identical reimport changes no counts/balances; invalid rows cannot corrupt valid records                                          | 6 dry run/idempotency/errors/reversal; 10                                              |
+| AC-12    | Strategy version updates preserve old plans; absent original risk means unavailable R                                             | 5 versions/plan/risk snapshot; 8 R metrics; 10                                         |
+| AC-13    | Missing prices/FX, no trades/no losing trades, tiny samples and undefined ratios are transparent                                  | 3 empty-state foundation; 4 missing observations; 8 metric edge cases; 10              |
+| AC-14    | Another user cannot access records, exports or attachments                                                                        | 3 authentication/ownership; 4–8 record boundaries; 6 source files; 9 files/exports; 10 |
+| AC-15    | Backup/restore reproduces records and derived totals under the same calculation version                                           | 4 deterministic rebuild/version foundation; 9 actual round trip; 10                    |
+| AC-16    | Core workflows need no integration and survive reload/server restart                                                              | 3 persistent shell; 4–9 each runnable slice; 10 complete journeys                      |
 
 ## Proposed performance budget and benchmark contract
 
@@ -247,36 +249,36 @@ These are initial engineering targets, not thresholds supplied by the specificat
 
 The representative large dataset contains **1,000,000 fills, at least 2,000,000 ledger postings, 100,000 campaigns and 100,000 observations**, plus relevant accounts, currencies, instruments, strategy versions and allocation/import/audit history. It includes fractional/short/partial/multi-currency cases, realistic dates/filters, fees, missing data and uneven account sizes. Record actual event-dependent posting counts; never force two postings per fill where financial semantics require more. Include at least two workspaces for isolation checks. Demo data remains separate from this deterministic benchmark seed.
 
-| Operation | Provisional target | Measurement boundary |
-| --- | --- | --- |
-| Bounded indexed list/filter page | p95 ≤ 500 ms | Authenticated server request including authorization, SQL and serialization for a 50-row page; no unbounded total-history fetch |
-| Bounded account/portfolio summary | p95 ≤ 1 s | Server response for a documented account/date/currency query; returns provenance and unavailable status, not a fresh unrestricted full-history rebuild |
-| Browser first meaningful data | p95 ≤ 2 s | Authenticated navigation to a documented core data view on a controlled desktop browser/network baseline; include server and browser work |
-| 50,000-row CSV import | ≤ 120 s | Worker validation/commit runtime after upload and completed mapping/review; report dry-run and commit separately, include durable job/database work and final result |
-| Full 1,000,000-fill derived rebuild | ≤ 10 min | Worker time to reconstruct and validate dependent projections at the same calculation version; preserve ledger/source truth and disclose progress |
+| Operation                           | Provisional target | Measurement boundary                                                                                                                                                 |
+| ----------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bounded indexed list/filter page    | p95 ≤ 500 ms       | Authenticated server request including authorization, SQL and serialization for a 50-row page; no unbounded total-history fetch                                      |
+| Bounded account/portfolio summary   | p95 ≤ 1 s          | Server response for a documented account/date/currency query; returns provenance and unavailable status, not a fresh unrestricted full-history rebuild               |
+| Browser first meaningful data       | p95 ≤ 2 s          | Authenticated navigation to a documented core data view on a controlled desktop browser/network baseline; include server and browser work                            |
+| 50,000-row CSV import               | ≤ 120 s            | Worker validation/commit runtime after upload and completed mapping/review; report dry-run and commit separately, include durable job/database work and final result |
+| Full 1,000,000-fill derived rebuild | ≤ 10 min           | Worker time to reconstruct and validate dependent projections at the same calculation version; preserve ledger/source truth and disclose progress                    |
 
 Use ten concurrent authenticated read sessions for warm list/summary runs; record p50/p95, errors, query counts/plans, resource peaks and actual dataset sizes. Repeat representative reads while one heavy worker job runs and report contention. Report cold navigation and per-asset/import complexity separately instead of treating one favorable case as universal evidence. Limits and worker concurrency must keep the reference machine usable; batching must preserve financial invariants. Failed budgets require a diagnosed index/query/projection/batching correction or an explicit recorded target revision, not hidden smaller seeds.
 
-## Intended future check commands
+## Check commands and future workflow checks
 
-The following are **planned package-script names and commands**. They do not exist yet, have not been run, and are not current run instructions. Phase 3 must implement/document appropriate scripts, exact versions and prerequisites. Frozen installation applies only once a verified lockfile has been generated.
+Phase 3 supplies install/dev/migration/format/lint/type/unit/integration/browser/build commands, documented in [README](../README.md). `test:a11y` is integrated into `test:e2e` with axe rather than a separate script. Performance and restore commands below remain future workflow obligations, not currently available checks.
 
-| Future command | Purpose and first relevant stage |
-| --- | --- |
-| `pnpm install --frozen-lockfile` | Reproduce verified locked dependencies; 3 onward |
-| `pnpm dev` / `pnpm dev:worker` | `dev` starts web and worker together; `dev:worker` starts the worker independently for debugging; 3 onward |
-| `pnpm db:migrate` | Apply reviewed migrations to the explicitly configured development/test database; 3 onward |
-| `pnpm format:check` | Documentation/source formatting; 3 onward |
-| `pnpm lint` | ESLint checks; 3 onward |
-| `pnpm typecheck` | TypeScript checks; 3 onward |
-| `pnpm test:unit` | Vitest and meaningful fast-check properties; harness in 3, financial cases from 4 |
-| `pnpm test:integration` | Isolated real-PostgreSQL migrations/transactions/authorization/import/restore; 3 onward |
-| `pnpm test:e2e` | Playwright main journeys; 3 onward as each journey exists |
-| `pnpm test:a11y` | axe plus documented manual keyboard/contrast/reader checks; 3 onward, complete at 10 |
-| `pnpm test:performance` | Representative seed/query/import/rebuild benchmark; 4 foundation, complete at 10 |
-| `pnpm db:migrate:check` | Reviewed migrations on clean and upgrade-path test databases; 3 onward |
-| `pnpm test:restore` | Workspace/files restore and same-version derived totals; 9 onward |
-| `pnpm build` | Production build validation; 3 onward; does not establish accounting correctness |
+| Command / future obligation      | Purpose and first relevant stage                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile` | Reproduce verified locked dependencies; 3 onward                                                           |
+| `pnpm dev` / `pnpm dev:worker`   | `dev` starts web and worker together; `dev:worker` starts the worker independently for debugging; 3 onward |
+| `pnpm db:migrate`                | Apply reviewed migrations to the explicitly configured development/test database; 3 onward                 |
+| `pnpm format:check`              | Documentation/source formatting; 3 onward                                                                  |
+| `pnpm lint`                      | ESLint checks; 3 onward                                                                                    |
+| `pnpm typecheck`                 | TypeScript checks; 3 onward                                                                                |
+| `pnpm test:unit`                 | Vitest and meaningful fast-check properties; harness in 3, financial cases from 4                          |
+| `pnpm test:integration`          | Isolated real-PostgreSQL migrations/transactions/authorization/import/restore; 3 onward                    |
+| `pnpm test:e2e`                  | Playwright main journeys; 3 onward as each journey exists                                                  |
+| `pnpm test:a11y`                 | axe plus documented manual keyboard/contrast/reader checks; 3 onward, complete at 10                       |
+| `pnpm test:performance`          | Representative seed/query/import/rebuild benchmark; 4 foundation, complete at 10                           |
+| `pnpm db:migrate:check`          | Reviewed migrations on clean and upgrade-path test databases; 3 onward                                     |
+| `pnpm test:restore`              | Workspace/files restore and same-version derived totals; 9 onward                                          |
+| `pnpm build`                     | Production build validation; 3 onward; does not establish accounting correctness                           |
 
 Local development, worker and database-start commands must be documented after scaffolding. Integration/restore tests use isolated test databases and private test storage; they must not overwrite user workspaces. Run checks appropriate to the change, fix failures, and attach actual evidence to the increment. Broaden/repeat checks when new work or a failure warrants it.
 
@@ -288,4 +290,4 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is Phase 2 financial-domain design and verification of the completed documentation work. After its review and a new implementation instruction, rebuild Phase 3 within its stated scope; Phase 4 ledger features remain blocked until the new scaffold and financial gates pass. This plan does not authorize implementation, deployment, commits, or pushes.
+The current authorized action is Phase 3 foundation implementation and verification. Phase 4 ledger features remain gated by scaffold validation and executable financial invariants. Deployment, commits and pushes require their corresponding user instructions.

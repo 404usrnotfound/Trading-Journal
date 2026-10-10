@@ -2,11 +2,11 @@
 
 ## Status and source of authority
 
-Status: **Approved Phase 1 architecture; documentation baseline, not currently implemented.** Original design date: 2026-10-06.
+Status: **Approved Phase 1 architecture; platform foundation implemented in Phase 3, financial features deferred.** Original design date: 2026-10-06.
 
 This design uses [Trading_Journal_Codex_Prompt.md](../Trading_Journal_Codex_Prompt.md) in full and [the Phase 0 requirements analysis](requirements-analysis.md). It is based on the merged Phase 0 repository at `7f5f7a479ca79d1b897e1e59d9e8771b33a7f468`. The product specification remains authoritative; this architecture selects technical defaults and identifies financial-method gates without reducing product scope. The current request overrides the source prompt's instruction to implement immediately.
 
-No application features, scaffolding, dependencies, schema, migrations, configuration files, services, or seed data are created in Phase 1. The later Phase 3 scaffold was reverted at the user's request; historical scaffold checks do not validate this documentation-only checkout. Phase 2 now supplies the [financial domain model](domain-model.md), [calculation contracts](financial-calculations.md), [instrument capabilities](instrument-capabilities.md), and [independent examples](financial-fixtures.md). No application build/test or deployment is claimed here. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
+No application features, scaffolding, dependencies, schema, migrations, configuration files, services, or seed data are created in Phase 1. The earlier Phase 3 scaffold was reverted at the user's request. The newly authorized scaffold is rebuilt against Phase 2; [current validation](scaffold-validation.md) is separate from historical checks. Phase 2 now supplies the [financial domain model](domain-model.md), [calculation contracts](financial-calculations.md), [instrument capabilities](instrument-capabilities.md), and [independent examples](financial-fixtures.md). No application build/test or deployment is claimed here. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
 
 ## Architecture in one view
 
@@ -30,7 +30,7 @@ Optional providers never bypass validation, authorization, source provenance or 
 
 ## Technology selections
 
-Versions are **compatible targets**, not installed exact pins. Read-only official package metadata/documentation was checked on 2026-10-06. Phase 3 must recheck engines/peers, select exact stable patches, commit the frozen lockfile and run compatibility checks. No prerelease is selected merely because a package's registry `latest` changes.
+The table records **architecture selections**. Phase 3 pins installed foundation dependencies in package manifests and `pnpm-lock.yaml`; unused future financial/charting packages are deferred. Read-only official package metadata/documentation was checked on 2026-10-06. Phase 3 rechecks engines/peers, pins exact stable patches and supplies a frozen lockfile and compatibility checks; see the current validation record. No prerelease is selected merely because a package's registry `latest` changes.
 
 | Concern | Selection | Why |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ Compatibility constraints matter: Node 24 meets Next's >=20.9 and pg-boss's >=22
 
 ## Code structure and dependencies
 
-The following is a **planned layout**, not folders created during this phase:
+The following layout now exists as the Phase 3 foundation; financial modules remain planned:
 
 ```text
 apps/
@@ -171,7 +171,7 @@ Analytics use the central dictionary specifying campaign/lot/fill/account/portfo
 
 ## Authentication and authorization
 
-Choose Better Auth email/password with database sessions, secure HttpOnly same-origin cookies and the library's verified password mechanisms. Public signup is disabled by default; initial owner creation is an operator-only supported provisioning command. Local core requires no OAuth/SMTP subscription. Production password recovery/email verification require configured mail or a documented secure operator fallback; never pretend delivery works without it.
+Choose Better Auth email/password with database sessions, secure HttpOnly same-origin cookies and the library's verified password mechanisms. Public signup is disabled by default; initial owner creation is an operator-only supported provisioning command. Local core requires no OAuth/SMTP subscription. Phase 3 supplies a secure operator recovery fallback; production email verification requires configured mail; never pretend delivery works without it.
 
 Expose a route-specific authentication gateway around supported library handlers/APIs, not an unfiltered catch-all. Better Auth's default sign-in/session JSON may contain tokens/internal fields. The gateway preserves status and every individual `Set-Cookie`/required header while returning only explicit safe user/session DTOs. The browser uses the application auth contract; server authorization uses the library's server session API. Self-session revocation accepts an owned safe session ID and resolves any required token on the server. Integration tests must prove cookie-based login/logout/revocation still work and response bodies never reveal session tokens.
 
@@ -215,11 +215,11 @@ ESLint (direct CLI), strict TypeScript, Prettier, package-boundary checks, OpenA
 
 Pino structured logs allowlist operation/request/job IDs, pseudonymous actor/workspace, timing/counts and revision/calculation versions. Redact passwords, tokens, cookies, authorization headers, environment secrets, notes, file/source contents, financial payloads and SQL parameters. Audit records are distinct durable facts, atomically written and authorized. Expose safe liveness/readiness, schema checks, worker heartbeat/job lag and useful user errors.
 
-Validate server config with Zod at startup; fail closed for invalid production origins/storage/keys. Separate private config from browser-safe flags. Document future `.env.example` names/defaults only: tenant/auth/job DB URLs, migration URL for tooling only, auth secret/base URL, allowed origin, storage driver/root, limits, log level and optional provider/mail/S3 settings. No credentials or configuration files are created now. Production injects secrets at runtime and uses least-privilege roles, rotation and TLS-verified outbound clients. Core startup cannot require optional provider credentials.
+Validate server config with Zod at startup; fail closed for invalid production origins/storage/keys. Separate private config from browser-safe flags. Document future `.env.example` names/defaults only: tenant/auth/job DB URLs, migration URL for tooling only, auth secret/base URL, allowed origin, storage driver/root, limits, log level and optional provider/mail/S3 settings. Phase 3 provides `.env.example` and generates ignored local configuration with unique credentials; secrets are never committed. Production injects secrets at runtime and uses least-privilege roles, rotation and TLS-verified outbound clients. Core startup cannot require optional provider credentials.
 
 ### Local development and migrations
 
-Phase 3 will supply Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with persistent volumes, private local media, separate test DB and a single command starting web plus worker. A fully containerized app option shares the same interfaces. Setup explicitly runs reviewed migrations and owner provisioning; demo seed is isolated and real workspaces start empty. Existing checkouts are used; no new Git worktree is required.
+Phase 3 supplies Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with persistent volumes, private local media, separate test DB and a single command starting web plus worker. A fully containerized app option shares the same interfaces. Setup explicitly runs reviewed migrations and owner provisioning; demo seed is isolated and real workspaces start empty. Existing checkouts are used; no new Git worktree is required.
 
 Drizzle generates candidate migrations; developers review committed SQL for financial constraints, RLS, metadata policies and data transforms. A one-off migration runner holds a deployment lock with dedicated credentials. Web/worker never auto-migrate or use schema `push` in shared/production environments. Auth/queue upgrades are coordinated in release migrations. Use expand/backfill/contract, compatibility checks and tested restore for destructive recovery, with no automatic financial history rewrite.
 
@@ -258,4 +258,4 @@ The historical requirements analysis intentionally chose no architecture. This p
 | D-19 integrations | Manual core first; broker/data/AI/tax adapters optional, no named provider or live connection | 0001, 0005, 0007; samples/credentials/consent only when pursued |
 | D-20 testing | Independent domain fixtures, real PostgreSQL, Playwright/axe, scenario capability matrix | 0008, development plan; fixture design in Phase 2, executable harness in Phase 3, ledger tests in Phase 4 |
 
-No external credential, hosting decision or broker selection blocks this architecture phase. Detailed tax-jurisdiction behavior, optional providers, benchmark/risk-free assumptions and live integration permissions remain outside core scope. The next work is the documented scaffold/schema/fixture gates **only after a new implementation instruction**.
+No external credential, hosting decision or broker selection blocks this architecture phase. Detailed tax-jurisdiction behavior, optional providers, benchmark/risk-free assumptions and live integration permissions remain outside core scope. Phase 3 is currently authorized only for scaffolding. Financial schema/fixture gates precede Phase 4 features and require the next implementation instruction.

@@ -1,0 +1,24 @@
+{
+  "name": "@journal/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./logging": "./src/logging.ts",
+    "./storage": "./src/storage.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.2",
+    "@journal/contracts": "workspace:*",
+    "@journal/database": "workspace:*",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.3",
+    "pino": "10.4.0",
+    "zod": "4.6.5"
+  }
+}

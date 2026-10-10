@@ -1,6 +1,6 @@
 # ADR 0009: Financial domain contracts and reconciling attribution
 
-- **Status:** Proposed for Phase 2 review; not implemented
+- **Status:** Accepted following Phase 2 approval; financial implementation deferred
 - **Scope:** Domain detail within accepted ADRs 0004–0006; no change to the modular monolith or selected stack.
 - **Resolves:** D-03–D-13 financial primitives and relationships; preserves later operation-specific validation gates.
 

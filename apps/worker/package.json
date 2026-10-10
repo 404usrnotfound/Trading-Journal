@@ -1,0 +1,21 @@
+{
+  "name": "@journal/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./migrate": "./src/migrate.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@journal/server": "workspace:*",
+    "pg-boss": "12.37.0",
+    "pino": "10.4.0",
+    "zod": "4.6.5"
+  }
+}

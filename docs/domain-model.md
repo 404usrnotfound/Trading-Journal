@@ -2,9 +2,9 @@
 
 ## Authority, scope, and status
 
-Design version: `domain-v1`. This is Phase 2 documentation, to be reviewed before implementation. The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative; [Phase 0 requirements](requirements-analysis.md) supply stable requirement and acceptance identifiers. The approved [Phase 1 architecture](architecture.md), particularly ADRs [0004](decisions/0004-financial-kernel-and-ledger.md), [0005](decisions/0005-versioned-domain-and-multicurrency.md), and [0006](decisions/0006-postgres-drizzle-and-migrations.md), sets the technical boundaries.
+Design version: `domain-v1`. This is the approved Phase 2 design, governing later financial implementation. The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative; [Phase 0 requirements](requirements-analysis.md) supply stable requirement and acceptance identifiers. The approved [Phase 1 architecture](architecture.md), particularly ADRs [0004](decisions/0004-financial-kernel-and-ledger.md), [0005](decisions/0005-versioned-domain-and-multicurrency.md), and [0006](decisions/0006-postgres-drizzle-and-migrations.md), sets the technical boundaries.
 
-The Phase 3 scaffold was reverted at the user's request. This checkout contains documentation; it has no application, database schema, migrations, or runnable financial tests. No native instrument capability is validated by the existence of this design.
+The earlier Phase 3 scaffold was reverted at the user's request. The newly authorized Phase 3 supplies platform persistence and infrastructure only; the financial schema and calculations below remain unimplemented. No native instrument capability is validated by the existence of this design.
 
 Read this model with the normative [calculation contracts](financial-calculations.md), [instrument capability design](instrument-capabilities.md), and [independent examples and planned tests](financial-fixtures.md). The model defines logical entities, relationships, states, and invariants. Future reviewed Drizzle/SQL migrations implement these constraints; this document does not create a database.
 
