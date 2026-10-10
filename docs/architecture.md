@@ -2,11 +2,11 @@
 
 ## Status and source of authority
 
-Status: **Proposed architecture, documentation complete subject to review; not implemented.** Date: 2026-10-06.
+Status: **Approved Phase 1 architecture; documentation baseline, not currently implemented.** Original design date: 2026-10-06.
 
 This design uses [Trading_Journal_Codex_Prompt.md](../Trading_Journal_Codex_Prompt.md) in full and [the Phase 0 requirements analysis](requirements-analysis.md). It is based on the merged Phase 0 repository at `7f5f7a479ca79d1b897e1e59d9e8771b33a7f468`. The product specification remains authoritative; this architecture selects technical defaults and identifies financial-method gates without reducing product scope. The current request overrides the source prompt's instruction to implement immediately.
 
-No application features, scaffolding, dependencies, schema, migrations, configuration files, services, or seed data are created in Phase 1. No application build/test or deployment is claimed. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
+No application features, scaffolding, dependencies, schema, migrations, configuration files, services, or seed data are created in Phase 1. The later Phase 3 scaffold was reverted at the user's request; historical scaffold checks do not validate this documentation-only checkout. Phase 2 now supplies the [financial domain model](domain-model.md), [calculation contracts](financial-calculations.md), [instrument capabilities](instrument-capabilities.md), and [independent examples](financial-fixtures.md). No application build/test or deployment is claimed here. [ADRs](decisions/README.md) record selected decisions, alternatives, consequences and validation. [The development plan](development-plan.md) defines later work and acceptance gates; it does not authorize starting it.
 
 ## Architecture in one view
 
@@ -30,7 +30,7 @@ Optional providers never bypass validation, authorization, source provenance or 
 
 ## Technology selections
 
-Versions are **compatible targets**, not installed exact pins. Read-only official package metadata/documentation was checked on 2026-10-06. Phase 2 must recheck engines/peers, select exact stable patches, commit the frozen lockfile and run compatibility checks. No prerelease is selected merely because a package's registry `latest` changes.
+Versions are **compatible targets**, not installed exact pins. Read-only official package metadata/documentation was checked on 2026-10-06. Phase 3 must recheck engines/peers, select exact stable patches, commit the frozen lockfile and run compatibility checks. No prerelease is selected merely because a package's registry `latest` changes.
 
 | Concern | Selection | Why |
 | --- | --- | --- |
@@ -145,7 +145,7 @@ Tenant domain keys are `(workspace_id, id)` using UUIDv4. Tenant foreign keys in
 - Dependent source fills, allocations, costs, postings, audit, invariant-critical inventory state, revision and outbox commit atomically. Lock relevant aggregate rows in a consistent order; re-evaluate from canonical sources where projections are stale. SQL constraints/deferred checks supplement application invariants.
 - Published/posted history is append-only under the runtime role. Correct with reversal/replacement/supersession links, reason/actor/economic/recorded time, and affected-slice recomputation. Setting/price/rule changes never silently rewrite old facts.
 
-[ADR 0004](decisions/0004-financial-kernel-and-ledger.md) and [ADR 0006](decisions/0006-postgres-drizzle-and-migrations.md) define this boundary. Detailed posting fixtures and metric definitions are later financial-feature gates, not invented application results.
+[ADR 0004](decisions/0004-financial-kernel-and-ledger.md) and [ADR 0006](decisions/0006-postgres-drizzle-and-migrations.md) define this boundary. Phase 2 defines detailed postings and calculation/fixture contracts; executable financial validation remains a Phase 4 gate. [ADR 0009](decisions/0009-financial-domain-contracts.md) records the Phase 2 refinements for review.
 
 ### Campaigns, lot attribution, strategies, and risk
 
@@ -165,7 +165,7 @@ All named families remain in the delivery plan: stocks/ETFs/products/funds; cryp
 
 Accounts have a base currency plus balances in multiple currencies. Workspace reporting currency is a view parameter. Preserve actual conversion events and each cost's charged currency, and retain immutable historical price/FX observations with timestamp, pair direction, source and status.
 
-Use transaction-anchored reporting attribution: translate native trading results at realization/mark context and separately expose the difference attributable to original-basis FX, cash FX and costs. This design must be completed with reconciling multi-lot/conversion-fee fixtures before implementation of reporting totals. Changing current rates/reporting currency adds another view rather than replacing historical inputs. No missing FX/price/basis may silently become zero or a fabricated consolidated total; display explained partial coverage only if clearly labeled.
+Use transaction-anchored reporting attribution: translate native trading results at realization/mark context and separately expose the difference attributable to original-basis FX, cash FX and costs. Phase 2's calculation contracts and reconciling multi-lot/conversion-fee examples complete the design; these expectations require executable validation before implementing reporting totals. Changing current rates/reporting currency adds another view rather than replacing historical inputs. No missing FX/price/basis may silently become zero or a fabricated consolidated total; display explained partial coverage only if clearly labeled.
 
 Analytics use the central dictionary specifying campaign/lot/fill/account/portfolio populations, interval, costs, currency and inputs. Cash-flow-adjusted performance is distinct from raw NAV; no deposit-driven recovery, summed percentage/R portfolio returns, or partial ideas hidden in completed-trade counts. TWR/MWR/MAE/MFE require data-sufficiency/solution criteria; optional Sharpe/Sortino/benchmarks remain optional. Broker/manual totals may be compared but not silently combined with incompatible internal definitions.
 
@@ -209,7 +209,7 @@ Workspace backup is versioned JSON plus an optional bundled private-media/source
 
 Vitest/fast-check cover pure financial units and invariants using independent hand/official fixtures. Vitest integration uses real PostgreSQL for transactions, constraints, locks, RLS, import correction/outbox and migrations. Testing Library covers relevant forms/unknown states. Playwright/axe covers user journeys, cross-user isolation, restart persistence, upload/export/restore and responsive/keyboard behavior. Capability claims map to all AC-01–AC-16 scenarios. Mocks are appropriate for provider failures, not substitutes for ledger/database validation.
 
-ESLint (direct CLI), strict TypeScript, Prettier, package-boundary checks, OpenAPI/client drift and Next/worker builds run in future CI with frozen installs. Phase 1 checks only documentation/source coverage and links/consistency. [ADR 0008](decisions/0008-testing-and-operations.md) and the [development plan](development-plan.md) define evidence and future commands.
+ESLint (direct CLI), strict TypeScript, Prettier, package-boundary checks, OpenAPI/client drift and Next/worker builds run in future CI with frozen installs. Phase 0–2 check documentation/source coverage, links, consistency and worked-example arithmetic; the [validation report](phase-2-validation.md) distinguishes that evidence from application tests. [ADR 0008](decisions/0008-testing-and-operations.md) and the [development plan](development-plan.md) define future implementation checks.
 
 ### Logging, configuration and secrets
 
@@ -219,7 +219,7 @@ Validate server config with Zod at startup; fail closed for invalid production o
 
 ### Local development and migrations
 
-Phase 2 will supply Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with persistent volumes, private local media, separate test DB and a single command starting web plus worker. A fully containerized app option shares the same interfaces. Setup explicitly runs reviewed migrations and owner provisioning; demo seed is isolated and real workspaces start empty. Existing checkouts are used; no new Git worktree is required.
+Phase 3 will supply Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with persistent volumes, private local media, separate test DB and a single command starting web plus worker. A fully containerized app option shares the same interfaces. Setup explicitly runs reviewed migrations and owner provisioning; demo seed is isolated and real workspaces start empty. Existing checkouts are used; no new Git worktree is required.
 
 Drizzle generates candidate migrations; developers review committed SQL for financial constraints, RLS, metadata policies and data transforms. A one-off migration runner holds a deployment lock with dedicated credentials. Web/worker never auto-migrate or use schema `push` in shared/production environments. Auth/queue upgrades are coordinated in release migrations. Use expand/backfill/contract, compatibility checks and tested restore for destructive recovery, with no automatic financial history rewrite.
 
@@ -237,7 +237,7 @@ The historical requirements analysis intentionally chose no architecture. This p
 
 | Phase 0 decision | Phase 1 resolution | ADR / remaining feature gate |
 | --- | --- | --- |
-| D-01 stack/boundaries | Next modular monolith, compatible TS/Node/pnpm, explicit REST/Zod, PostgreSQL/Drizzle and selected UI tools | 0001, 0002, 0006; exact patches/install/build in Phase 2 |
+| D-01 stack/boundaries | Next modular monolith, compatible TS/Node/pnpm, explicit REST/Zod, PostgreSQL/Drizzle and selected UI tools | 0001, 0002, 0006; exact patches/install/build in Phase 3 |
 | D-02 tenancy/auth | Personal workspace initially; owner/editor/viewer backend scope; Better Auth DB sessions, global auth versus tenant data | 0003, 0006; provisioning/membership/RLS integration tests |
 | D-03 ledger | Currency-by-currency cash/control postings, append-only corrections and source links | 0004; event posting/settlement fixtures before ledger features |
 | D-04 precision/time | Decimal strings, Decimal.js 160, NUMERIC(78,36), HALF_EVEN boundaries, preserved source time/precision | 0004, 0006; exact rounding/calendar fixtures |
@@ -256,6 +256,6 @@ The historical requirements analysis intentionally chose no architecture. This p
 | D-17 operations | Container/local topology, validated private config, Pino, protected health, controlled migrations/backups | 0006–0008; actual runbooks and recovery drills |
 | D-18 UI | Server components/client islands, shared filter contract, TanStack state, Recharts/table alternative, accessibility checklist | 0002, 0008; desktop/mobile and WCAG evidence |
 | D-19 integrations | Manual core first; broker/data/AI/tax adapters optional, no named provider or live connection | 0001, 0005, 0007; samples/credentials/consent only when pursued |
-| D-20 testing | Independent domain fixtures, real PostgreSQL, Playwright/axe, scenario capability matrix | 0008, development plan; executable harness in Phase 2 |
+| D-20 testing | Independent domain fixtures, real PostgreSQL, Playwright/axe, scenario capability matrix | 0008, development plan; fixture design in Phase 2, executable harness in Phase 3, ledger tests in Phase 4 |
 
 No external credential, hosting decision or broker selection blocks this architecture phase. Detailed tax-jurisdiction behavior, optional providers, benchmark/risk-free assumptions and live integration permissions remain outside core scope. The next work is the documented scaffold/schema/fixture gates **only after a new implementation instruction**.

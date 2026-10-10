@@ -1,6 +1,6 @@
 # ADR 0006: PostgreSQL, explicit relational invariants, and reviewed migrations
 
-- Status: Proposed for Phase 1 review; not implemented
+- Status: Accepted in Phase 1; documentation baseline, not currently implemented
 - Date: 2026-10-06
 - Resolves: requirements-analysis D-01 database/ORM, D-02 ownership keys, D-13 persistence, D-16 queries, D-17 migrations
 

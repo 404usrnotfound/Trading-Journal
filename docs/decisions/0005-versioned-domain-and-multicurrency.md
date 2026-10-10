@@ -1,6 +1,6 @@
 # ADR 0005: Versioned trading domain and multi-currency reporting
 
-- **Status:** Proposed
+- **Status:** Accepted in Phase 1; documentation baseline, not currently implemented
 - **Date:** 2026-10-06
 - **Scope:** Domain boundaries, inventory versus idea attribution, temporal provenance, plans/risk/strategy history, instrument capabilities, and native/reporting-currency views.
 - **Requirements decisions:** D-05–D-12 and temporal aspects of D-13 in [the requirements analysis](../requirements-analysis.md).
@@ -170,7 +170,7 @@ Financial and metric results carry typed availability and provenance. Unknown ba
 - Configurable fields/rules require typed/versioned validation, and automatic evaluation needs explicit required-input contracts.
 - Manual workflows remain first-class. Unsupported automatic features return reasons and compatible manual outputs rather than fake numbers.
 - FX attribution and cash/holding history require independently verified reconciliation fixtures before activation. A current exchange-rate endpoint alone is insufficient.
-- These are proposed documentation decisions. No schema, module, rule engine, metric, or provider integration is implemented or claimed validated by this ADR.
+- These are accepted architectural decisions documented in Phase 1. No currently retained schema, module, rule engine, metric, or provider integration is claimed implemented or validated by this ADR.
 
 ## Validation
 
@@ -188,7 +188,9 @@ Before accepting the relevant feature phase, test:
 
 Map these tests to AC-01–AC-13, AC-15, and AC-16 in the requirements analysis. Workspace authorization for every referenced record remains an independent mandatory check under AC-14. These are planned validations, not completed checks.
 
-## Unresolved domain gates
+## Domain resolution and remaining feature gates
+
+Phase 2's [domain model](../domain-model.md), [calculation contracts](../financial-calculations.md), [capability design](../instrument-capabilities.md), and [fixtures](../financial-fixtures.md) supply the core relationship, posting, attribution, risk, metric and temporal definitions below. [ADR 0009](0009-financial-domain-contracts.md) records the refinements for review. The original Phase 1 gate list is retained here for traceability; operation-specific advanced conventions and executable validation remain explicit in the Phase 2 documents.
 
 This ADR selects the domain separation, FIFO default/override boundary, immutable version/snapshot model, independent states, linked-new-campaign default, capability interface, and FX reporting architecture. Resolve the following before the corresponding features are implemented/accepted:
 

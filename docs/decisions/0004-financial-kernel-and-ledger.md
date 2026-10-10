@@ -1,6 +1,6 @@
 # ADR 0004: Deterministic financial kernel and balanced cash ledger
 
-- **Status:** Proposed
+- **Status:** Accepted in Phase 1; documentation baseline, not currently implemented
 - **Date:** 2026-10-06
 - **Scope:** Financial numeric contracts, cash/control postings, atomic financial commands, correction history, and calculation-versioned projections.
 - **Requirements decisions:** D-03, D-04, financial invariants in D-07, and D-13 in [the requirements analysis](../requirements-analysis.md).
@@ -177,6 +177,10 @@ The numeric envelope, cash/control ledger, append-only correction pattern, comma
 - **Correction and import UX:** Reviewed commit units, conflict resolution, safe downstream batch reversal, and economic identity matching. Reversal is not an authorization to delete dependent records.
 - **Release/replay contract:** Calculation-manifest packaging, supported historical-engine retention, and tested migration/rebuild procedures. Compatibility must be established before a backup is claimed lossless financially.
 - **Performance/concurrency budgets:** Seeded history scale, transaction duration/lock contention budgets, rebuild workload, and measured query limits. Any more granular locking or parallel rebuild scheme must preserve these invariants.
+
+## Phase 2 domain detail
+
+The [domain model](../domain-model.md), [calculation contracts](../financial-calculations.md), and [independent fixtures](../financial-fixtures.md) now define the cash-versus-inventory replay distinction, principal-versus-quote basis, exact attribution remainder, and signed cash/holding/transit FX bridges. [ADR 0009](0009-financial-domain-contracts.md) records these refinements for Phase 2 review. They do not replace this ADR's invariants or certify implemented behavior.
 
 ## References
 
