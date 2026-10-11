@@ -1,8 +1,8 @@
 # Trading Journal
 
-A broker-independent, multi-asset trading journal. Phase 3 supplies the authenticated shell, persisted workspace preferences, PostgreSQL-backed API, private storage and durable worker. Phase 4 adds financial catalogs, balanced cash commands, ordinary share/ETF/non-rebasing spot inventory, campaign attribution, corrections and explicit price/FX valuation through authenticated APIs. Financial entry screens, dashboards and the later product workflows remain deferred.
+A broker-independent, multi-asset trading journal. Phase 3 supplies the authenticated shell, persisted workspace preferences, PostgreSQL-backed API, private storage and durable worker. Phase 4 adds financial catalogs, balanced cash commands, ordinary share/ETF/non-rebasing spot inventory, campaign attribution, corrections and explicit price/FX valuation through authenticated APIs. Phase 5 adds strategy management screens, immutable playbook versions, explicit trade references and private strategy attachments. Financial entry screens, dashboards and the later product workflows remain deferred.
 
-Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Core ledger](docs/core-ledger.md) and [financial metrics](docs/financial-metrics.md) describe the current backend. [Scaffold validation](docs/scaffold-validation.md) records Phase 3 evidence; [Phase 4 validation](docs/phase-4-validation.md) records current financial checks and limitations.
+Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Core ledger](docs/core-ledger.md), [financial metrics](docs/financial-metrics.md) and [strategy management](docs/strategies.md) describe the current application. [Scaffold validation](docs/scaffold-validation.md), [Phase 4 validation](docs/phase-4-validation.md) and [Phase 5 validation](docs/phase-5-validation.md) record the executed checks and limits for their increments.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ corepack pnpm dev
 
 The owner command prompts for a hidden password of 12–128 characters. Public registration is disabled; there is no default password. For automation, bind `BOOTSTRAP_PASSWORD` securely in the child environment instead of putting it in command arguments, shell history, `.env.example`, or source control.
 
-Visit **http://localhost:3000/sign-in**. `dev` starts web and worker together; Ctrl+C stops only its managed processes. The owner starts with an empty personal workspace. Edit its IANA timezone and optional reporting-currency code preference to test persistence; this preference is separate from the financial currency registry and the explicit reporting currency required by valuation requests.
+Visit **http://localhost:3000/sign-in**. `dev` starts web and worker together; Ctrl+C stops only its managed processes. The owner starts with an empty personal workspace. Open **Strategies** to create a playbook, publish an edited version, browse history and attach a screenshot or reference document. Edit the workspace's IANA timezone and optional reporting-currency code preference to test persistence; this preference is separate from the financial currency registry and the explicit reporting currency required by valuation requests.
 
 `env:init` creates an ignored `.env` with fresh local credentials and `.private/storage`, with private permissions. Rerunning it preserves existing configuration. `.env.example` documents names and placeholders; it is not a usable credentials file. Never commit `.env`, private media, database dumps, session tokens, or logs containing secrets.
 
@@ -63,7 +63,7 @@ corepack pnpm exec playwright install --with-deps chromium
 corepack pnpm test:e2e
 ```
 
-Playwright provisions generated test identities and starts built web assets on port 3002 against the isolated test database. Its shell journeys check login/logout, preferences, concurrency, keyboard access, desktop/mobile layouts and both themes; current financial API smoke coverage and actual executed outcomes are recorded in [Phase 4 validation](docs/phase-4-validation.md). Financial entry/dashboard journeys remain deferred. If browser downloads are unavailable but a compatible Chromium is installed, use the explicit supported override:
+Playwright provisions generated test identities and starts built web assets on port 3002 against the isolated test database. Its journeys check login/logout, preferences, concurrency, keyboard access, desktop/mobile layouts and both themes, financial API persistence, and strategy publication, historical trade pins, private files and viewer permissions. Actual executed outcomes are recorded in [Phase 4 validation](docs/phase-4-validation.md) and [Phase 5 validation](docs/phase-5-validation.md). Financial entry/dashboard journeys remain deferred. If browser downloads are unavailable but a compatible Chromium is installed, use the explicit supported override:
 
 ```sh
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium corepack pnpm test:e2e
@@ -98,6 +98,8 @@ All server configuration is validated before use. Production requires HTTPS `APP
 - Worker `http://127.0.0.1:3101/health/live` and `/health/ready`: private loopback liveness and live queue/worker readiness. No public production exposure is intended.
 - `GET /api/v1/session`, workspace reads and owner preference updates: shared Zod/OpenAPI DTOs, current membership checks, RLS and session-bound CSRF for mutations.
 - `/api/v1/workspaces/{workspaceId}/financial/{resource}`: viewer reads and editor/owner commands, strict decimal-string contracts, UUIDv4 `Idempotency-Key`, same-origin/session-CSRF checks, tenant RLS and atomic audit/outbox intent. See [core ledger](docs/core-ledger.md) for resources, filters and exact request examples.
+- `/api/v1/workspaces/{workspaceId}/strategies`: strategy CRUD, immutable history and linked trades; viewer reads, editor/owner mutations, optimistic revisions and command retries. Financial trade creation can explicitly pin a strategy version.
+- `/api/v1/workspaces/{workspaceId}/strategy-attachments`: private PNG/JPEG/WebP/PDF uploads up to 10 MiB, authorized delivery and removal of unused files. Historical version references prevent file deletion. See [strategy management](docs/strategies.md).
 
 `corepack pnpm dev:worker` starts only the development worker. After `build`, `corepack pnpm start` starts web and worker with the configured environment; `start:web` and `start:worker` start them independently. A local HTTP built-assets smoke run keeps `NODE_ENV=development` or `test`. Deployments use `NODE_ENV=production`, HTTPS at a trusted reverse proxy, persistent private media, PostgreSQL, and a separate one-shot migration job before readiness-gated rollout. The standalone web launcher copies static assets before starting. No deployment is performed by this phase; Docker Compose here supplies databases, not a production hosting platform.
 
@@ -137,4 +139,10 @@ Financial amounts use JSON decimal strings, PostgreSQL `NUMERIC(78,36)` and an i
 
 Cash and holding transfers commit synchronously with conserved lineage. Campaign FIFO attribution is distinct from account lot realization. Corrections append reversals/replacements and rebuild canonical inventory, with guards for transferred descendants and reviewed allocations. Price/FX observations and historical references retain provenance. Valuation requires explicit account IDs, reporting currency, as-of instant, source priorities and freshness windows; missing inputs produce explained null metrics or partial NAV, never invented zero.
 
-Valuation returns the current source revision, calculation manifests and selected dependencies for an as-of restatement. Archived reports and tested restore are deferred. Full strategies/plans/risk, imports/reconciliation, advanced native events, broker integrations, dashboards, performance analytics/jobs, exports and complete product journeys remain later work. Delayed transfer/transit workflows are disabled; pure cash-FX/transit fixtures do not establish persisted support.
+Valuation returns the current source revision, calculation manifests and selected dependencies for an as-of restatement. Archived reports and tested restore are deferred. Frozen trade plans/risk assessment, imports/reconciliation, advanced native events, broker integrations, dashboards, performance analytics/jobs, exports and complete product journeys remain later work. Delayed transfer/transit workflows are disabled; pure cash-FX/transit fixtures do not establish persisted support.
+
+## Phase 5 scope
+
+Strategies are first-class workspace identities with complete immutable versions. Every saved edit publishes the next version; a trade's explicit version pin preserves its original rules, checklist, parameters and attachment references. Existing unclassified trades can receive an explicitly retrospective link. Strategy deletion archives the identity and retains history. Strategy screens support creation, editing, filters, detail, historical definitions and linked trades; all data uses server persistence.
+
+This increment adds no strategy performance metrics or automatic rule/risk assessments. Narrative rules and exact typed parameters describe the playbook without executing user expressions or inventing an R denominator. Follow [strategy management](docs/strategies.md) for exact semantics and [Phase 5 validation](docs/phase-5-validation.md) for test evidence. No additional package, service or external credential is required; existing migration and development commands apply the new additive schema.

@@ -30,7 +30,6 @@ export const runtime = 'nodejs';
 
 const upcomingNavigation = [
   { label: 'Trades', icon: Activity },
-  { label: 'Strategies', icon: Layers },
   { label: 'Portfolio & accounts', icon: Wallet },
   { label: 'Analytics', icon: ChartNoAxesCombined },
   { label: 'Journal & reviews', icon: BookOpen },
@@ -82,6 +81,15 @@ export default async function OverviewPage({
             <LayoutDashboard size={18} aria-hidden="true" />
             <span>Overview</span>
           </a>
+          {workspace && (
+            <a
+              href={`/strategies?workspace=${encodeURIComponent(workspace.id)}`}
+              className="nav-item"
+            >
+              <Layers size={18} aria-hidden="true" />
+              <span>Strategies</span>
+            </a>
+          )}
           {upcomingNavigation.map(({ label, icon: Icon }) => (
             <button key={label} className="nav-item" disabled aria-describedby="navigation-note">
               <Icon size={18} aria-hidden="true" />
@@ -91,7 +99,7 @@ export default async function OverviewPage({
           ))}
         </nav>
         <p id="navigation-note" className="navigation-note">
-          Trading tools are not available in this foundation release.
+          Use Strategies to manage your playbook. Additional trading screens will follow.
         </p>
         <div className="sidebar-bottom">
           <Badge>Foundation release</Badge>
@@ -218,15 +226,15 @@ export default async function OverviewPage({
             <div>
               <h2>Built in thoughtful steps</h2>
               <p>
-                Trade records, strategies and financial calculations will follow after the platform
-                foundation is verified.
+                Your financial foundation and versioned strategy playbook are ready. Recording
+                screens, reviews and analytics will follow in later releases.
               </p>
             </div>
             <ArrowRight size={20} className="next-steps-arrow" aria-hidden="true" />
           </Panel>
           <footer className="workspace-footer">
             <span>Trading Journal · Platform foundation</span>
-            <span>Financial workflows are not implemented in this release.</span>
+            <span>Versioned strategies and the core financial API are available.</span>
           </footer>
         </main>
       </div>

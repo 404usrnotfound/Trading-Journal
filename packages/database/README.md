@@ -9,7 +9,10 @@ belong to `packages/domain`; authorized financial commands belong to
 [financial metrics](../../docs/financial-metrics.md) for current API behavior and
 limits. Schema availability does not establish complete financial workflows or
 product acceptance; executed evidence belongs in
-[Phase 4 validation](../../docs/phase-4-validation.md).
+[Phase 4 validation](../../docs/phase-4-validation.md). Phase 5 adds workspace-owned
+strategies, immutable definitions, trade-version pins and private attachment
+metadata; see [strategy management](../../docs/strategies.md) and
+[Phase 5 validation](../../docs/phase-5-validation.md).
 
 Use `createDatabase(url)` to create a pool and typed Drizzle client. Runtime URLs
 must use the separated `journal_app`, `journal_auth`, and `journal_jobs` roles.
@@ -147,9 +150,35 @@ applied migration. Migration `0000_platform_foundation` remains the original
 platform migration; `0001_platform_identity_constraints` remains the additive
 platform identity upgrade that established readiness version 2. Neither historical
 migration is rewritten by Phase 4. The additive `0002_core_financial_ledger`
-migration creates the financial foundation and advances the current release's
-schema readiness to **version 3**, checked read-only by
-[readiness.ts](src/readiness.ts). Runtime readiness also requires PostgreSQL 17.
+migration creates the financial foundation and established schema readiness
+version 3. Phase 5's additive `0003_strategy_management` established version 4.
+The forward-only `0004_strategy_definition_size` migration independently enforces
+the shared compact UTF-8 definition size limit without changing published migration
+files or strategy snapshots, advancing the current release to **version 5**, checked
+read-only by [readiness.ts](src/readiness.ts).
+Runtime readiness also requires PostgreSQL 17.
 Use the root's `corepack pnpm db:migrate`, `corepack pnpm db:migrate:check` and
 `corepack pnpm test:integration` commands with the documented private environment
 bindings; schema readiness alone does not certify every financial capability.
+
+The strategy schema is declared in [strategy-schema.ts](src/strategy-schema.ts).
+Strategy identities select a current immutable `strategy_versions` snapshot.
+Publication advances both the identity revision and contiguous version sequence;
+archive advances the identity revision while retaining its last version. Deferred
+constraints require the current pointer and complete attachment reference set
+to match the accepted publication. Published definitions, typed attachment links,
+command responses and trade-version pins cannot be updated or deleted.
+
+`strategy_commands` and atomic audit records are independent of financial source
+revisions. Strategy/attachment commands share a workspace advisory mutex; identity
+and attachment row locks protect publication, archive, pinning and file removal.
+Trade classification changes also serialize with the existing financial catalog
+lock, without posting new cash or rebuilding authoritative inventory. Forced RLS
+and composite workspace references apply to every new table.
+
+Private attachment metadata progresses from pending reservation to ready after
+file publication and checksum verification. Removal commits a tombstone before
+filesystem cleanup, and all historical version references prevent removal. The
+filesystem does not share the PostgreSQL transaction: retries resume pending
+uploads or removal cleanup, and crashes can leave unpublished private objects
+requiring operator review. No file is served from a pending/removed reservation.

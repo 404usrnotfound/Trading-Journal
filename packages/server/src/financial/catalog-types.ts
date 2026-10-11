@@ -149,14 +149,21 @@ export type OrderDto = Omit<CreateOrderInput, 'legs' | 'sourceNamespace' | 'sour
   }[];
 };
 
-export type CreateTradeInput = { title: string; classification: 'active-trading' | 'investing' };
-export type TradeDto = CreateTradeInput & {
+export type CreateTradeInput = {
+  title: string;
+  classification: 'active-trading' | 'investing';
+  strategyVersionId?: string | undefined;
+};
+export type TradeDto = Omit<CreateTradeInput, 'strategyVersionId'> & {
   id: string;
   status: 'planned' | 'open' | 'partially_closed' | 'closed' | 'canceled';
   revision: number;
   archivedAt: string | null;
   /** Historical closure is retained; changed quantity/obligations require review. */
   closureReviewRequired: boolean;
+  strategyId: string | null;
+  strategyVersionId: string | null;
+  strategyLinkTiming: 'recorded-with-trade' | 'retrospective' | null;
 };
 export type AddTradeLegInput = {
   tradeId: string;

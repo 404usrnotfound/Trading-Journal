@@ -935,3 +935,345 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Versioned strategy playbook. */
+.strategies-main {
+  max-width: 1480px;
+}
+.strategy-toolbar,
+.strategy-actions,
+.strategy-row-title,
+.strategy-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.strategy-toolbar {
+  justify-content: space-between;
+  margin: 20px 0;
+}
+.strategy-toolbar .field {
+  min-width: 160px;
+}
+.strategy-toolbar .field:first-child {
+  flex: 1;
+}
+.strategy-toolbar label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.strategy-split {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+.strategy-list {
+  display: grid;
+  gap: 12px;
+}
+.strategy-card {
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+.strategy-card[aria-current='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.strategy-card strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.strategy-card p {
+  margin-top: 8px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.strategy-card small {
+  display: block;
+  margin-top: 12px;
+  color: var(--muted);
+}
+.strategy-detail,
+.strategy-editor {
+  padding: 28px;
+  min-width: 0;
+}
+.strategy-detail-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.strategy-detail-heading h2 {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+.strategy-detail .strategy-actions {
+  margin: 20px 0;
+}
+.strategy-readonly-note,
+.strategy-history-note {
+  color: var(--muted);
+  padding: 12px 0;
+}
+.strategy-section {
+  margin-top: 28px;
+}
+.strategy-section h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.strategy-definitions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+.strategy-definitions div {
+  min-width: 0;
+}
+.strategy-definitions dt {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.strategy-definitions dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.strategy-rules {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.strategy-empty {
+  padding: 36px;
+  text-align: center;
+  color: var(--muted);
+}
+.strategy-empty h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.strategy-form {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+.strategy-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.strategy-fieldset legend {
+  padding: 0 8px;
+  font-weight: 700;
+}
+.strategy-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.strategy-field {
+  min-width: 0;
+}
+.strategy-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.strategy-field.wide {
+  grid-column: 1 / -1;
+}
+.strategy-field input:not([type='checkbox']),
+.strategy-field select,
+.strategy-field textarea,
+.strategy-toolbar input,
+.strategy-toolbar select,
+.strategy-version-select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+}
+.strategy-field textarea {
+  min-height: 94px;
+  resize: vertical;
+}
+.strategy-field input[aria-invalid='true'],
+.strategy-field textarea[aria-invalid='true'] {
+  border-color: var(--error);
+}
+.strategy-field small,
+.strategy-field .field-help {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+}
+.strategy-repeater {
+  display: grid;
+  gap: 14px;
+}
+.strategy-repeater-row {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.strategy-repeater-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.strategy-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.strategy-check input {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.strategy-toolbar .strategy-check {
+  display: flex;
+  align-self: flex-end;
+  min-height: 42px;
+  margin-bottom: 0;
+}
+.strategy-errors {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--error);
+  color: var(--error);
+  background: var(--error-surface);
+}
+.strategy-errors ul {
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+.strategy-status {
+  padding: 12px 0;
+  color: var(--accent-text);
+}
+.strategy-attachment-list {
+  padding-left: 20px;
+}
+.strategy-attachment-list li {
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+.strategy-attachment-list a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.strategy-trade-list {
+  list-style: none;
+  padding: 0;
+}
+.strategy-trade-list li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.strategy-comparison {
+  width: 100%;
+  border-collapse: collapse;
+}
+.strategy-comparison th,
+.strategy-comparison td {
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.strategy-comparison th {
+  color: var(--muted);
+  font-size: 12px;
+}
+.strategy-history-control {
+  max-width: 320px;
+  margin-top: 20px;
+}
+.strategy-history-control label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.strategy-editor > h2 {
+  font-size: 22px;
+}
+.strategy-editor > p {
+  margin-top: 8px;
+  color: var(--muted);
+}
+.strategy-inline-notice {
+  padding: 16px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-radius: 8px;
+  margin-top: 16px;
+}
+@media (max-width: 1050px) {
+  .strategy-split {
+    grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.6fr);
+    gap: 16px;
+  }
+  .strategy-detail,
+  .strategy-editor {
+    padding: 20px;
+  }
+  .strategy-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .strategy-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .strategy-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .strategy-toolbar {
+    align-items: stretch;
+  }
+  .strategy-toolbar .field {
+    flex-basis: 100%;
+  }
+  .strategy-definitions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .strategy-fieldset {
+    padding: 16px;
+  }
+  .strategy-actions .button {
+    flex: 1;
+  }
+}
+@media (max-width: 480px) {
+  .strategy-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .strategy-detail,
+  .strategy-editor {
+    padding: 16px;
+  }
+}

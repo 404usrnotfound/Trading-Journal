@@ -164,6 +164,7 @@ export const archiveFinancialSchema = z.strictObject({
 export const tradeCreateSchema = z.strictObject({
   title: label,
   classification: z.enum(['active-trading', 'investing']),
+  strategyVersionId: financialIdSchema.optional(),
 });
 export const tradeLegCreateSchema = z.strictObject({
   tradeId: financialIdSchema,
@@ -333,6 +334,10 @@ export const orderResponseSchema = z.strictObject({
 });
 export const tradeResponseSchema = tradeCreateSchema.extend({
   ...archiveFields,
+  archivedAt: z.union([financialInstantSchema, z.null()]),
+  strategyVersionId: z.union([financialIdSchema, z.null()]),
+  strategyId: z.union([financialIdSchema, z.null()]),
+  strategyLinkTiming: z.enum(['recorded-with-trade', 'retrospective']).nullable(),
   status: z.enum(['planned', 'open', 'partially_closed', 'closed', 'canceled']),
   closureReviewRequired: z.boolean(),
 });

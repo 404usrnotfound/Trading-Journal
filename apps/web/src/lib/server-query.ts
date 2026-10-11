@@ -2,7 +2,7 @@ import { ApplicationError } from '@journal/server';
 import { notFound, redirect } from 'next/navigation';
 import { apiFailure } from './api-response';
 
-type PageQuery = 'session.read' | 'workspace.list' | 'workspace.read';
+type PageQuery = 'session.read' | 'workspace.list' | 'workspace.read' | 'strategy.read';
 
 /** Keep SQL diagnostics and private source values out of Next's default error logger. */
 export async function safeServerQuery<T>(

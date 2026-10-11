@@ -11,6 +11,10 @@ export { createFinancialServices, createFinancialApi } from './financial/api.js'
 export { createCatalogServices } from './financial/catalog.js';
 export { createFinancialLedger } from './financial/ledger.js';
 export { createFinancialObservations } from './financial/observations.js';
+export { createStrategyServices } from './strategies/service.js';
+export { createStrategyApi } from './strategies/api.js';
+export { createStrategyAttachmentServices } from './strategies/attachments.js';
+export { createStrategyAttachmentApi } from './strategies/attachment-api.js';
 export type * from './financial/catalog-types.js';
 export type * from './financial/ledger-types.js';
 export {

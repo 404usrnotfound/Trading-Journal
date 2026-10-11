@@ -1,5 +1,7 @@
 import { z } from 'zod';
 export * from './financial.js';
+export * from './strategies.js';
+export * from './strategy-attachments.js';
 
 export const healthResponseSchema = z.strictObject({
   status: z.literal('ok'),

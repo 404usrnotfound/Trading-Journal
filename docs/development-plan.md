@@ -4,7 +4,7 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current increment implements Phase 4 financial foundations against the approved Phase 2 design.** Phases 0–2 are approved and merged; Phase 3 foundation evidence is recorded in [scaffold-validation.md](scaffold-validation.md). Financial catalogs, the pure kernel, persisted ledger/inventory commands and authenticated read APIs now exist. Phase 4 verification and remaining limits are recorded in [phase-4-validation.md](phase-4-validation.md); the authorized core backend scope is implemented and its final checks passed. Financial feature screens, dashboards and the later product workflows have not started.
+**The current increment implements Phase 5 strategy management against the approved domain and architecture.** Phases 0–4 are approved and merged. [Scaffold validation](scaffold-validation.md) and [Phase 4 validation](phase-4-validation.md) preserve their actual financial/platform evidence. Strategies now have workspace-owned identities, complete immutable versions, explicit trade pins, private attachments and management screens. Current checks and limits belong in [Phase 5 validation](phase-5-validation.md). Financial entry screens, dashboards, frozen trade plans and the later product workflows remain deferred.
 
 | Phase          | Result                                                                                                 | Current status                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -13,7 +13,7 @@ The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative
 | 2              | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Approved and merged; authority for the Phase 4 implementation                          |
 | 3              | Runnable platform scaffolding and security foundations                                                 | New foundation implemented; current clean-environment verification recorded separately |
 | 4              | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX                             | Core backend implemented and verified; later workflows remain scoped below             |
-| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Not started                                                                            |
+| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Strategy management implemented; frozen plans and full trade workflows remain deferred |
 | 6              | Universal imports, corrections, and reconciliation                                                     | Not started                                                                            |
 | 7              | Recording/review and settlement workflows for every asset family                                       | Not started                                                                            |
 | 8              | Risk monitoring, portfolio performance, and drill-down analytics                                       | Not started                                                                            |
@@ -146,17 +146,21 @@ The authorized Phase 4 core backend is implemented and verified; the capabilitie
 
 ### Phase 5: strategies, plans, and trading ideas
 
-Resolve G-05 and build the core playbook and guided/advanced entry as functioning journeys using Phase 4 financial services.
+The authorized strategy management slice builds the core playbook on Phase 4 financial services. [Strategy management](strategies.md) defines publication, pinning, concurrency and file semantics. Complete G-05 frozen plan/risk semantics and guided/advanced trade entry remain later authorized work.
 
-- [ ] Provide strategy list/detail/editor/history/linked-trade/comparison workflows. Capture all specified descriptive, eligibility, regime, entry/invalidation, management/exit, sizing/limit, checklist/example/reference and schedule fields.
-- [ ] Separate named setups from strategies; version rules/effective dates, typed parameters and custom fields without source edits. Keep unclassified trades visible.
+- [x] Provide strategy list/detail/editor/history/linked-trade and rule-definition comparison workflows. Capture all specified descriptive, eligibility, regime, entry/confirmation/invalidation, stop/target/management/exit, sizing/risk, checklist/example/reference, notes/tags and schedule fields. Strategy/version performance comparisons remain Phase 8 work.
+- [x] Keep named setups distinct within immutable strategy definitions; version rules/effective dates and typed decimal/boolean/text/enum parameters without source edits. Preserve optional classification, and label links made to existing trades retrospective.
+- [x] Publish complete immutable snapshots on create/edit, enforce optimistic revisions and idempotent retries, archive without deleting historical rules or media, and pin trades explicitly to the selected version.
+- [x] Store private strategy screenshots/reference documents with size/type/signature checks, authorized delivery, content hashes and immutable historical references. Journal/import attachments and complete media restore remain Phase 9 work.
 - [ ] Freeze original plans and original risk; label retrospective imported/late plans and log changes. Separate manual/automatic rule assessments; missing required input never becomes a pass.
 - [ ] Implement campaign/leg/order/fill separation, concurrent ideas in one instrument, conserved fill cost/quantity splits, explicit completion/reopening, and separate lifecycle/completeness/reconciliation dimensions.
 - [ ] Support open/partial/closed/canceled-no-execution/imported-incomplete/reconciled presentations; canceled orders create no holdings/P&L and hypotheticals remain separate.
 - [ ] Provide guided relevant-field entry and advanced editing with duplicate protection and keyboard operation. Each idea has plan-versus-actual, execution/cash timeline, leg/lot allocations, financial breakdown, audit history, rule outcomes and review fields.
 - [ ] Link mistakes/emotions/lessons/tags, notes and draft autosave; show strategy/version/setup comparison sample sizes and completeness. Complete advanced performance in Phase 8 and media storage in Phase 9.
 
-Evidence: frozen-plan/version/risk fixtures, shared-fill conservation integration tests, and guided recording/version-change/review end-to-end journeys. Complete principal **AC-02**, **AC-03**, **AC-12** recording cases and extend **AC-14**, **AC-16**.
+Current strategy evidence covers immutable complete snapshots, exact parameters, explicit historical trade pins, concurrent publication, tenant permissions and private files through PostgreSQL/API/UI tests and a browser version-change journey. [Phase 5 validation](phase-5-validation.md) records executed results. This supplies the strategy-version portion of **AC-12** and extends **AC-14** and **AC-16**. Later frozen-plan/risk fixtures, shared-fill workflow tests and guided recording/review journeys must complete the broader **AC-02**, **AC-03** and **AC-12** cases.
+
+Final strategy increment checks passed: 313 unit/property/UI tests, 201 PostgreSQL tests, seven browser journeys with accessibility/visual checks, schema version 5 migrations, lint, formatting, types, production builds and isolated development/standalone process-restart persistence. Existing financial calculations and published Phase 0–4 authority remain unchanged.
 
 ### Phase 6: imports, corrections, and reconciliation
 
@@ -204,7 +208,7 @@ Evidence: independent metric and risk fixtures, solver/undefined/missing-data ca
 Complete G-06 storage/restore contracts before file and backup workflows. Ordinary notes and security prerequisites may be introduced earlier; this increment completes the specified journeys.
 
 - [ ] Provide daily notes, session preparation/end-of-session, weekly/monthly reviews, goals, recurring mistakes/improvement actions, templates and configurable emotions/process quality. Link reviews to ideas/strategies/periods; deterministic summaries work without AI.
-- [ ] Add private before/during/after screenshots, strategy examples and reference documents with size/type checks, safe rendering/sanitization, server authorization and controlled delivery. The proposed configurable attachment limit is 20 MiB. Extend authorization tests to stored import source files.
+- [ ] Add private before/during/after screenshots and import source files with size/type checks, safe rendering/sanitization, server authorization and controlled delivery. Strategy examples/reference documents are implemented in Phase 5 with a fixed 10 MiB limit and PNG/JPEG/WebP/PDF support; the broader attachment workflow retains its proposed configurable 20 MiB limit for later review.
 - [ ] Complete persistent preferences, searchable/filterable/sortable/paginated tables, column selection, saved views, sensible defaults/inline validation and working quick actions. Review draft autosave/conflict behavior.
 - [ ] Export filtered trades, fills, cash, strategies, reviews and analytics with consistent filters/currencies/populations and spreadsheet-formula protection.
 - [ ] Provide lossless versioned workspace JSON backup plus the documented private-file package/manifest; preserve IDs/relationships/source broker/import/audit provenance and calculation versions. Initially restore only into a new/empty workspace: remap the workspace namespace, retain domain IDs/relationships, and map owner identity deliberately. Merge into a populated workspace is outside this initial restore capability.
@@ -228,7 +232,7 @@ No phase authorizes live trade placement, live brokerage credential connection o
 
 ## Acceptance scenario traceability
 
-The table below sequences full product acceptance; none of its scenarios is claimed complete by this backend increment. Phase 2 supplied independent fixture designs in [financial-fixtures.md](financial-fixtures.md); Phase 4 adds executable kernel/database/API cases with actual results in [phase-4-validation.md](phase-4-validation.md). The capability matrix must retain concrete feature/test identifiers, implemented support level, manual fallback and limitations. Phase 10 reruns the complete product-level matrix.
+The table below sequences full product acceptance; none of its scenarios is claimed complete by this increment. Phase 2 supplied independent fixture designs in [financial-fixtures.md](financial-fixtures.md); Phase 4 adds executable kernel/database/API cases with actual results in [phase-4-validation.md](phase-4-validation.md), and [Phase 5 validation](phase-5-validation.md) adds strategy-version, pinning, media and management evidence. The capability matrix must retain concrete feature/test identifiers, implemented support level, manual fallback and limitations. Phase 10 reruns the complete product-level matrix.
 
 | Scenario | Required observable outcome                                                                                                       | First implementation stages; final verification                                        |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -297,4 +301,4 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is Phase 4 backend financial implementation and verification. The current run must satisfy scaffold regression and executable financial invariants before Phase 4 completion is recorded. Financial screens, later-phase workflows, deployment, commits and pushes remain outside this increment.
+The current authorized action is Phase 5 strategy management and verification. The increment must preserve existing ledger invariants and pass complete platform regressions alongside strategy version/pin/file tests. Strategy performance analytics, frozen trade plans, full financial entry screens, other later-phase workflows, deployment, commits and pushes remain outside this increment.

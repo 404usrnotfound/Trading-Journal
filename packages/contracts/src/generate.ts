@@ -23,6 +23,8 @@ import {
 } from './index.js';
 import { z } from 'zod';
 import * as financial from './financial.js';
+import * as strategies from './strategies.js';
+import * as strategyAttachments from './strategy-attachments.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -68,6 +70,16 @@ for (const [name, schema] of Object.entries(financial)) {
       schema,
     );
 }
+for (const [name, schema] of Object.entries(strategies.strategySchemaComponents))
+  registerSharedSchema(name, schema);
+for (const collection of [strategies, strategyAttachments])
+  for (const [name, schema] of Object.entries(collection)) {
+    if (name.endsWith('Schema') && schema instanceof z.ZodType && !name.endsWith('QuerySchema'))
+      registerSharedSchema(
+        name.charAt(0).toUpperCase() + name.slice(1).replace(/Schema$/u, ''),
+        schema,
+      );
+  }
 const response = (schema: z.ZodType) => ({
   description: 'Validated application DTO',
   content: { 'application/json': { schema } },
@@ -76,6 +88,187 @@ const problem = {
   description: 'Safe problem details; no credentials or database diagnostics',
   content: { 'application/problem+json': { schema: problemResponseSchema } },
 };
+const strategyPrefix = '/api/v1/workspaces/{workspaceId}/strategies';
+const strategyCollectionParams = z.strictObject({ workspaceId: financial.financialIdSchema });
+const strategyIdentityParams = strategyCollectionParams.extend({
+  strategyId: financial.financialIdSchema,
+});
+const strategyVersionParams = strategyIdentityParams.extend({
+  versionId: financial.financialIdSchema,
+});
+const strategyMutationHeaders = z.object({
+  Origin: z.url(),
+  'X-CSRF-Token': z.string().min(1),
+});
+const strategyProblems = {
+  400: problem,
+  401: problem,
+  403: problem,
+  404: problem,
+  409: problem,
+  413: problem,
+  415: problem,
+  422: problem,
+  500: problem,
+};
+for (const [suffix, params, query, output] of [
+  [
+    '',
+    strategyCollectionParams,
+    strategies.strategyListQuerySchema,
+    strategies.strategyListResponseSchema,
+  ],
+  ['/{strategyId}', strategyIdentityParams, undefined, strategies.strategyResponseSchema],
+  [
+    '/{strategyId}/versions',
+    strategyIdentityParams,
+    strategies.strategyVersionsQuerySchema,
+    strategies.strategyVersionListResponseSchema,
+  ],
+  [
+    '/{strategyId}/versions/{versionId}',
+    strategyVersionParams,
+    undefined,
+    strategies.strategyVersionResponseSchema,
+  ],
+  [
+    '/{strategyId}/trades',
+    strategyIdentityParams,
+    strategies.strategyTradesQuerySchema,
+    strategies.strategyTradesResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method: 'get',
+    path: strategyPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page.',
+    request: { params, ...(query ? { query } : {}) },
+    responses: { 200: response(output), ...strategyProblems },
+  });
+for (const [method, suffix, params, input, output] of [
+  [
+    'post',
+    '',
+    strategyCollectionParams,
+    strategies.strategyCreateSchema,
+    strategies.strategyResponseSchema,
+  ],
+  [
+    'put',
+    '/{strategyId}',
+    strategyIdentityParams,
+    strategies.strategyUpdateSchema,
+    strategies.strategyResponseSchema,
+  ],
+  [
+    'delete',
+    '/{strategyId}',
+    strategyIdentityParams,
+    strategies.strategyArchiveSchema,
+    strategies.strategyResponseSchema,
+  ],
+  [
+    'post',
+    '/{strategyId}/trade-links',
+    strategyIdentityParams,
+    strategies.strategyTradeLinkCreateSchema,
+    strategies.strategyTradeLinkResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method,
+    path: strategyPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Editor/owner strategy command. Definitions are complete immutable snapshots, bounded to 196608 UTF-8 bytes; JSON request bodies are bounded to 262144 bytes. Changes append a version and never rewrite historical trade references. Deletion archives the identity. Late trade classification is explicitly retrospective.',
+    request: {
+      params,
+      headers: strategyMutationHeaders,
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: { 200: response(output), ...strategyProblems },
+  });
+const attachmentPrefix = '/api/v1/workspaces/{workspaceId}/strategy-attachments';
+const attachmentIdentityParams = strategyCollectionParams.extend({
+  attachmentId: financial.financialIdSchema,
+});
+const binarySchema = z.string().openapi({ format: 'binary' });
+const attachmentBinaryContent = Object.fromEntries(
+  ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'].map((mediaType) => [
+    mediaType,
+    { schema: binarySchema },
+  ]),
+);
+registry.registerPath({
+  method: 'post',
+  path: attachmentPrefix,
+  security: [{ sessionCookie: [] }],
+  description:
+    'Upload immutable workspace-owned PNG, JPEG, WebP or PDF content, at most 10485760 bytes. X-File-Name is URI-component encoded. Repeated identical Idempotency-Key returns the original metadata; different contents conflict.',
+  request: {
+    params: strategyCollectionParams,
+    headers: strategyMutationHeaders.extend({
+      'Idempotency-Key': financial.financialIdSchema,
+      'X-File-Name': z.string().min(1).max(1440),
+    }),
+    body: { required: true, content: attachmentBinaryContent },
+  },
+  responses: {
+    201: response(strategyAttachments.strategyAttachmentResponseSchema),
+    ...strategyProblems,
+  },
+});
+registry.registerPath({
+  method: 'get',
+  path: attachmentPrefix,
+  security: [{ sessionCookie: [] }],
+  request: {
+    params: strategyCollectionParams,
+    query: strategyAttachments.strategyAttachmentListQuerySchema,
+  },
+  responses: {
+    200: response(strategyAttachments.strategyAttachmentListResponseSchema),
+    ...strategyProblems,
+  },
+});
+registry.registerPath({
+  method: 'get',
+  path: attachmentPrefix + '/{attachmentId}',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Authenticated immutable attachment read. Images may be displayed inline; PDF files are always downloaded. Content is private, uncached, sandboxed and protected from MIME sniffing.',
+  request: { params: attachmentIdentityParams },
+  responses: {
+    200: {
+      description: 'Original uploaded content after workspace authorization.',
+      content: attachmentBinaryContent,
+      headers: {
+        'Content-Disposition': {
+          schema: { type: 'string' },
+          description: 'Safe inline image or attachment download filename.',
+        },
+        'Content-Security-Policy': {
+          schema: { type: 'string' },
+          description: 'Sandboxed untrusted content.',
+        },
+        'X-Content-Type-Options': { schema: { type: 'string', const: 'nosniff' } },
+        'Cache-Control': { schema: { type: 'string', const: 'private, no-store' } },
+      },
+    },
+    ...strategyProblems,
+  },
+});
+registry.registerPath({
+  method: 'delete',
+  path: attachmentPrefix + '/{attachmentId}',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Delete only unreferenced attachment content. Any immutable strategy version reference returns 409, including archived strategies.',
+  request: { params: attachmentIdentityParams, headers: strategyMutationHeaders },
+  responses: { 204: { description: 'Unreferenced attachment deleted.' }, ...strategyProblems },
+});
 const financialCommands = {
   currencies: [financial.currencyCreateSchema, financial.currencyResponseSchema],
   brokers: [financial.brokerCreateSchema, financial.brokerResponseSchema],

@@ -10,6 +10,10 @@ type ApiOperation =
   | 'workspace.update'
   | 'financial.read'
   | 'financial.command'
+  | 'strategy.read'
+  | 'strategy.command'
+  | 'strategy.attachment.read'
+  | 'strategy.attachment.command'
   | 'health.ready';
 
 export function apiFailure(

@@ -7,6 +7,10 @@ import { ApplicationError, inaccessible } from '../errors.js';
 import { executeFinancialCommand, queryRows, type FinancialPlatform } from './repository.js';
 import { applyInventoryPolicyTransition } from './ledger.js';
 import {
+  insertTradeStrategyLink,
+  requireSelectableStrategyVersion,
+} from '../strategies/repository.js';
+import {
   financialLabel,
   financialInstantMicros,
   financialPositiveDecimal,
@@ -199,6 +203,7 @@ export const amendOrderInputSchema = z.strictObject({
 export const createTradeInputSchema = z.strictObject({
   title: financialLabel,
   classification: z.enum(['active-trading', 'investing']),
+  strategyVersionId: financialUuid.optional(),
 });
 export const addTradeLegInputSchema = z.strictObject({
   tradeId: financialUuid,
@@ -437,12 +442,29 @@ async function campaignClosureEligibility(tx: DbTransaction, workspaceId: string
   };
 }
 
-async function readTrade(tx: DbTransaction, workspaceId: string, id: string): Promise<TradeDto> {
+/** Adapt pre-strategy responses without replacing immutable command history with current state. */
+function normalizeTradeCommandResult(result: TradeDto): TradeDto {
+  return {
+    ...result,
+    strategyId: result.strategyId ?? null,
+    strategyVersionId: result.strategyVersionId ?? null,
+    strategyLinkTiming: result.strategyLinkTiming ?? null,
+  };
+}
+
+export async function readTrade(
+  tx: DbTransaction,
+  workspaceId: string,
+  id: string,
+): Promise<TradeDto> {
   const rows = await queryRows<{ data: Omit<TradeDto, 'closureReviewRequired'> }>(
     tx,
     sql`
-    SELECT jsonb_build_object('id',id,'title',title,'classification',classification,'status',status,
-      'revision',revision,'archivedAt',archived_at) AS data FROM app.trades WHERE workspace_id=${workspaceId} AND id=${id}`,
+    SELECT jsonb_build_object('id',t.id,'title',t.title,'classification',t.classification,'status',t.status,
+      'revision',t.revision,'archivedAt',t.archived_at,'strategyId',l.strategy_id,
+      'strategyVersionId',l.strategy_version_id,'strategyLinkTiming',l.timing) AS data
+      FROM app.trades t LEFT JOIN app.trade_strategy_links l ON l.workspace_id=t.workspace_id AND l.trade_id=t.id
+      WHERE t.workspace_id=${workspaceId} AND t.id=${id}`,
   );
   if (!rows[0]) throw inaccessible();
   if (rows[0].data.status !== 'closed') return { ...rows[0].data, closureReviewRequired: false };
@@ -867,24 +889,29 @@ export function createCatalogServices(platform: FinancialPlatform) {
     commandId: string,
   ): Promise<TradeDto> {
     const input = createTradeInputSchema.parse(value);
-    return executeFinancialCommand(
+    const result = await executeFinancialCommand(
       platform,
       context,
       { commandId, kind: 'trade.created', payload: input },
       async (tx) => {
+        const strategyId = input.strategyVersionId
+          ? await requireSelectableStrategyVersion(tx, context.workspaceId, input.strategyVersionId)
+          : null;
         const id = randomUUID();
         await tx.execute(sql`INSERT INTO app.trades (workspace_id,id,title,classification,status,revision,actor_id)
         VALUES (${context.workspaceId},${id},${input.title},${input.classification},'planned',1,${context.actorId})`);
-        return {
-          ...input,
-          id,
-          status: 'planned',
-          revision: 1,
-          archivedAt: null,
-          closureReviewRequired: false,
-        };
+        if (strategyId && input.strategyVersionId)
+          await insertTradeStrategyLink(tx, context, {
+            tradeId: id,
+            strategyId,
+            strategyVersionId: input.strategyVersionId,
+            timing: 'recorded-with-trade',
+            reason: 'Strategy version recorded when this trade was created.',
+          });
+        return readTrade(tx, context.workspaceId, id);
       },
     );
+    return normalizeTradeCommandResult(result);
   }
 
   async function addTradeLeg(
@@ -941,7 +968,7 @@ export function createCatalogServices(platform: FinancialPlatform) {
   ): Promise<TradeDto> {
     const id = financialUuid.parse(tradeId);
     const input = archiveInputSchema.parse(value);
-    return executeFinancialCommand(
+    const result = await executeFinancialCommand(
       platform,
       context,
       { commandId, kind: 'trade.canceled', payload: { tradeId: id, ...input } },
@@ -962,6 +989,7 @@ export function createCatalogServices(platform: FinancialPlatform) {
         return readTrade(tx, context.workspaceId, id);
       },
     );
+    return normalizeTradeCommandResult(result);
   }
 
   async function confirmTradeClosure(
