@@ -14,6 +14,9 @@ importers:
       '@journal/database':
         specifier: workspace:*
         version: link:packages/database
+      '@journal/domain':
+        specifier: workspace:*
+        version: link:packages/domain
       '@journal/server':
         specifier: workspace:*
         version: link:packages/server
@@ -196,7 +199,11 @@ importers:
         specifier: 0.31.11
         version: 0.31.11
 
-  packages/domain: {}
+  packages/domain:
+    dependencies:
+      decimal.js:
+        specifier: 10.6.0
+        version: 10.6.0
 
   packages/server:
     dependencies:
@@ -206,6 +213,9 @@ importers:
       '@journal/database':
         specifier: workspace:*
         version: link:../database
+      '@journal/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@node-rs/argon2':
         specifier: 2.2.2
         version: 2.2.2

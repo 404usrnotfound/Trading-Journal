@@ -1,8 +1,8 @@
 # Trading Journal
 
-A broker-independent, multi-asset trading journal. Phase 3 supplies a runnable application foundation: an authenticated shell, persisted workspace preferences, a PostgreSQL-backed API, private storage, and a durable worker. Financial accounts, instruments, transactions, calculations and dashboards are not implemented.
+A broker-independent, multi-asset trading journal. Phase 3 supplies the authenticated shell, persisted workspace preferences, PostgreSQL-backed API, private storage and durable worker. Phase 4 adds financial catalogs, balanced cash commands, ordinary share/ETF/non-rebasing spot inventory, campaign attribution, corrections and explicit price/FX valuation through authenticated APIs. Financial entry screens, dashboards and the later product workflows remain deferred.
 
-Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Scaffold validation](docs/scaffold-validation.md) records the current verification and limitations.
+Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Core ledger](docs/core-ledger.md) and [financial metrics](docs/financial-metrics.md) describe the current backend. [Scaffold validation](docs/scaffold-validation.md) records Phase 3 evidence; [Phase 4 validation](docs/phase-4-validation.md) records current financial checks and limitations.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ corepack pnpm dev
 
 The owner command prompts for a hidden password of 12–128 characters. Public registration is disabled; there is no default password. For automation, bind `BOOTSTRAP_PASSWORD` securely in the child environment instead of putting it in command arguments, shell history, `.env.example`, or source control.
 
-Visit **http://localhost:3000/sign-in**. `dev` starts web and worker together; Ctrl+C stops only its managed processes. The owner starts with an empty personal workspace. Edit its IANA timezone and optional three-letter reporting-currency preference to test persistence; this preference does not create a currency registry or financial valuation.
+Visit **http://localhost:3000/sign-in**. `dev` starts web and worker together; Ctrl+C stops only its managed processes. The owner starts with an empty personal workspace. Edit its IANA timezone and optional reporting-currency code preference to test persistence; this preference is separate from the financial currency registry and the explicit reporting currency required by valuation requests.
 
 `env:init` creates an ignored `.env` with fresh local credentials and `.private/storage`, with private permissions. Rerunning it preserves existing configuration. `.env.example` documents names and placeholders; it is not a usable credentials file. Never commit `.env`, private media, database dumps, session tokens, or logs containing secrets.
 
@@ -45,7 +45,8 @@ The generated file stores those values and derives `PORT` and database URLs. Cho
 
 ```sh
 corepack pnpm db:migrate:check
-corepack pnpm test
+corepack pnpm test:unit
+corepack pnpm test:integration
 corepack pnpm api:check
 corepack pnpm format:check
 corepack pnpm lint
@@ -53,7 +54,7 @@ corepack pnpm typecheck
 corepack pnpm build
 ```
 
-`test` runs unit/property/UI tests followed by real-PostgreSQL integration tests. `verify` combines API drift, formatting, lint, type checking, tests and the production build. Integration tests require the running test service; guards reject development bindings, ambiguous URLs and non-`_test` databases. Migration tests create/remove uniquely named temporary databases only on that test instance; its operator credential needs `CREATEDB`. Never substitute a production operator URL.
+`test` runs both listed test commands: unit/property/UI tests followed by real-PostgreSQL integration tests, including financial fixtures and ledger/API boundaries. `verify` combines API drift, formatting, lint, type checking, tests and the production build. Integration tests require the running test service; guards reject development bindings, ambiguous URLs and non-`_test` databases. Migration tests create/remove uniquely named temporary databases only on that test instance; its operator credential needs `CREATEDB`. Never substitute a production operator URL.
 
 Run browser and axe checks after building:
 
@@ -62,7 +63,7 @@ corepack pnpm exec playwright install --with-deps chromium
 corepack pnpm test:e2e
 ```
 
-Playwright provisions generated test identities, starts built web assets on port 3002 against the isolated test database, and checks login/logout, preferences, concurrency, keyboard access, desktop/mobile layouts and both themes. It does not test unimplemented financial workflows. If browser downloads are unavailable but a compatible Chromium is installed, use the explicit supported override:
+Playwright provisions generated test identities and starts built web assets on port 3002 against the isolated test database. Its shell journeys check login/logout, preferences, concurrency, keyboard access, desktop/mobile layouts and both themes; current financial API smoke coverage and actual executed outcomes are recorded in [Phase 4 validation](docs/phase-4-validation.md). Financial entry/dashboard journeys remain deferred. If browser downloads are unavailable but a compatible Chromium is installed, use the explicit supported override:
 
 ```sh
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium corepack pnpm test:e2e
@@ -80,7 +81,7 @@ Optional, repeatable seed infrastructure creates a separate labeled empty demo w
 corepack pnpm db:seed --email you@example.com
 ```
 
-No financial examples are seeded in Phase 3. Without SMTP, an operator can recover an existing user's password with the same hidden-input command:
+No financial examples are seeded automatically. The [manual paper-account API example](docs/core-ledger.md#manual-api-example) creates explicitly selected test facts. Without SMTP, an operator can recover an existing user's password with the same hidden-input command:
 
 ```sh
 corepack pnpm user:create --email you@example.com --reset-password
@@ -96,6 +97,7 @@ All server configuration is validated before use. Production requires HTTPS `APP
 - `GET /api/v1/health/ready`: authenticated application database/schema readiness.
 - Worker `http://127.0.0.1:3101/health/live` and `/health/ready`: private loopback liveness and live queue/worker readiness. No public production exposure is intended.
 - `GET /api/v1/session`, workspace reads and owner preference updates: shared Zod/OpenAPI DTOs, current membership checks, RLS and session-bound CSRF for mutations.
+- `/api/v1/workspaces/{workspaceId}/financial/{resource}`: viewer reads and editor/owner commands, strict decimal-string contracts, UUIDv4 `Idempotency-Key`, same-origin/session-CSRF checks, tenant RLS and atomic audit/outbox intent. See [core ledger](docs/core-ledger.md) for resources, filters and exact request examples.
 
 `corepack pnpm dev:worker` starts only the development worker. After `build`, `corepack pnpm start` starts web and worker with the configured environment; `start:web` and `start:worker` start them independently. A local HTTP built-assets smoke run keeps `NODE_ENV=development` or `test`. Deployments use `NODE_ENV=production`, HTTPS at a trusted reverse proxy, persistent private media, PostgreSQL, and a separate one-shot migration job before readiness-gated rollout. The standalone web launcher copies static assets before starting. No deployment is performed by this phase; Docker Compose here supplies databases, not a production hosting platform.
 
@@ -119,12 +121,20 @@ apps/web           Next.js App Router UI and thin API handlers
 apps/worker        pg-boss worker, queue migrations and health probes
 packages/contracts Shared strict Zod DTOs, OpenAPI and generated client
 packages/database  Drizzle models, reviewed migrations and tenant transactions
-packages/domain    Pure domain type boundary; financial implementation deferred
-packages/server    Auth, authorization, config, services, errors, logs and storage
+packages/domain    Pure decimal, postings, inventory, allocation and valuation kernel
+packages/server    Auth, authorization, financial services, config, errors, logs and storage
 packages/ui        Shared presentation components
 scripts            Setup, migration, seed, provisioning and process launchers
 tests              Unit/property, React, PostgreSQL integration and browser tests
 docs               Approved design, ADRs and verification records
 ```
 
-The [Phase 2 calculation contracts](docs/financial-calculations.md), [capabilities](docs/instrument-capabilities.md) and [independent financial fixtures](docs/financial-fixtures.md) remain requirements for Phase 4. Passing scaffold checks does not establish financial correctness or completion of AC-01–AC-16.
+The [Phase 2 calculation contracts](docs/financial-calculations.md), [capabilities](docs/instrument-capabilities.md) and [independent financial fixtures](docs/financial-fixtures.md) remain the requirements for financial implementation. Passing scaffold or financial backend checks does not complete AC-01–AC-16.
+
+## Phase 4 scope
+
+Financial amounts use JSON decimal strings, PostgreSQL `NUMERIC(78,36)` and an isolated Decimal.js 160-digit HALF_EVEN context. Cash events balance by currency; fills retain actual quote price separately from booked principal, and fees retain their charged currency. Native netted inventory supports FIFO, eligible average and specific lots, fractions and zero-crossing. Securities shorts additionally require explicit borrow/carry conventions; crypto spot longs do not enable short/lending wrappers. Other asset families have manual recording with nullable unknown economics and explicit cash effects; automatic advanced valuation remains unavailable.
+
+Cash and holding transfers commit synchronously with conserved lineage. Campaign FIFO attribution is distinct from account lot realization. Corrections append reversals/replacements and rebuild canonical inventory, with guards for transferred descendants and reviewed allocations. Price/FX observations and historical references retain provenance. Valuation requires explicit account IDs, reporting currency, as-of instant, source priorities and freshness windows; missing inputs produce explained null metrics or partial NAV, never invented zero.
+
+Valuation returns the current source revision, calculation manifests and selected dependencies for an as-of restatement. Archived reports and tested restore are deferred. Full strategies/plans/risk, imports/reconciliation, advanced native events, broker integrations, dashboards, performance analytics/jobs, exports and complete product journeys remain later work. Delayed transfer/transit workflows are disabled; pure cash-FX/transit fixtures do not establish persisted support.

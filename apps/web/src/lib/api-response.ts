@@ -8,6 +8,8 @@ type ApiOperation =
   | 'workspace.list'
   | 'workspace.read'
   | 'workspace.update'
+  | 'financial.read'
+  | 'financial.command'
   | 'health.ready';
 
 export function apiFailure(

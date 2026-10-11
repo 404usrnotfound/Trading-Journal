@@ -7,6 +7,12 @@ export {
 export { createLogger, getLogger } from './logging.js';
 export { ApplicationError, toProblemResponse, unauthenticated, inaccessible } from './errors.js';
 export { assertApplicationMutation, assertTrustedOrigin } from './security.js';
+export { createFinancialServices, createFinancialApi } from './financial/api.js';
+export { createCatalogServices } from './financial/catalog.js';
+export { createFinancialLedger } from './financial/ledger.js';
+export { createFinancialObservations } from './financial/observations.js';
+export type * from './financial/catalog-types.js';
+export type * from './financial/ledger-types.js';
 export {
   createServerServices,
   getSafeSession,

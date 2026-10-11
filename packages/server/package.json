@@ -16,6 +16,7 @@
     "@node-rs/argon2": "2.2.2",
     "@journal/contracts": "workspace:*",
     "@journal/database": "workspace:*",
+    "@journal/domain": "workspace:*",
     "better-auth": "1.7.7",
     "drizzle-orm": "0.45.3",
     "pino": "10.4.0",

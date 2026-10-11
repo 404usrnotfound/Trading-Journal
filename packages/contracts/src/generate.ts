@@ -1,7 +1,11 @@
 import './openapi-setup.js';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
+import {
+  OpenAPIRegistry,
+  OpenApiGeneratorV31,
+  zodToOpenAPIRegistry,
+} from '@asteasolutions/zod-to-openapi';
 import openapiTS, { astToString } from 'openapi-typescript';
 import {
   healthResponseSchema,
@@ -18,8 +22,16 @@ import {
   safeSessionListResponseSchema,
 } from './index.js';
 import { z } from 'zod';
+import * as financial from './financial.js';
 
 const registry = new OpenAPIRegistry();
+function registerSharedSchema(name: string, schema: z.ZodType): void {
+  const named = registry.register(name, schema);
+  // register() clones schemas; retain its naming on the shared source instance too,
+  // so nested uses refer to one definition rather than expanding large financial DTOs.
+  const metadata = zodToOpenAPIRegistry.get(named);
+  if (metadata) zodToOpenAPIRegistry.add(schema, metadata);
+}
 registry.registerComponent('securitySchemes', 'sessionCookie', {
   type: 'apiKey',
   in: 'cookie',
@@ -41,6 +53,21 @@ const schemas = {
   SafeSessionListResponse: safeSessionListResponseSchema,
 };
 for (const [name, schema] of Object.entries(schemas)) registry.register(name, schema);
+registerSharedSchema('FinancialJson', financial.financialJsonSchema);
+for (const [name, schema] of Object.entries(financial.financialSchemaComponents))
+  registerSharedSchema(name, schema);
+for (const [name, schema] of Object.entries(financial)) {
+  if (
+    name !== 'financialJsonSchema' &&
+    name.endsWith('Schema') &&
+    schema instanceof z.ZodType &&
+    !name.endsWith('QuerySchema')
+  )
+    registerSharedSchema(
+      name.charAt(0).toUpperCase() + name.slice(1).replace(/Schema$/u, ''),
+      schema,
+    );
+}
 const response = (schema: z.ZodType) => ({
   description: 'Validated application DTO',
   content: { 'application/json': { schema } },
@@ -49,6 +76,193 @@ const problem = {
   description: 'Safe problem details; no credentials or database diagnostics',
   content: { 'application/problem+json': { schema: problemResponseSchema } },
 };
+const financialCommands = {
+  currencies: [financial.currencyCreateSchema, financial.currencyResponseSchema],
+  brokers: [financial.brokerCreateSchema, financial.brokerResponseSchema],
+  accounts: [financial.accountCreateSchema, financial.accountResponseSchema],
+  instruments: [financial.instrumentCreateSchema, financial.instrumentResponseSchema],
+  orders: [financial.orderCreateSchema, financial.orderResponseSchema],
+  trades: [financial.tradeCreateSchema, financial.tradeResponseSchema],
+  'trade-legs': [financial.tradeLegCreateSchema, financial.tradeLegResponseSchema],
+  'cash-buckets': [financial.cashBucketCreateSchema, financial.cashBucketResponseSchema],
+  'cash-movements': [financial.cashMovementCreateSchema, financial.financialMutationResponseSchema],
+  fees: [financial.feeCreateSchema, financial.financialMutationResponseSchema],
+  'fx-conversions': [financial.fxConversionCreateSchema, financial.fxConversionResponseSchema],
+  'bucket-movements': [
+    financial.bucketMovementCreateSchema,
+    financial.financialMutationResponseSchema,
+  ],
+  executions: [financial.executionCreateSchema, financial.executionResponseSchema],
+  'opening-lots': [financial.openingLotCreateSchema, financial.financialMutationResponseSchema],
+  'execution-corrections': [financial.executionCorrectionSchema, financial.executionResponseSchema],
+  'execution-allocations': [
+    financial.executionAllocationSchema,
+    financial.allocationMutationResponseSchema,
+  ],
+  'fx-observations': [
+    financial.fxObservationCreateSchema,
+    financial.financialMutationResponseSchema,
+  ],
+  'price-observations': [
+    financial.priceObservationCreateSchema,
+    financial.financialMutationResponseSchema,
+  ],
+  'account-valuations': [
+    financial.accountValuationObservationCreateSchema,
+    financial.financialMutationResponseSchema,
+  ],
+  'holding-transfers': [
+    financial.holdingTransferCreateSchema,
+    financial.financialMutationResponseSchema,
+  ],
+  'fee-attributions': [
+    financial.feeAttributionCreateSchema,
+    financial.allocationMutationResponseSchema,
+  ],
+  'trades/{id}/closures': [
+    financial.tradeClosureCreateSchema,
+    financial.tradeClosureResponseSchema,
+  ],
+  'trades/{id}/cancellations': [financial.archiveFinancialSchema, financial.tradeResponseSchema],
+  'currencies/{id}/conventions': [
+    financial.currencyConventionCreateSchema,
+    financial.currencyResponseSchema,
+  ],
+  'accounts/{id}/settings': [
+    financial.accountSettingsCreateSchema,
+    financial.accountResponseSchema,
+  ],
+  'instruments/{id}/versions': [
+    financial.instrumentVersionCreateSchema,
+    financial.instrumentResponseSchema,
+  ],
+  'orders/{id}/amendments': [financial.orderAmendSchema, financial.orderResponseSchema],
+} as const;
+for (const resource of ['currencies', 'brokers', 'accounts', 'instruments', 'trades']) {
+  registry.registerPath({
+    method: 'post',
+    path: `/api/v1/workspaces/{workspaceId}/financial/${resource}/{id}/archive`,
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: z.object({
+        workspaceId: financial.financialIdSchema,
+        id: financial.financialIdSchema,
+      }),
+      headers: z.object({
+        Origin: z.url(),
+        'X-CSRF-Token': z.string().min(1),
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
+      body: {
+        required: true,
+        content: { 'application/json': { schema: financial.archiveFinancialSchema } },
+      },
+    },
+    responses: {
+      200: response(financial.catalogArchiveResponseSchema),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      413: problem,
+      415: problem,
+      422: problem,
+      500: problem,
+    },
+  });
+}
+for (const [resource, [input, output]] of Object.entries(financialCommands)) {
+  registry.registerPath({
+    method: 'post',
+    path: `/api/v1/workspaces/{workspaceId}/financial/${resource}`,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Editor/owner financial command. A repeated Idempotency-Key with identical contents returns the committed result; changed contents conflict. Financial scalars are decimal strings.',
+    request: {
+      params: resource.includes('{id}')
+        ? z.object({ workspaceId: financial.financialIdSchema, id: financial.financialIdSchema })
+        : z.object({ workspaceId: financial.financialIdSchema }),
+      headers: z.object({
+        Origin: z.url(),
+        'X-CSRF-Token': z.string().min(1),
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: {
+      200: response(output),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      413: problem,
+      415: problem,
+      422: problem,
+      500: problem,
+    },
+  });
+}
+const financialReads = {
+  currencies: financial.currencyResponseSchema.array(),
+  brokers: financial.brokerResponseSchema.array(),
+  accounts: financial.accountResponseSchema.array(),
+  instruments: financial.instrumentResponseSchema.array(),
+  orders: financial.orderResponseSchema.array(),
+  trades: financial.tradeResponseSchema.array(),
+  executions: financial.executionResponseSchema.array(),
+  positions: financial.positionResponseSchema.array(),
+  'cash-balances': financial.cashBalanceResponseSchema.array(),
+  fees: financial.currencyAmountResponseSchema.array(),
+  valuation: financial.financialValuationResponseSchema,
+  'currencies/{id}': financial.currencyResponseSchema,
+  'accounts/{id}': financial.accountResponseSchema,
+  'instruments/{id}': financial.instrumentResponseSchema,
+  'orders/{id}': financial.orderResponseSchema,
+  'trades/{id}/legs': financial.tradeLegResponseSchema.array(),
+  'trades/{id}': financial.tradeResponseSchema,
+  'campaign-inventory': financial.campaignInventoryResponseSchema,
+  'account-valuations': financial.accountValuationObservationResponseSchema.array(),
+};
+const financialReadQueries: Record<string, z.ZodObject> = {
+  currencies: financial.financialCatalogQuerySchema,
+  brokers: financial.financialCatalogQuerySchema,
+  accounts: financial.financialAccountQuerySchema,
+  instruments: financial.financialCatalogQuerySchema,
+  orders: financial.financialCatalogQuerySchema,
+  trades: financial.financialCatalogQuerySchema,
+  executions: financial.financialExecutionsQuerySchema,
+  positions: financial.financialPositionsQuerySchema,
+  'cash-balances': financial.financialCashBalancesQuerySchema,
+  fees: financial.financialFeesQuerySchema,
+  valuation: financial.financialValuationQuerySchema,
+  'campaign-inventory': financial.financialCampaignInventoryQuerySchema,
+  'account-valuations': financial.financialAccountValuationsQuerySchema,
+};
+for (const [resource, output] of Object.entries(financialReads)) {
+  registry.registerPath({
+    method: 'get',
+    path: `/api/v1/workspaces/{workspaceId}/financial/${resource}`,
+    security: [{ sessionCookie: [] }],
+    request: {
+      ...(financialReadQueries[resource] ? { query: financialReadQueries[resource] } : {}),
+      params: resource.includes('{id}')
+        ? z.object({ workspaceId: financial.financialIdSchema, id: financial.financialIdSchema })
+        : z.object({ workspaceId: financial.financialIdSchema }),
+    },
+    responses: {
+      200: response(output),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      422: problem,
+      500: problem,
+    },
+  });
+}
 for (const [path, schema, secured] of [
   ['/api/v1/health/live', healthResponseSchema, false],
   ['/api/v1/health/ready', readyResponseSchema, true],

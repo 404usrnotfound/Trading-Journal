@@ -1,6 +1,6 @@
 /**
- * Framework-independent vocabulary. Values acquire these types only after a
- * trusted boundary validates them; this scaffold defines no financial rules.
+ * Framework-independent vocabulary and the deterministic financial kernel.
+ * Values acquire branded types only after a trusted boundary validates them.
  */
 declare const brand: unique symbol;
 
@@ -23,3 +23,10 @@ export type UnitValue<Unit extends string> = Readonly<{
   value: DecimalString;
   unit: Unit;
 }>;
+
+export * from './decimal.js';
+export * from './money.js';
+export * from './postings.js';
+export * from './valuation.js';
+export * from './inventory.js';
+export * from './inventory-types.js';

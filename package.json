@@ -39,6 +39,7 @@
   "dependencies": {
     "@journal/contracts": "workspace:*",
     "@journal/database": "workspace:*",
+    "@journal/domain": "workspace:*",
     "@journal/server": "workspace:*",
     "@journal/worker": "workspace:*"
   },

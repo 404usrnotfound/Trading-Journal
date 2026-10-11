@@ -15,6 +15,10 @@ export type Database = {
 
 export type DbTransaction = Parameters<Parameters<Database['db']['transaction']>[0]>[0];
 export type TenantContext = Readonly<{ actorId: string; workspaceId: string }>;
+export type TenantTransactionOptions = Readonly<{
+  isolationLevel?: 'read committed' | 'repeatable read' | 'serializable';
+  accessMode?: 'read only' | 'read write';
+}>;
 export type WorkspaceRole = 'owner' | 'editor' | 'viewer';
 export type WorkspaceSummary = {
   id: string;
@@ -66,6 +70,7 @@ export async function withTenantTransaction<T>(
   database: Database,
   context: TenantContext,
   callback: (transaction: DbTransaction) => Promise<T>,
+  options: TenantTransactionOptions = {},
 ): Promise<T> {
   validateActorId(context.actorId);
   if (!uuidPattern.test(context.workspaceId)) throw new Error('Invalid workspace context');
@@ -74,7 +79,7 @@ export async function withTenantTransaction<T>(
       sql`SELECT set_config('app.user_id', ${context.actorId}, true), set_config('app.workspace_id', ${context.workspaceId.toLowerCase()}, true)`,
     );
     return callback(transaction);
-  });
+  }, options);
 }
 
 type WorkspaceFunctionRow = {

@@ -9,5 +9,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --out-dir dist",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0"
   }
 }

@@ -15,6 +15,7 @@ import {
   verifyDatabaseSchema,
   withTenantTransaction,
   type DbTransaction,
+  type TenantTransactionOptions,
 } from '@journal/database';
 import { sql } from 'drizzle-orm';
 import { auditEvents, user, workspaceMemberships, workspaces } from '@journal/database/schema';
@@ -137,6 +138,7 @@ export function createServerServices(config: ServerConfig) {
   async function withWorkspaceContext<T>(
     context: AuthorizationContext,
     callback: (tx: DbTransaction) => Promise<T>,
+    options: TenantTransactionOptions = {},
   ): Promise<T> {
     if (!context[authorizationBrand]) throw inaccessible();
     return withTenantTransaction(
@@ -157,6 +159,7 @@ export function createServerServices(config: ServerConfig) {
           throw inaccessible();
         return callback(tx);
       },
+      options,
     );
   }
 
@@ -365,7 +368,8 @@ export const authorizeWorkspace = (
 export const withWorkspaceContext = <T>(
   context: AuthorizationContext,
   callback: (tx: DbTransaction) => Promise<T>,
-) => defaultServices().withWorkspaceContext(context, callback);
+  options?: TenantTransactionOptions,
+) => defaultServices().withWorkspaceContext(context, callback, options);
 export const handleAuthRequest = (request: Request) => defaultServices().handleAuthRequest(request);
 export const updateWorkspacePreferences = (request: Request, workspaceId: string) =>
   defaultServices().updateWorkspacePreferences(request, workspaceId);

@@ -1,8 +1,15 @@
-# Database foundation
+# Database persistence
 
-This package contains only platform persistence: reviewed Better Auth models,
-workspaces, memberships, display preferences, and credential-free audit events.
-It does not implement trades, broker accounts, instruments, a ledger, or financial metrics.
+This package contains platform persistence and the additive Phase 4 financial
+schema: reviewed Better Auth models, workspaces, memberships, display preferences,
+credential-free audit events, financial catalogs, source facts, balanced postings,
+canonical inventory, allocations and observations. Pure financial calculations
+belong to `packages/domain`; authorized financial commands belong to
+`packages/server`. See the [core ledger guide](../../docs/core-ledger.md) and
+[financial metrics](../../docs/financial-metrics.md) for current API behavior and
+limits. Schema availability does not establish complete financial workflows or
+product acceptance; executed evidence belongs in
+[Phase 4 validation](../../docs/phase-4-validation.md).
 
 Use `createDatabase(url)` to create a pool and typed Drizzle client. Runtime URLs
 must use the separated `journal_app`, `journal_auth`, and `journal_jobs` roles.
@@ -81,6 +88,54 @@ audit permissions, live revocation, and atomic/concurrent owner retention. Fixtu
 use generated identities and exact cleanup predicates; tests never truncate real
 tables or substitute SQLite/mocked authorization.
 
+The financial schema is declared in [financial-schema.ts](src/financial-schema.ts)
+and enforced by the reviewed [0002 migration](migrations/0002_core_financial_ledger.sql).
+Financial IDs are UUIDv4 with `(workspace_id, id)` primary keys and composite tenant
+references. Financial tables are owned by the non-login migration role and use
+forced RLS: current viewers can read; editor/owner commands can write. Authentication
+and same-origin/session-CSRF checks still belong to the server boundary.
+
+Financial numeric columns are generated `NUMERIC(78,36)` values from canonical
+text columns. The immutable `app.financial_decimal` SQL function checks lexical
+form and the 42-integral/36-fractional-digit envelope before the numeric cast,
+rejecting overprecision instead of allowing PostgreSQL to round it silently.
+Accepted canonical text has no insignificant trailing zeros, negative zero,
+exponent notation or non-finite values. API normalization and preserved request
+provenance are separate from these canonical stored scalars. Generated columns
+cannot receive a caller-supplied numeric value that bypasses raw-text validation.
+Display scale and actual settlement increment remain separate versioned fields.
+
+The workspace financial-state revision serializes commands. Financial source
+revisions use PostgreSQL `INTEGER`; public revision strings are bounded to
+`0`–`2147483647`, with accepted source facts requiring a positive revision.
+Economic `orderingKey` is a separate nonnegative integer string, limited to 80
+digits by the command contract; it is not the workspace revision. Economic
+timestamps retain PostgreSQL microsecond precision and remain distinct from
+recording time.
+
+Source executions, openings, fees, cash movements, conversions, ledger events,
+postings, allocation/cost-attribution versions, observations, supersessions,
+transfers and closure records have append-only runtime privileges. Catalog headers
+have restricted editable columns; canonical holding books, positions, lots and
+matches are controlled rebuildable state. Deferred constraints require source
+facts to match their new atomic command/revision, at least two exactly balanced
+postings per event currency, exact reversal targets/currencies, conserved
+execution/cost partitions, compatible transfer ownership and current canonical
+inventory quantities. A committed command cannot acquire additional source
+effects. Its stored idempotent result, audit event and outbox intent commit with
+the source facts; failed constraints roll the entire command back.
+
+Source monetary checks independently conserve booked execution principal, actual
+fees, cash movements, both actual FX legs and each supplied manual settlement
+effect. An execution's confirmed settlement reclassifies its existing obligation;
+it is not another principal booking. The deferred settlement trigger requires an
+effective execution in the same currency, one nonzero unsettled posting and one
+settled posting in that execution's account, and no settlement before its source
+execution. It checks every economic-time/source-revision prefix, including future
+settlements, so an unsourced, wrong-sign or already consumed obligation cannot
+be settled again. The server additionally guards isolated corrections with
+confirmed settlement or holding-transfer descendants pending grouped restatement.
+
 Migration integration fixtures create and remove uniquely named temporary
 `*_test` databases on that dedicated PostgreSQL test instance. Its operator test
 credential must have `CREATEDB` (the local Compose test operator does). The tests
@@ -88,5 +143,13 @@ verify empty creation, original-platform upgrades with persisted identities,
 sessions, preferences and audit history, repeated/concurrent migration,
 tampered journal rejection, and atomic failure when historical IDs violate the
 new UUIDv4 constraints. They never reset the development database or rewrite an
-applied migration. Migration `0000` remains unchanged; `0001` is an additive
-platform upgrade, with schema readiness version 2.
+applied migration. Migration `0000_platform_foundation` remains the original
+platform migration; `0001_platform_identity_constraints` remains the additive
+platform identity upgrade that established readiness version 2. Neither historical
+migration is rewritten by Phase 4. The additive `0002_core_financial_ledger`
+migration creates the financial foundation and advances the current release's
+schema readiness to **version 3**, checked read-only by
+[readiness.ts](src/readiness.ts). Runtime readiness also requires PostgreSQL 17.
+Use the root's `corepack pnpm db:migrate`, `corepack pnpm db:migrate:check` and
+`corepack pnpm test:integration` commands with the documented private environment
+bindings; schema readiness alone does not certify every financial capability.

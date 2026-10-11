@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
+import { FinancialArithmeticError, InventoryError } from '@journal/domain';
 
 export class ApplicationError extends Error {
   constructor(
@@ -24,12 +25,20 @@ export function toProblemResponse(error: unknown, requestId: string = randomUUID
             title: 'Invalid request',
             detail: 'The request does not match the expected format.',
           }
-        : {
-            status: 500,
-            code: 'INTERNAL_ERROR',
-            title: 'Request failed',
-            detail: 'The request could not be completed.',
-          };
+        : error instanceof FinancialArithmeticError || error instanceof InventoryError
+          ? {
+              status: error instanceof InventoryError ? 409 : 422,
+              code:
+                error instanceof InventoryError ? 'INVENTORY_CONFLICT' : 'INVALID_FINANCIAL_INPUT',
+              title: 'Financial command rejected',
+              detail: 'The financial inputs or inventory state do not permit this operation.',
+            }
+          : {
+              status: 500,
+              code: 'INTERNAL_ERROR',
+              title: 'Request failed',
+              detail: 'The request could not be completed.',
+            };
   return new Response(JSON.stringify({ type: 'about:blank', ...problem, requestId }), {
     status: problem.status,
     headers: {
