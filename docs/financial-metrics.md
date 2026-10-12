@@ -59,7 +59,7 @@ Missing acquisition, realization, mark or charged-currency references makes the 
 
 Actual FX conversion records authoritative source/destination amounts and separate fees. `actualRate = destinationAmount / sourceAmount`; a supplied rounded rate retains source precision and cannot replace those amounts. A supplied inconsistent rate requires reviewed evidence. Reference FX is a valuation input, not another cash conversion.
 
-The pure kernel also provides `cashFx` and `conversionDifference`. For `(a,b]`, cash FX is `endingBalance × endingFX − openingBalance × openingFX − Σ(dated signed movement × movementFX)`, requiring complete native cash reconciliation and compatible boundary/movement rates. Conversion execution difference is `destinationAmount × destinationReferenceFX − sourceAmount × sourceReferenceFX`, excluding separately booked fees. Independent fixtures exercise the full cash/trading/holding-FX bridge and separate cash/transit populations. The persisted valuation API does not expose a complete interval cash-FX/performance bridge or a delayed-transfer workflow; those pure helpers are not a claim of persisted report support.
+The pure kernel also provides `cashFx` and `conversionDifference`. For `(a,b]`, cash FX is `endingBalance × endingFX − openingBalance × openingFX − Σ(dated signed movement × movementFX)`, requiring complete native cash reconciliation and compatible boundary/movement rates. Conversion execution difference is `destinationAmount × destinationReferenceFX − sourceAmount × sourceReferenceFX`, excluding separately booked fees. Independent fixtures exercise the full cash/trading/holding-FX bridge and separate cash/transit populations. The Phase 7 [accounting report](portfolio-accounting.md) now exposes the interval cash/holding/transit-FX and performance bridge with immutable portfolio scope and pinned source revision. The older valuation endpoint retains its original as-of restatement contract.
 
 ## Cash and NAV
 
@@ -73,6 +73,12 @@ Valuation is a read-only repeatable-read, current-source-revision restatement th
 
 ## Deferred metrics and evidence
 
-Frozen original risk/R, account/strategy risk assessments, sizing, completed-trade statistics, TWR/MWR, drawdown/recovery, MAE/MFE, slippage analytics, optional ratios/benchmarks, dashboards and background performance projections remain later-phase capabilities. Their definitions and sufficiency gates remain in [financial-calculations.md](financial-calculations.md); a NAV endpoint or basic campaign closure does not complete them.
+Phase 6 implements frozen original risk and historical R in the [trade journal](trade-journal.md); those are available only with their declared complete campaign/risk inputs.
+
+Account/strategy risk assessments, sizing, completed-trade statistics, TWR/MWR, drawdown/recovery, MAE/MFE, slippage analytics, optional ratios/benchmarks, dashboards and background performance projections remain later-phase capabilities. Their definitions and sufficiency gates remain in [financial-calculations.md](financial-calculations.md); a NAV endpoint or basic campaign closure does not complete them.
 
 The independent executable fixture suite is in [financial-independent-fixtures.test.ts](../tests/unit/financial-independent-fixtures.test.ts), alongside decimal, inventory, transfer, campaign and valuation unit suites and real-PostgreSQL financial integration suites. Run `corepack pnpm test:unit`, `corepack pnpm test:integration`, `corepack pnpm api:check`, `corepack pnpm lint`, `corepack pnpm typecheck` and `corepack pnpm build` from the repository root using the pinned Node 24/pnpm 10.34.6 toolchain. Consult [Phase 4 validation](phase-4-validation.md) for exact executed counts and outcomes; documentation does not certify unrun workflows.
+
+## Portfolio accounting extension
+
+The [portfolio accounting dictionary and examples](portfolio-accounting.md) define account/portfolio cash, signed holdings, evidenced transit, equity/NLV, gross period trading, income, actual fees/expenses, taxes/refunds, external flows, scope-boundary transfers, opening capital, monetary/holding FX, conversion effects and reconciliation variance. Period costs use their actual charge dates once. Available, partial and unavailable results retain known subtotals and dependency provenance. See [Phase 7 validation](phase-7-validation.md) for executed evidence.

@@ -10,6 +10,7 @@ type ApiOperation =
   | 'workspace.update'
   | 'financial.read'
   | 'financial.command'
+  | 'accounting.request'
   | 'strategy.read'
   | 'strategy.command'
   | 'strategy.attachment.read'

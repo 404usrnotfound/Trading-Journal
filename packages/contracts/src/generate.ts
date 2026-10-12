@@ -26,6 +26,7 @@ import * as financial from './financial.js';
 import * as strategies from './strategies.js';
 import * as strategyAttachments from './strategy-attachments.js';
 import * as journal from './journal.js';
+import * as accounting from './accounting.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -75,7 +76,9 @@ for (const [name, schema] of Object.entries(strategies.strategySchemaComponents)
   registerSharedSchema(name, schema);
 for (const [name, schema] of Object.entries(journal.journalSchemaComponents))
   registerSharedSchema(name, schema);
-for (const collection of [strategies, strategyAttachments, journal])
+for (const [name, schema] of Object.entries(accounting.accountingSchemaComponents))
+  registerSharedSchema(name, schema);
+for (const collection of [strategies, strategyAttachments, journal, accounting])
   for (const [name, schema] of Object.entries(collection)) {
     if (name.endsWith('Schema') && schema instanceof z.ZodType && !name.endsWith('QuerySchema'))
       registerSharedSchema(
@@ -366,6 +369,132 @@ for (const [method, suffix, params, input, output] of [
     },
     responses: { 200: response(output), ...strategyProblems },
   });
+const accountingPrefix = '/api/v1/workspaces/{workspaceId}/accounting';
+const portfolioIdentityParams = strategyCollectionParams.extend({
+  portfolioId: financial.financialIdSchema,
+});
+const cashTransferIdentityParams = strategyCollectionParams.extend({
+  transferId: financial.financialIdSchema,
+});
+for (const [suffix, params, query, output] of [
+  [
+    '/portfolios',
+    strategyCollectionParams,
+    accounting.portfolioListQuerySchema,
+    accounting.portfolioListResponseSchema,
+  ],
+  [
+    '/portfolios/{portfolioId}',
+    portfolioIdentityParams,
+    undefined,
+    accounting.portfolioResponseSchema,
+  ],
+  [
+    '/portfolios/{portfolioId}/versions',
+    portfolioIdentityParams,
+    accounting.portfolioVersionsQuerySchema,
+    accounting.portfolioVersionListResponseSchema,
+  ],
+  [
+    '/transfers',
+    strategyCollectionParams,
+    accounting.cashTransferListQuerySchema,
+    accounting.cashTransferListResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method: 'get',
+    path: accountingPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Workspace-scoped immutable portfolio definitions and owned-account cash transfer evidence. Lists are cursor-paginated, at most 100 entries per page. Transfer status can be read at an explicit economic boundary.',
+    request: { params, ...(query ? { query } : {}) },
+    responses: { 200: response(output), ...strategyProblems, 429: problem },
+  });
+for (const [suffix, params, input, output] of [
+  [
+    '/portfolios',
+    strategyCollectionParams,
+    accounting.createPortfolioRequestSchema,
+    accounting.portfolioMutationResponseSchema,
+  ],
+  [
+    '/portfolios/{portfolioId}',
+    portfolioIdentityParams,
+    accounting.updatePortfolioRequestSchema,
+    accounting.portfolioMutationResponseSchema,
+  ],
+  [
+    '/portfolios/{portfolioId}/archive',
+    portfolioIdentityParams,
+    accounting.archivePortfolioRequestSchema,
+    accounting.portfolioMutationResponseSchema,
+  ],
+  [
+    '/income',
+    strategyCollectionParams,
+    accounting.recordIncomeRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+  [
+    '/taxes',
+    strategyCollectionParams,
+    accounting.recordTaxRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+  [
+    '/expenses',
+    strategyCollectionParams,
+    accounting.recordExpenseRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+  [
+    '/transfers',
+    strategyCollectionParams,
+    accounting.createCashTransferRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+  [
+    '/transfers/{transferId}/receipt',
+    cashTransferIdentityParams,
+    accounting.receiveCashTransferRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method: 'post',
+    path: accountingPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Editor/owner accounting command with durable idempotency. Portfolio edits append complete immutable scope versions. Income records gross dividends or interest and optional withholding as a separate tax posting. Positive expense/tax amounts are charges and negative amounts are refunds. Cash transfers require distinct same-currency owned accounts; omitted receiptAt records departure and an evidenced monetary transit claim. A later receipt is a separate immutable command. Deposits and boundary transfers are capital flows, never trading profit.',
+    request: {
+      params,
+      headers: strategyMutationHeaders.extend({
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: { 200: response(output), ...strategyProblems, 429: problem },
+  });
+registry.registerPath({
+  method: 'post',
+  path: accountingPrefix + '/reports',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Read-only accounting report available to viewers. Select exactly one explicit account population or immutable portfolio version and a reporting currency. The period is (from,to], with complete opening and closing boundaries. Source revision, FX policy and price freshness/source priorities are explicit. Monetary amounts are lossless decimal strings. Missing evidence produces null totals with known subtotals and explanations; reconciliation variance is retained rather than relabeled as FX or profit. This POST performs no mutation and requires no mutation CSRF proof or idempotency key.',
+  request: {
+    params: strategyCollectionParams,
+    body: {
+      required: true,
+      content: { 'application/json': { schema: accounting.accountingReportRequestSchema } },
+    },
+  },
+  responses: {
+    200: response(accounting.accountingReportResponseSchema),
+    ...strategyProblems,
+    429: problem,
+  },
+});
 const financialCommands = {
   currencies: [financial.currencyCreateSchema, financial.currencyResponseSchema],
   brokers: [financial.brokerCreateSchema, financial.brokerResponseSchema],

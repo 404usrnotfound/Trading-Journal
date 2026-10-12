@@ -14,6 +14,8 @@ strategies, immutable definitions, trade-version pins and private attachment
 metadata; see [strategy management](../../docs/strategies.md) and
 [Phase 5 validation](../../docs/phase-5-validation.md).
 
+Phase 7 adds immutable portfolio versions/membership, typed account cash events and evidenced cash transfers/receipts in [accounting-schema.ts](src/accounting-schema.ts) and the additive [0007 migration](migrations/0007_portfolio_accounting.sql). Relational tenant/source links, append-only history, atomic commands and exact source-to-cash conservation are enforced in SQL; transit ownership is calculated from actual evidence. See [portfolio accounting](../../docs/portfolio-accounting.md).
+
 Use `createDatabase(url)` to create a pool and typed Drizzle client. Runtime URLs
 must use the separated `journal_app`, `journal_auth`, and `journal_jobs` roles.
 Never pass the operator migration URL into the running web or worker.

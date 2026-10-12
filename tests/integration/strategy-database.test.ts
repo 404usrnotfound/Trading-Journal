@@ -970,15 +970,36 @@ describe('additive Phase 5 upgrade preserves the published Phase 4 financial led
       const priorTables = await database.pool.query<{ schema_name: string; table_name: string }>(
         "SELECT table_schema AS schema_name,table_name FROM information_schema.tables WHERE table_schema IN ('app','auth') AND table_name<>'schema_metadata' ORDER BY table_schema,table_name",
       );
+      const previousColumns = await database.pool.query<{
+        table_schema: string;
+        table_name: string;
+        column_name: string;
+      }>(
+        "SELECT table_schema,table_name,column_name FROM information_schema.columns WHERE table_schema IN ('app','auth') ORDER BY table_schema,table_name,ordinal_position",
+      );
       const records = async () => {
-        const result: Record<string, unknown> = {};
+        const values: Record<string, unknown> = {};
         for (const table of priorTables.rows) {
+          const columns = previousColumns.rows
+            .filter(
+              (column) =>
+                column.table_schema === table.schema_name && column.table_name === table.table_name,
+            )
+            .map((column) => column.column_name);
+          if (!columns.length || columns.some((column) => !/^[a-zA-Z0-9_]+$/u.test(column)))
+            throw new Error('Unexpected original migration column metadata');
+          // Additive nullable columns are permitted. Compare every original column,
+          // including its null values, rather than conflating schema growth with data rewrites.
+          const binding = `{${columns.join(',')}}`;
           const rows = await database!.db.execute(
-            sql`SELECT COALESCE(jsonb_agg(to_jsonb(source) ORDER BY to_jsonb(source)::text),'[]'::jsonb) AS records FROM ${sql.identifier(table.schema_name)}.${sql.identifier(table.table_name)} AS source`,
+            sql`SELECT COALESCE(jsonb_agg(original_record ORDER BY original_record::text),'[]'::jsonb) AS records
+              FROM (SELECT (SELECT jsonb_object_agg(key,value) FROM jsonb_each(to_jsonb(source))
+                WHERE key=ANY(${binding}::text[])) AS original_record
+                FROM ${sql.identifier(table.schema_name)}.${sql.identifier(table.table_name)} AS source) AS original_columns`,
           );
-          result[`${table.schema_name}.${table.table_name}`] = rows.rows[0]!.records;
+          values[`${table.schema_name}.${table.table_name}`] = rows.rows[0]!.records;
         }
-        return result;
+        return values;
       };
       const before = await records();
       const history = await database.pool.query(
@@ -993,6 +1014,15 @@ describe('additive Phase 5 upgrade preserves the published Phase 4 financial led
       await migrateDatabase(url.toString());
       await migrateDatabase(url.toString());
       expect(await records()).toEqual(before);
+      expect(
+        (
+          await database.pool.query(
+            'SELECT account_cash_event_id,cash_transfer_id,cash_transfer_receipt_id FROM app.ledger_events',
+          )
+        ).rows,
+      ).toEqual([
+        { account_cash_event_id: null, cash_transfer_id: null, cash_transfer_receipt_id: null },
+      ]);
       expect(
         (
           await database.pool.query(

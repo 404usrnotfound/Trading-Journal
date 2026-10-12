@@ -665,7 +665,10 @@ export function createCatalogServices(platform: FinancialPlatform) {
             tx,
             sql`SELECT EXISTS(
           SELECT 1 FROM app.executions WHERE workspace_id=${context.workspaceId} AND account_id=${id}
-          UNION ALL SELECT 1 FROM app.opening_lots WHERE workspace_id=${context.workspaceId} AND account_id=${id}) AS present`,
+          UNION ALL SELECT 1 FROM app.opening_lots WHERE workspace_id=${context.workspaceId} AND account_id=${id}
+          UNION ALL SELECT 1 FROM app.holding_transfers WHERE workspace_id=${context.workspaceId}
+            AND (source_account_id=${id} OR destination_account_id=${id})
+          UNION ALL SELECT 1 FROM app.inventory_events WHERE workspace_id=${context.workspaceId} AND account_id=${id}) AS present`,
           );
           if (
             activity[0]?.present &&
@@ -680,7 +683,9 @@ export function createCatalogServices(platform: FinancialPlatform) {
               to_char(max(economic_at) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS latest_at
               FROM (SELECT economic_at FROM app.executions WHERE workspace_id=${context.workspaceId} AND account_id=${id}
                 UNION ALL SELECT economic_at FROM app.opening_lots WHERE workspace_id=${context.workspaceId} AND account_id=${id}
-                UNION ALL SELECT economic_at FROM app.inventory_events WHERE workspace_id=${context.workspaceId} AND account_id=${id}) facts`,
+                UNION ALL SELECT economic_at FROM app.inventory_events WHERE workspace_id=${context.workspaceId} AND account_id=${id}
+                UNION ALL SELECT economic_at FROM app.holding_transfers WHERE workspace_id=${context.workspaceId}
+                  AND (source_account_id=${id} OR destination_account_id=${id})) facts`,
             );
             if (
               chronology[0]?.latest_at &&

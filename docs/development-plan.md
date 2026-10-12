@@ -4,9 +4,9 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current authorized increment is Phase 6 trade journal against the approved domain and architecture.** Phases 0–5 are approved and merged. Existing financial/platform and strategy evidence remains recorded in the preceding validation documents. This increment adds trade planning and review, immutable original plan/risk, journal revisions, private before/during/after evidence and calculated financial detail. Current checks and limits belong in [Phase 6 validation](phase-6-validation.md). Financial entry screens, dashboards and the later product workflows remain deferred.
+**The current authorized increment is Phase 7 portfolio/account accounting against the approved domain and architecture.** Phases 0–6 are approved and merged. This increment adds immutable portfolio membership definitions, typed gross income and taxes/expenses, evidenced cash transit and revision-pinned account/portfolio reconciliation. Current behavior and independent examples belong in [portfolio accounting](portfolio-accounting.md); checks and limits belong in [Phase 7 validation](phase-7-validation.md). Financial entry screens, dashboards and the later product workflows remain deferred.
 
-The original full-product roadmap numbering below is retained: its Phase 6 imports and Phase 9 broader journal/export work are distinct from the user's newly authorized **Phase 6 trade journal** increment. The section below records that increment without implying import, dashboard or whole-product completion.
+The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and authorized Phase 7 portfolio/accounting increments. These increments do not imply import, advanced asset, dashboard or whole-product completion.
 
 | Phase          | Result                                                                                                 | Current status                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -172,7 +172,7 @@ Validation must cover strict decimal and document contracts, tenant/actor/refere
 
 This increment advances the frozen plan/risk and review portions of the original Phase 5 and private trade-evidence portion of Phase 9. It does not complete every asset-family recording journey, daily/period reviews, imports, analytics, exports or restore.
 
-Final journal increment checks passed: **410 unit/property/UI tests**, **287 PostgreSQL tests** on both the development workflow's test service and a fresh owned database, **9 browser journeys**, API drift, formatting, lint, full type checks, production builds, schema 7 migrations and cold-install development/standalone startup and restart. [Phase 6 validation](phase-6-validation.md) records the executed evidence and limits; [Phase 6 files](phase-6-files.md) lists 36 created files, 22 modified files and no deletions. The implementation remains uncommitted.
+Final journal increment checks passed: **410 unit/property/UI tests**, **287 PostgreSQL tests** on both the development workflow's test service and a fresh owned database, **9 browser journeys**, API drift, formatting, lint, full type checks, production builds, schema 7 migrations and cold-install development/standalone startup and restart. [Phase 6 validation](phase-6-validation.md) records the executed evidence and limits; [Phase 6 files](phase-6-files.md) lists 36 created files, 22 modified files and no deletions. At that phase’s review handoff, the implementation remained uncommitted.
 
 ### Original roadmap Phase 6: imports, corrections, and reconciliation
 
@@ -313,4 +313,15 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is Phase 6 trade journal and verification. The increment must preserve existing ledger and strategy invariants and pass platform regressions alongside journal contract, persistence, financial-read, API, UI and browser checks. Strategy performance analytics, full financial entry screens, imports, other later-phase workflows, deployment, commits and pushes remain outside this increment.
+The current authorized action is Phase 7 portfolio/account accounting and verification. The increment must preserve the financial ledger, strategies and journal invariants and pass platform regressions alongside accounting kernel, contracts, persistence, reports and HTTP checks. Analytics dashboards, full financial entry screens, imports, advanced native settlement, deployment, commits and pushes remain outside this increment.
+
+## Authorized Phase 7: portfolio/accounting engine
+
+- Immutable, first-class portfolio identity and numbered account-membership definitions; scope versions are explicit report inputs.
+- Multiple accounts/brokers/currencies, with separate live/paper populations and deduplication of account ownership.
+- Gross dividends/interest, linked withholding, signed taxes/refunds and financing expenses, separate from trading and actual fees.
+- Existing funding, conversions, fees and immediate transfers plus actual cash departure/receipt and evidenced monetary transit.
+- Read-only revision-pinned opening/closing cash, holdings, equity/NLV and interval gross trading, income, costs, taxes, FX and capital-flow reconciliation.
+- Independent reconciliation examples and unit/property/PostgreSQL/HTTP tests, with complete regression and clean-environment evidence recorded in [Phase 7 validation](phase-7-validation.md).
+
+The [accounting guide](portfolio-accounting.md) defines delivered semantics and limits. No capital contribution, transfer control or unclassified variance is trading profit. Unsupported valuations and unknown historical inputs retain explicit availability and known subtotals. No new infrastructure, third-party credential or broker dependency is required.

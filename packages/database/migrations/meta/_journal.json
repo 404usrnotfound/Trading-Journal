@@ -50,6 +50,13 @@
       "when": 1791794055590,
       "tag": "0006_journal_label_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791821207713,
+      "tag": "0007_portfolio_accounting",
+      "breakpoints": true
     }
   ]
 }

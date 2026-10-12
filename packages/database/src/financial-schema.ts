@@ -1154,6 +1154,9 @@ export const ledgerEvents = app
       feeId: uuid('fee_id'),
       cashMovementId: uuid('cash_movement_id'),
       fxConversionId: uuid('fx_conversion_id'),
+      accountCashEventId: uuid('account_cash_event_id'),
+      cashTransferId: uuid('cash_transfer_id'),
+      cashTransferReceiptId: uuid('cash_transfer_receipt_id'),
       payload: jsonb('payload')
         .notNull()
         .default(sql`'{}'::jsonb`),

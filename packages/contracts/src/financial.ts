@@ -606,11 +606,12 @@ const fxPolicySchema = z.strictObject({
 const selectedFxSchema = z.strictObject({
   baseCurrencyId: financialIdSchema,
   quoteCurrencyId: financialIdSchema,
-  rate: financialDecimalSchema,
+  rate: positiveFinancialDecimalSchema,
   requestedAt: financialInstantSchema,
   observationIds: financialIdSchema.array(),
-  route: z.enum(['identity', 'direct', 'inverse']),
+  route: z.enum(['identity', 'direct', 'inverse', 'manual-direct', 'manual-inverse']),
   policyId: label,
+  reviewedContextId: label.optional(),
 });
 const unavailableFxSchema = z.strictObject({
   state: z.literal('unavailable'),
