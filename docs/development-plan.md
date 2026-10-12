@@ -4,7 +4,9 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current increment implements Phase 5 strategy management against the approved domain and architecture.** Phases 0–4 are approved and merged. [Scaffold validation](scaffold-validation.md) and [Phase 4 validation](phase-4-validation.md) preserve their actual financial/platform evidence. Strategies now have workspace-owned identities, complete immutable versions, explicit trade pins, private attachments and management screens. Current checks and limits belong in [Phase 5 validation](phase-5-validation.md). Financial entry screens, dashboards, frozen trade plans and the later product workflows remain deferred.
+**The current authorized increment is Phase 6 trade journal against the approved domain and architecture.** Phases 0–5 are approved and merged. Existing financial/platform and strategy evidence remains recorded in the preceding validation documents. This increment adds trade planning and review, immutable original plan/risk, journal revisions, private before/during/after evidence and calculated financial detail. Current checks and limits belong in [Phase 6 validation](phase-6-validation.md). Financial entry screens, dashboards and the later product workflows remain deferred.
+
+The original full-product roadmap numbering below is retained: its Phase 6 imports and Phase 9 broader journal/export work are distinct from the user's newly authorized **Phase 6 trade journal** increment. The section below records that increment without implying import, dashboard or whole-product completion.
 
 | Phase          | Result                                                                                                 | Current status                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -13,11 +15,11 @@ The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative
 | 2              | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Approved and merged; authority for the Phase 4 implementation                          |
 | 3              | Runnable platform scaffolding and security foundations                                                 | New foundation implemented; current clean-environment verification recorded separately |
 | 4              | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX                             | Core backend implemented and verified; later workflows remain scoped below             |
-| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Strategy management implemented; frozen plans and full trade workflows remain deferred |
+| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Strategies implemented; authorized journal increment adds frozen plans and review      |
 | 6              | Universal imports, corrections, and reconciliation                                                     | Not started                                                                            |
 | 7              | Recording/review and settlement workflows for every asset family                                       | Not started                                                                            |
 | 8              | Risk monitoring, portfolio performance, and drill-down analytics                                       | Not started                                                                            |
-| 9              | Journal workflows, attachments, saved views, exports, and restore                                      | Not started                                                                            |
+| 9              | Journal workflows, attachments, saved views, exports, and restore                                      | Trade review/evidence in authorized journal increment; broader scope remains deferred  |
 | 10             | Complete security/accessibility/performance verification and delivery                                  | Not started                                                                            |
 | Optional track | Chosen broker/provider integrations and optional metrics                                               | Unscheduled; not a prerequisite for the manual core                                    |
 
@@ -162,7 +164,17 @@ Current strategy evidence covers immutable complete snapshots, exact parameters,
 
 Final strategy increment checks passed: 313 unit/property/UI tests, 201 PostgreSQL tests, seven browser journeys with accessibility/visual checks, schema version 5 migrations, lint, formatting, types, production builds and isolated development/standalone process-restart persistence. Existing financial calculations and published Phase 0–4 authority remain unchanged.
 
-### Phase 6: imports, corrections, and reconciliation
+### Authorized Phase 6 increment: trade journal
+
+[Trade journal](trade-journal.md) defines the plan/review boundary, original-risk eligibility, autosave, history and evidence semantics. The implementation covers manual strategy/version/setup, thesis, planned prices, initial risk, conditions, timeframe and process review, with ledger actual prices, quantities, basis, fees, realized results and explicitly available/unavailable R displayed separately. Original plan snapshots and supplemental risk preserve the original denominator. Review does not change financial lifecycle or replace posted facts.
+
+Validation must cover strict decimal and document contracts, tenant/actor/reference integrity, immutable history and original commitment, idempotence, stale drafts, atomic audits, concurrency, private historical media, backdated fill eligibility, multiple accounts/legs, historical FX and costs. UI/browser checks must demonstrate real trade recording/review, autosave and conflict recovery, viewers, keyboard access and desktop/mobile light/dark layouts. Actual results and file inventory are recorded in [Phase 6 validation](phase-6-validation.md).
+
+This increment advances the frozen plan/risk and review portions of the original Phase 5 and private trade-evidence portion of Phase 9. It does not complete every asset-family recording journey, daily/period reviews, imports, analytics, exports or restore.
+
+Final journal increment checks passed: **410 unit/property/UI tests**, **287 PostgreSQL tests** on both the development workflow's test service and a fresh owned database, **9 browser journeys**, API drift, formatting, lint, full type checks, production builds, schema 7 migrations and cold-install development/standalone startup and restart. [Phase 6 validation](phase-6-validation.md) records the executed evidence and limits; [Phase 6 files](phase-6-files.md) lists 36 created files, 22 modified files and no deletions. The implementation remains uncommitted.
+
+### Original roadmap Phase 6: imports, corrections, and reconciliation
 
 Pass G-06 for import identity/commit/reversal and source storage before accepting financial uploads. Universal CSV is a core feature independent of named broker adapters.
 
@@ -301,4 +313,4 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is Phase 5 strategy management and verification. The increment must preserve existing ledger invariants and pass complete platform regressions alongside strategy version/pin/file tests. Strategy performance analytics, frozen trade plans, full financial entry screens, other later-phase workflows, deployment, commits and pushes remain outside this increment.
+The current authorized action is Phase 6 trade journal and verification. The increment must preserve existing ledger and strategy invariants and pass platform regressions alongside journal contract, persistence, financial-read, API, UI and browser checks. Strategy performance analytics, full financial entry screens, imports, other later-phase workflows, deployment, commits and pushes remain outside this increment.

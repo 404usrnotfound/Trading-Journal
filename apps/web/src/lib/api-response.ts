@@ -14,6 +14,10 @@ type ApiOperation =
   | 'strategy.command'
   | 'strategy.attachment.read'
   | 'strategy.attachment.command'
+  | 'journal.read'
+  | 'journal.command'
+  | 'journal.attachment.read'
+  | 'journal.attachment.command'
   | 'health.ready';
 
 export function apiFailure(

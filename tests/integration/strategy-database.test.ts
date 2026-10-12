@@ -10,7 +10,12 @@ import {
   type DbTransaction,
   type TenantContext,
 } from '@journal/database';
-import { migrateDatabase, migrationsFolder, readMigrationFiles } from '@journal/database/migrate';
+import {
+  DATABASE_SCHEMA_VERSION,
+  migrateDatabase,
+  migrationsFolder,
+  readMigrationFiles,
+} from '@journal/database/migrate';
 
 const tables = [
   'strategy_version_attachments',
@@ -888,7 +893,7 @@ describe('additive Phase 5 upgrade preserves the published Phase 4 financial led
       created = true;
       database = createDatabase(url.toString(), { max: 1 });
       const reviewed = readMigrationFiles({ migrationsFolder });
-      expect(reviewed).toHaveLength(5);
+      expect(reviewed).toHaveLength(DATABASE_SCHEMA_VERSION);
       await database.db.transaction(async (tx) => {
         for (const migration of reviewed.slice(0, 3))
           for (const statement of migration.sql) await tx.execute(sql.raw(statement));
@@ -1001,7 +1006,7 @@ describe('additive Phase 5 upgrade preserves the published Phase 4 financial led
         })),
       );
       expect((await database.pool.query('SELECT version FROM app.schema_metadata')).rows).toEqual([
-        { version: 5 },
+        { version: DATABASE_SCHEMA_VERSION },
       ]);
       expect(
         (

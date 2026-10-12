@@ -37,6 +37,12 @@ export async function executeStrategyCommand<Result>(
   const id = financialIdSchema.parse(command.commandId);
   const hash = financialFingerprint({ kind: command.kind, payload: command.payload });
   return platform.withWorkspaceContext(context, async (tx) => {
+    // Journal and financial commands acquire this row before the workspace mutex.
+    // Preserve that order for strategy trade links without creating financial facts
+    // in workspaces that have only a playbook and no financial state yet.
+    await tx.execute(
+      sql`SELECT revision FROM app.financial_state WHERE workspace_id=${context.workspaceId} FOR UPDATE`,
+    );
     await lockStrategyWorkspace(tx, context.workspaceId);
     const [previous] = await queryRows<{ request_hash: string; result: Result }>(
       tx,

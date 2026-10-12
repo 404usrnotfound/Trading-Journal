@@ -36,6 +36,20 @@
       "when": 1791736244515,
       "tag": "0004_strategy_definition_size",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791792685479,
+      "tag": "0005_trade_journal",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791794055590,
+      "tag": "0006_journal_label_integrity",
+      "breakpoints": true
     }
   ]
 }

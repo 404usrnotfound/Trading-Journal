@@ -234,10 +234,7 @@ export function createStrategyServices(platform: StrategyPlatform) {
       context,
       { commandId, kind: 'trade-linked', payload: { id, ...input } },
       async (tx) => {
-        // Trade revisions share the existing financial catalog lock, without adding an economic revision.
-        await tx.execute(
-          sql`SELECT revision FROM app.financial_state WHERE workspace_id=${context.workspaceId} FOR UPDATE`,
-        );
+        // executeStrategyCommand acquires the financial row before the workspace mutex.
         const actualStrategyId = await requireSelectableStrategyVersion(
           tx,
           context.workspaceId,

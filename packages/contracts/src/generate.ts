@@ -25,6 +25,7 @@ import { z } from 'zod';
 import * as financial from './financial.js';
 import * as strategies from './strategies.js';
 import * as strategyAttachments from './strategy-attachments.js';
+import * as journal from './journal.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -72,7 +73,9 @@ for (const [name, schema] of Object.entries(financial)) {
 }
 for (const [name, schema] of Object.entries(strategies.strategySchemaComponents))
   registerSharedSchema(name, schema);
-for (const collection of [strategies, strategyAttachments])
+for (const [name, schema] of Object.entries(journal.journalSchemaComponents))
+  registerSharedSchema(name, schema);
+for (const collection of [strategies, strategyAttachments, journal])
   for (const [name, schema] of Object.entries(collection)) {
     if (name.endsWith('Schema') && schema instanceof z.ZodType && !name.endsWith('QuerySchema'))
       registerSharedSchema(
@@ -190,7 +193,10 @@ for (const [method, suffix, params, input, output] of [
     },
     responses: { 200: response(output), ...strategyProblems },
   });
-const attachmentPrefix = '/api/v1/workspaces/{workspaceId}/strategy-attachments';
+const attachmentPrefixes = [
+  '/api/v1/workspaces/{workspaceId}/strategy-attachments',
+  '/api/v1/workspaces/{workspaceId}/journal-attachments',
+];
 const attachmentIdentityParams = strategyCollectionParams.extend({
   attachmentId: financial.financialIdSchema,
 });
@@ -201,74 +207,165 @@ const attachmentBinaryContent = Object.fromEntries(
     { schema: binarySchema },
   ]),
 );
-registry.registerPath({
-  method: 'post',
-  path: attachmentPrefix,
-  security: [{ sessionCookie: [] }],
-  description:
-    'Upload immutable workspace-owned PNG, JPEG, WebP or PDF content, at most 10485760 bytes. X-File-Name is URI-component encoded. Repeated identical Idempotency-Key returns the original metadata; different contents conflict.',
-  request: {
-    params: strategyCollectionParams,
-    headers: strategyMutationHeaders.extend({
-      'Idempotency-Key': financial.financialIdSchema,
-      'X-File-Name': z.string().min(1).max(1440),
-    }),
-    body: { required: true, content: attachmentBinaryContent },
-  },
-  responses: {
-    201: response(strategyAttachments.strategyAttachmentResponseSchema),
-    ...strategyProblems,
-  },
-});
-registry.registerPath({
-  method: 'get',
-  path: attachmentPrefix,
-  security: [{ sessionCookie: [] }],
-  request: {
-    params: strategyCollectionParams,
-    query: strategyAttachments.strategyAttachmentListQuerySchema,
-  },
-  responses: {
-    200: response(strategyAttachments.strategyAttachmentListResponseSchema),
-    ...strategyProblems,
-  },
-});
-registry.registerPath({
-  method: 'get',
-  path: attachmentPrefix + '/{attachmentId}',
-  security: [{ sessionCookie: [] }],
-  description:
-    'Authenticated immutable attachment read. Images may be displayed inline; PDF files are always downloaded. Content is private, uncached, sandboxed and protected from MIME sniffing.',
-  request: { params: attachmentIdentityParams },
-  responses: {
-    200: {
-      description: 'Original uploaded content after workspace authorization.',
-      content: attachmentBinaryContent,
-      headers: {
-        'Content-Disposition': {
-          schema: { type: 'string' },
-          description: 'Safe inline image or attachment download filename.',
-        },
-        'Content-Security-Policy': {
-          schema: { type: 'string' },
-          description: 'Sandboxed untrusted content.',
-        },
-        'X-Content-Type-Options': { schema: { type: 'string', const: 'nosniff' } },
-        'Cache-Control': { schema: { type: 'string', const: 'private, no-store' } },
-      },
+for (const attachmentPrefix of attachmentPrefixes) {
+  registry.registerPath({
+    method: 'post',
+    path: attachmentPrefix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Upload immutable workspace-owned PNG, JPEG, WebP or PDF content, at most 10485760 bytes. X-File-Name is URI-component encoded. Repeated identical Idempotency-Key returns the original metadata; different contents conflict.',
+    request: {
+      params: strategyCollectionParams,
+      headers: strategyMutationHeaders.extend({
+        'Idempotency-Key': financial.financialIdSchema,
+        'X-File-Name': z.string().min(1).max(1440),
+      }),
+      body: { required: true, content: attachmentBinaryContent },
     },
-    ...strategyProblems,
-  },
+    responses: {
+      201: response(strategyAttachments.strategyAttachmentResponseSchema),
+      ...strategyProblems,
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: attachmentPrefix,
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: strategyCollectionParams,
+      query: strategyAttachments.strategyAttachmentListQuerySchema,
+    },
+    responses: {
+      200: response(strategyAttachments.strategyAttachmentListResponseSchema),
+      ...strategyProblems,
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: attachmentPrefix + '/{attachmentId}',
+    security: [{ sessionCookie: [] }],
+    description:
+      'Authenticated immutable attachment read. Images may be displayed inline; PDF files are always downloaded. Content is private, uncached, sandboxed and protected from MIME sniffing.',
+    request: { params: attachmentIdentityParams },
+    responses: {
+      200: {
+        description: 'Original uploaded content after workspace authorization.',
+        content: attachmentBinaryContent,
+        headers: {
+          'Content-Disposition': {
+            schema: { type: 'string' },
+            description: 'Safe inline image or attachment download filename.',
+          },
+          'Content-Security-Policy': {
+            schema: { type: 'string' },
+            description: 'Sandboxed untrusted content.',
+          },
+          'X-Content-Type-Options': { schema: { type: 'string', const: 'nosniff' } },
+          'Cache-Control': { schema: { type: 'string', const: 'private, no-store' } },
+        },
+      },
+      ...strategyProblems,
+    },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: attachmentPrefix + '/{attachmentId}',
+    security: [{ sessionCookie: [] }],
+    description:
+      'Delete only unreferenced attachment content. Any immutable strategy version, journal revision or published plan reference returns 409, including archived trades and strategies.',
+    request: { params: attachmentIdentityParams, headers: strategyMutationHeaders },
+    responses: { 204: { description: 'Unreferenced attachment deleted.' }, ...strategyProblems },
+  });
+}
+const journalPrefix = '/api/v1/workspaces/{workspaceId}/journals';
+const journalIdentityParams = strategyCollectionParams.extend({
+  tradeId: financial.financialIdSchema,
 });
-registry.registerPath({
-  method: 'delete',
-  path: attachmentPrefix + '/{attachmentId}',
-  security: [{ sessionCookie: [] }],
-  description:
-    'Delete only unreferenced attachment content. Any immutable strategy version reference returns 409, including archived strategies.',
-  request: { params: attachmentIdentityParams, headers: strategyMutationHeaders },
-  responses: { 204: { description: 'Unreferenced attachment deleted.' }, ...strategyProblems },
+const journalRevisionParams = journalIdentityParams.extend({
+  revisionId: financial.financialIdSchema,
 });
+for (const [suffix, params, query, output] of [
+  ['', strategyCollectionParams, journal.journalListQuerySchema, journal.journalListResponseSchema],
+  ['/{tradeId}', journalIdentityParams, undefined, journal.journalDetailResponseSchema],
+  [
+    '/{tradeId}/plans',
+    journalIdentityParams,
+    journal.journalPlansQuerySchema,
+    journal.journalPlansResponseSchema,
+  ],
+  [
+    '/{tradeId}/risk-additions',
+    journalIdentityParams,
+    journal.journalRiskAdditionsQuerySchema,
+    journal.journalRiskAdditionsResponseSchema,
+  ],
+  [
+    '/{tradeId}/revisions',
+    journalIdentityParams,
+    journal.journalRevisionsQuerySchema,
+    journal.journalRevisionsResponseSchema,
+  ],
+  [
+    '/{tradeId}/revisions/{revisionId}',
+    journalRevisionParams,
+    undefined,
+    journal.journalRevisionResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method: 'get',
+    path: journalPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Workspace-scoped trade journal. Detail is a coherent snapshot of immutable financial sources, historical strategy rules and manual journal entries. Financial information is calculated independently of manually reported observations. Lists are cursor-paginated, at most 100 entries per page.',
+    request: { params, ...(query ? { query } : {}) },
+    responses: { 200: response(output), ...strategyProblems },
+  });
+for (const [method, suffix, params, input, output] of [
+  [
+    'post',
+    '',
+    strategyCollectionParams,
+    journal.journalCreateSchema,
+    journal.journalDetailResponseSchema,
+  ],
+  [
+    'put',
+    '/{tradeId}',
+    journalIdentityParams,
+    journal.journalSaveSchema,
+    journal.journalEntryResponseSchema,
+  ],
+  [
+    'post',
+    '/{tradeId}/plans',
+    journalIdentityParams,
+    journal.journalPublishPlanSchema,
+    journal.journalPlanVersionResponseSchema,
+  ],
+  [
+    'post',
+    '/{tradeId}/risk-additions',
+    journalIdentityParams,
+    journal.journalRiskAdditionSchema,
+    journal.journalRiskAdditionResponseSchema,
+  ],
+] as const)
+  registry.registerPath({
+    method,
+    path: journalPrefix + suffix,
+    security: [{ sessionCookie: [] }],
+    description:
+      'Editor/owner journal command with optimistic revision checks. Identical retries with the same Idempotency-Key return the committed command response; changed contents conflict. Complete journal documents are bounded to 131072 UTF-8 bytes and JSON requests to 262144 bytes. Saves append immutable revisions without changing ledger balances. Publication freezes the original server-timed plan and risk; later plans and separate risk additions never rewrite the historical R denominator.',
+    request: {
+      params,
+      headers: strategyMutationHeaders.extend({
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: { 200: response(output), ...strategyProblems },
+  });
 const financialCommands = {
   currencies: [financial.currencyCreateSchema, financial.currencyResponseSchema],
   brokers: [financial.brokerCreateSchema, financial.brokerResponseSchema],

@@ -154,7 +154,11 @@ migration creates the financial foundation and established schema readiness
 version 3. Phase 5's additive `0003_strategy_management` established version 4.
 The forward-only `0004_strategy_definition_size` migration independently enforces
 the shared compact UTF-8 definition size limit without changing published migration
-files or strategy snapshots, advancing the current release to **version 5**, checked
+files or strategy snapshots, establishing schema **version 5**. Phase 6 adds the forward-only
+`0005_trade_journal` migration, establishing schema **version 6**. The additive
+`0006_journal_label_integrity` migration rejects labels blank after shared-contract
+Unicode trimming and normalized duplicate labels, advancing the current release to
+**version 7**, checked
 read-only by [readiness.ts](src/readiness.ts).
 Runtime readiness also requires PostgreSQL 17.
 Use the root's `corepack pnpm db:migrate`, `corepack pnpm db:migrate:check` and
@@ -182,3 +186,45 @@ filesystem cleanup, and all historical version references prevent removal. The
 filesystem does not share the PostgreSQL transaction: retries resume pending
 uploads or removal cleanup, and crashes can leave unpublished private objects
 requiring operator review. No file is served from a pending/removed reservation.
+
+The Phase 6 journal schema is declared in [journal-schema.ts](src/journal-schema.ts).
+`journal_entries` selects the latest complete append-only `journal_revisions`
+snapshot. Optimistic revisions advance one at a time, with one atomic command
+and matching actor/action audit for every accepted save, plan publication or risk
+supplement. Journal mutations serialize against the financial-state row and
+workspace attachment mutex without advancing the financial source revision.
+Trade creation remains an existing financial catalog command.
+
+Published `journal_plan_versions` are contiguous and immutable. The first plan
+requires a once-only `journal_plan_commitments` record. PostgreSQL supplies its
+server commitment clock, captures the locked financial revision and derives
+pre-trade versus retrospective timing from effective allocated executions. Later
+plans and separately recorded `journal_risk_additions` cannot replace the original
+plan or its risk denominator. Closed campaigns remain reviewable; new plan and
+risk publications require an active, unarchived campaign.
+
+Strict JSON checks require complete snapshots, exact supported Decimal strings,
+Unicode character-length parity with shared validation, and a compact UTF-8 maximum of
+128 KiB. Deferred checks independently validate campaign legs, risk currencies,
+strategy pins, setup/checklist identities, command effects and complete private
+attachment reference sets. `journal_revision_attachments` records planning or
+before/during/after evidence, while `journal_plan_attachments` protects published
+plan files. Both reuse the private file registry and prevent removal of any
+historically referenced object, including files removed from a later draft.
+
+All eight new tables use composite workspace references and forced row-level
+security. Viewer membership permits reads; editor/owner membership permits
+authorized writes, with the actor bound to the transaction. History tables have
+insert-only runtime grants plus immutable triggers. Database integrity does not
+replace session verification, CSRF checks or server-side action authorization.
+The Phase 6 database integration suite exercises direct runtime SQL and a
+populated Phase 5 prefix upgrade, preserving all earlier rows and migration hashes.
+
+The forward-only label-integrity migration uses an exact ECMAScript
+`String.trim` whitespace helper, including tabs, nonbreaking spaces and the byte
+order mark. Independent constraints reject blank revision/publication reasons,
+risk-supplement methods/reasons, risk-method labels and subjective label arrays.
+Uniqueness applies after the same trim normalization used by the shared contract,
+so distinct raw strings cannot create unreadable duplicate labels. Existing facts
+are validated by the new constraints without rewriting history; any incompatible
+row stops migration rather than silently changing an immutable journal.

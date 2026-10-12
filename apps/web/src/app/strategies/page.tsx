@@ -1,6 +1,6 @@
 import { getSafeSession, getWorkspace, getWorkspaces } from '@journal/server';
 import { Badge, Brand } from '@journal/ui';
-import { ChevronRight, Layers, LayoutDashboard } from 'lucide-react';
+import { BookOpen, ChevronRight, Layers, LayoutDashboard } from 'lucide-react';
 import { notFound, redirect } from 'next/navigation';
 import { SignOutButton } from '@/components/sign-out-button';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -63,6 +63,13 @@ export default async function StrategiesPage({
             <Layers size={18} aria-hidden="true" />
             <span>Strategies</span>
           </a>
+          <a
+            className="nav-item"
+            href={workspace ? `/journal?workspace=${encodeURIComponent(workspace.id)}` : '/journal'}
+          >
+            <BookOpen size={18} aria-hidden="true" />
+            <span>Trade journal</span>
+          </a>
         </nav>
         <div className="sidebar-bottom">
           <Badge>Strategy playbook</Badge>
@@ -91,6 +98,28 @@ export default async function StrategiesPage({
           </div>
         </header>
         <main id="main-content" className="overview-main strategies-main" tabIndex={-1}>
+          <nav aria-label="Mobile page navigation" className="journal-mobile-nav">
+            <a href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}>
+              Overview
+            </a>
+            <a
+              href={
+                workspace
+                  ? `/strategies?workspace=${encodeURIComponent(workspace.id)}`
+                  : '/strategies'
+              }
+              aria-current="page"
+            >
+              Strategies
+            </a>
+            <a
+              href={
+                workspace ? `/journal?workspace=${encodeURIComponent(workspace.id)}` : '/journal'
+              }
+            >
+              Trade journal
+            </a>
+          </nav>
           {workspace ? (
             <StrategyWorkspace
               key={workspace.id}

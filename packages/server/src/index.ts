@@ -15,6 +15,12 @@ export { createStrategyServices } from './strategies/service.js';
 export { createStrategyApi } from './strategies/api.js';
 export { createStrategyAttachmentServices } from './strategies/attachments.js';
 export { createStrategyAttachmentApi } from './strategies/attachment-api.js';
+export { createJournalServices } from './journal/service.js';
+export { createJournalApi } from './journal/api.js';
+export {
+  createJournalAttachmentServices,
+  createJournalAttachmentApi,
+} from './journal/attachments.js';
 export type * from './financial/catalog-types.js';
 export type * from './financial/ledger-types.js';
 export {

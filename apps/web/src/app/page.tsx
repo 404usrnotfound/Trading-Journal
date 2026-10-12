@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   Layers,
   LockKeyhole,
-  Plus,
   Settings2,
   ShieldCheck,
   Wallet,
@@ -32,7 +31,6 @@ const upcomingNavigation = [
   { label: 'Trades', icon: Activity },
   { label: 'Portfolio & accounts', icon: Wallet },
   { label: 'Analytics', icon: ChartNoAxesCombined },
-  { label: 'Journal & reviews', icon: BookOpen },
   { label: 'Imports', icon: FileDown },
   { label: 'Settings', icon: Settings2 },
 ];
@@ -90,6 +88,12 @@ export default async function OverviewPage({
               <span>Strategies</span>
             </a>
           )}
+          {workspace && (
+            <a href={`/journal?workspace=${encodeURIComponent(workspace.id)}`} className="nav-item">
+              <BookOpen size={18} aria-hidden="true" />
+              <span>Trade journal</span>
+            </a>
+          )}
           {upcomingNavigation.map(({ label, icon: Icon }) => (
             <button key={label} className="nav-item" disabled aria-describedby="navigation-note">
               <Icon size={18} aria-hidden="true" />
@@ -99,7 +103,7 @@ export default async function OverviewPage({
           ))}
         </nav>
         <p id="navigation-note" className="navigation-note">
-          Use Strategies to manage your playbook. Additional trading screens will follow.
+          Use Strategies for your playbook and Trade journal for planning and review.
         </p>
         <div className="sidebar-bottom">
           <Badge>Foundation release</Badge>
@@ -157,14 +161,23 @@ export default async function OverviewPage({
               <h2>{workspace ? 'Your journal starts here.' : 'You’re signed in.'}</h2>
               <p>
                 {workspace
-                  ? 'Your private workspace is ready. Recording, importing and reviewing trading activity will become available in later releases.'
+                  ? 'Plan a trade, review its ledger actuals and record the decisions and lessons in your private journal.'
                   : 'No workspace has been assigned to your account. Contact your workspace administrator to request access.'}
               </p>
-              <Button disabled aria-describedby="recording-note">
-                <Plus size={17} aria-hidden="true" /> Record activity
-              </Button>
+              {workspace ? (
+                <a
+                  className="button button-primary"
+                  href={`/journal?workspace=${encodeURIComponent(workspace.id)}`}
+                >
+                  <BookOpen size={17} aria-hidden="true" /> Open trade journal
+                </a>
+              ) : (
+                <Button disabled>Workspace access needed</Button>
+              )}
               <span id="recording-note" className="empty-note">
-                Not available in the foundation release
+                {workspace
+                  ? 'Financial facts and manual observations stay distinct.'
+                  : 'Your administrator can assign workspace access.'}
               </span>
             </Panel>
             <Panel className="foundation-panel">

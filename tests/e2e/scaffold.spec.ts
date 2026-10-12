@@ -120,10 +120,9 @@ test('real sign-in persists access to the empty foundation and sign-out clears i
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your journal starts here.' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Record activity' })).toBeDisabled();
-  await expect(
-    page.getByText('Not available in the foundation release', { exact: true }),
-  ).toBeVisible();
+  const journal = page.getByRole('link', { name: 'Open trade journal', exact: true });
+  await expect(journal).toBeVisible();
+  await expect(journal).toHaveAttribute('href', /^\/journal\?workspace=[a-f0-9-]+$/);
 
   const session = await page.request.get('/api/v1/session');
   const sessionBody: unknown = await session.json();

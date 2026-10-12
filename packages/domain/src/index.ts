@@ -30,3 +30,4 @@ export * from './postings.js';
 export * from './valuation.js';
 export * from './inventory.js';
 export * from './inventory-types.js';
+export * from './journal.js';

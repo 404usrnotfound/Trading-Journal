@@ -321,12 +321,15 @@ export function createStrategyAttachmentServices(platform: Platform, store: Priv
         WHERE workspace_id=${context.workspaceId} AND id=${id} FOR UPDATE`);
       const current = result.rows[0];
       if (!current) throw inaccessible();
-      const references = await tx.execute(sql`SELECT 1 FROM app.strategy_version_attachments
-        WHERE workspace_id=${context.workspaceId} AND attachment_id=${id} LIMIT 1`);
+      const references = await tx.execute(sql`SELECT 1 FROM (
+        SELECT attachment_id FROM app.strategy_version_attachments WHERE workspace_id=${context.workspaceId}
+        UNION ALL SELECT attachment_id FROM app.journal_revision_attachments WHERE workspace_id=${context.workspaceId}
+        UNION ALL SELECT attachment_id FROM app.journal_plan_attachments WHERE workspace_id=${context.workspaceId}
+      ) historical_refs WHERE attachment_id=${id} LIMIT 1`);
       if (references.rows.length > 0)
         throw conflict(
           'ATTACHMENT_REFERENCED',
-          'An immutable strategy version references this file. Remove it from a new version to stop displaying it there; its historical file must remain available.',
+          'An immutable strategy version or journal history references this file. Its historical evidence must remain available.',
         );
       if (current.state !== 'removed') {
         await tx.execute(sql`UPDATE app.strategy_attachments SET state='removed',removed_at=now()
