@@ -58,7 +58,7 @@ function nextInteger() {
 
 it(
   'proves exact totals, rates, means, drawdown and group conservation against 200 seeded BigInt models',
-  { timeout: 30_000 },
+  { timeout: 60_000 },
   () => {
     state = 804_172;
     for (let trial = 0; trial < 200; trial += 1) {

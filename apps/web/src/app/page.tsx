@@ -4,7 +4,6 @@ import {
   Activity,
   ArrowRight,
   BookOpen,
-  ChartNoAxesCombined,
   Check,
   ChevronRight,
   FileDown,
@@ -30,7 +29,6 @@ export const runtime = 'nodejs';
 const upcomingNavigation = [
   { label: 'Trades', icon: Activity },
   { label: 'Portfolio & accounts', icon: Wallet },
-  { label: 'Analytics', icon: ChartNoAxesCombined },
   { label: 'Imports', icon: FileDown },
   { label: 'Settings', icon: Settings2 },
 ];
@@ -71,6 +69,15 @@ export default async function OverviewPage({
           </div>
         </div>
         <nav aria-label="Main navigation" className="main-navigation">
+          <a
+            className="nav-item"
+            href={
+              workspace ? `/dashboard?workspace=${encodeURIComponent(workspace.id)}` : '/dashboard'
+            }
+          >
+            <LayoutDashboard size={18} aria-hidden="true" />
+            <span>Dashboard</span>
+          </a>
           <a
             href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}
             className="nav-item active"
@@ -136,6 +143,12 @@ export default async function OverviewPage({
             <div>
               <div className="eyebrow">YOUR JOURNAL</div>
               <h1>Overview</h1>
+              <a
+                className="button button-secondary"
+                href={workspace ? `/dashboard?workspace=${workspace.id}` : '/dashboard'}
+              >
+                Open analytics dashboard
+              </a>
               <p>A clean starting point for your trading practice.</p>
             </div>
             <Badge variant="success">

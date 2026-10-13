@@ -4,9 +4,9 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current authorized increment is Phase 8 analytics against the approved domain and architecture.** Phases 0–7 are approved and merged. This increment adds deterministic campaign metrics, explicit eligible/excluded populations, original-risk R, monetary drawdown/recovery, dated/source-pinned valuation and historical groupings. Exact formulas and display/availability rules belong in [analytics definitions](analytics-definitions.md); checks and limits belong in [Phase 8 validation](phase-8-validation.md). Analytics dashboards, account return curves and the later product workflows remain deferred.
+**The current authorized increment is Phase 9 dashboard and visualization against the approved domain and architecture.** Phases 0–8 are approved and merged. The dashboard adds shared filters, financial visualizations and trade drill-downs; see [dashboard semantics](dashboard.md) and [Phase 9 validation](phase-9-validation.md). The merged Phase 8 increment adds deterministic campaign metrics, explicit eligible/excluded populations, original-risk R, monetary drawdown/recovery, dated/source-pinned valuation and historical groupings. Exact formulas and display/availability rules belong in [analytics definitions](analytics-definitions.md); checks and limits belong in [Phase 8 validation](phase-8-validation.md). Account return solvers and the later product workflows remain deferred.
 
-The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and authorized Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine adds campaign statistics and historical breakdowns; it does not imply import, advanced native asset, account-return/dashboard or whole-product completion.
+The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and authorized Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine adds campaign statistics and historical breakdowns; it does not imply import, advanced native asset, account-return or whole-product completion.
 
 | Phase          | Result                                                                                                 | Current status                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -313,7 +313,7 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is publication of the completed Phase 8 analytics increment after verification and user approval: commit, push and merge into `main`. The increment preserves ledger, accounting, strategy and journal invariants and passes platform regressions alongside analytics kernel, source readers, contracts, grouped results and HTTP checks. Analytics dashboards, account return solvers, full financial entry screens, imports, advanced native settlement and deployment remain outside this increment.
+The current authorized action is implementation and verification of Phase 9. Publication requires subsequent user approval. The increment preserves ledger, accounting, strategy and journal invariants and passes platform regressions alongside analytics kernel, source readers, contracts, grouped results and HTTP checks. Account return solvers, full financial entry screens, imports, advanced native settlement and deployment remain outside this increment.
 
 ## Authorized Phase 7: portfolio/accounting engine
 
@@ -337,3 +337,12 @@ The [accounting guide](portfolio-accounting.md) defines delivered semantics and 
 - Independent numeric, temporal, grouping and security fixtures plus platform/ledger/accounting/strategy/journal regressions and clean-environment verification.
 
 The [analytics dictionary](analytics-definitions.md) is the implementation contract. A partial/undefined metric is not displayed as complete; infinite profit factor remains an explicit state. Campaign attribution is not account NAV or portfolio return. No new service, package, secret, posting or migration is required.
+
+## Authorized Phase 9: dashboard and visualization
+
+- Authenticated dashboard with one applied filter generation, URL persistence and stale-result suppression.
+- Shared date, portfolio definition, account, broker, strategy/version, asset/class and tag filters.
+- Sampled account equity and capital-adjusted monetary performance, campaign cumulative P&L/drawdown, calendar, distributions and historical breakdowns.
+- Signed account allocation, source freshness controls, missing-data disclosure and exact-value accessible tables.
+- Keyboard trade drill-down, responsive desktop/tablet/mobile and light/dark themes.
+- Read-only coherent financial snapshot; no new postings, migration, service or external credential.

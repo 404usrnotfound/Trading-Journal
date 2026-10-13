@@ -35,3 +35,4 @@ export * from './accounting-types.js';
 export * from './accounting.js';
 export * from './analytics-types.js';
 export * from './analytics.js';
+export * from './dashboard.js';

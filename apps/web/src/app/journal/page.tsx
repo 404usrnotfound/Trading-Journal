@@ -46,6 +46,15 @@ export default async function JournalPage({
         <nav aria-label="Main navigation" className="main-navigation">
           <a
             className="nav-item"
+            href={
+              workspace ? `/dashboard?workspace=${encodeURIComponent(workspace.id)}` : '/dashboard'
+            }
+          >
+            <LayoutDashboard size={18} aria-hidden="true" />
+            <span>Dashboard</span>
+          </a>
+          <a
+            className="nav-item"
             href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}
           >
             <LayoutDashboard size={18} aria-hidden="true" />

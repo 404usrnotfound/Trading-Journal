@@ -1,4 +1,450 @@
 export interface paths {
+    "/api/v1/workspaces/{workspaceId}/dashboard/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accounts: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                /** @enum {string} */
+                                environment: "live" | "paper";
+                            }[];
+                            brokers: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                            }[];
+                            currencies: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                code: string;
+                            }[];
+                            portfolios: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                accountIds: components["schemas"]["FinancialId"][];
+                                /** @enum {string} */
+                                environment: "live" | "paper";
+                                version: number;
+                            }[];
+                            strategies: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                            }[];
+                            strategyVersions: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                            }[];
+                            assets: {
+                                id: components["schemas"]["FinancialId"];
+                                label: string;
+                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                assetClass: string;
+                            }[];
+                            tags: string[];
+                            priceSources: string[];
+                            fxSources: string[];
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/dashboard/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Coherent read-only dashboard: campaign filters apply to every trade metric; account equity is unavailable under trade-only filters. Raw equity and capital-adjusted monetary performance are separate. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reportingCurrencyId: components["schemas"]["FinancialId"];
+                        from: components["schemas"]["FinancialInstant"];
+                        to: components["schemas"]["FinancialInstant"];
+                        sourceRevision?: components["schemas"]["FinancialSourceRevision"];
+                        metadataAsOf?: components["schemas"]["FinancialInstant"];
+                        timezone?: string;
+                        fxPolicy: components["schemas"]["AccountingFxPolicy"];
+                        priceMaxAgeMilliseconds: number;
+                        priceSourcePriority: string[];
+                        /**
+                         * @default live
+                         * @enum {string}
+                         */
+                        environment?: "live" | "paper";
+                        filters: {
+                            portfolioVersionId?: components["schemas"]["FinancialId"];
+                            /** @default [] */
+                            accountIds?: components["schemas"]["FinancialId"][];
+                            /** @default [] */
+                            brokerIds?: components["schemas"]["FinancialId"][];
+                            /** @default [] */
+                            strategyIds?: components["schemas"]["FinancialId"][];
+                            /** @default [] */
+                            strategyVersionIds?: components["schemas"]["FinancialId"][];
+                            /** @default [] */
+                            assetIds?: components["schemas"]["FinancialId"][];
+                            /** @default [] */
+                            assetClasses?: string[];
+                            /** @default [] */
+                            tags?: string[];
+                        };
+                        /** @default 7 */
+                        samples?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            filters: {
+                                portfolioVersionId?: components["schemas"]["FinancialId"];
+                                /** @default [] */
+                                accountIds: components["schemas"]["FinancialId"][];
+                                /** @default [] */
+                                brokerIds: components["schemas"]["FinancialId"][];
+                                /** @default [] */
+                                strategyIds: components["schemas"]["FinancialId"][];
+                                /** @default [] */
+                                strategyVersionIds: components["schemas"]["FinancialId"][];
+                                /** @default [] */
+                                assetIds: components["schemas"]["FinancialId"][];
+                                /** @default [] */
+                                assetClasses: string[];
+                                /** @default [] */
+                                tags: string[];
+                            };
+                            analytics: components["schemas"]["AnalyticsReportResponse"] & (Record<string, never> | null);
+                            views: {
+                                calendar: {
+                                    key: string;
+                                    value: components["schemas"]["FinancialDecimal"];
+                                    /** @enum {string} */
+                                    state: "available" | "partial" | "unavailable";
+                                    knownSubtotal: components["schemas"]["FinancialDecimal"];
+                                    campaignIds: components["schemas"]["FinancialId"][];
+                                    excludedIds: components["schemas"]["FinancialId"][];
+                                }[];
+                                periods: {
+                                    key: string;
+                                    value: components["schemas"]["FinancialDecimal"];
+                                    /** @enum {string} */
+                                    state: "available" | "partial" | "unavailable";
+                                    knownSubtotal: components["schemas"]["FinancialDecimal"];
+                                    campaignIds: components["schemas"]["FinancialId"][];
+                                    excludedIds: components["schemas"]["FinancialId"][];
+                                }[];
+                                pnlDistribution: {
+                                    bins: {
+                                        key: string;
+                                        lower: components["schemas"]["FinancialDecimal"];
+                                        upper: components["schemas"]["FinancialDecimal"];
+                                        count: number;
+                                        campaignIds: components["schemas"]["FinancialId"][];
+                                    }[];
+                                    excludedIds: components["schemas"]["FinancialId"][];
+                                };
+                                rDistribution: {
+                                    bins: {
+                                        key: string;
+                                        lower: components["schemas"]["FinancialDecimal"];
+                                        upper: components["schemas"]["FinancialDecimal"];
+                                        count: number;
+                                        campaignIds: components["schemas"]["FinancialId"][];
+                                    }[];
+                                    excludedIds: components["schemas"]["FinancialId"][];
+                                };
+                                unknownChronologyIds: components["schemas"]["FinancialId"][];
+                            };
+                            accountView: {
+                                /** @enum {string} */
+                                state: "available" | "unavailable";
+                                reason: string | null;
+                                points: {
+                                    at: components["schemas"]["FinancialInstant"];
+                                    equity: components["schemas"]["AccountingMetric"];
+                                    performance: components["schemas"]["AccountingMetric"];
+                                    sourceIds: string[];
+                                    priceObservationIds: components["schemas"]["FinancialId"][];
+                                    fxObservationIds: components["schemas"]["FinancialId"][];
+                                }[];
+                                allocation: {
+                                    id: string;
+                                    label: string;
+                                    equity: components["schemas"]["AccountingMetric"];
+                                }[];
+                            };
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspaceId}/analytics/reports": {
         parameters: {
             query?: never;

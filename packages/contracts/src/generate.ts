@@ -28,6 +28,7 @@ import * as strategyAttachments from './strategy-attachments.js';
 import * as journal from './journal.js';
 import * as accounting from './accounting.js';
 import * as analytics from './analytics.js';
+import * as dashboard from './dashboard.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -105,6 +106,45 @@ const problem = {
 };
 const strategyPrefix = '/api/v1/workspaces/{workspaceId}/strategies';
 const strategyCollectionParams = z.strictObject({ workspaceId: financial.financialIdSchema });
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/workspaces/{workspaceId}/dashboard/catalog',
+  security: [{ sessionCookie: [] }],
+  request: { params: strategyCollectionParams },
+  responses: {
+    200: response(dashboard.dashboardCatalogSchema),
+    400: problem,
+    401: problem,
+    404: problem,
+    409: problem,
+    500: problem,
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/workspaces/{workspaceId}/dashboard/reports',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Coherent read-only dashboard: campaign filters apply to every trade metric; account equity is unavailable under trade-only filters. Raw equity and capital-adjusted monetary performance are separate.',
+  request: {
+    params: strategyCollectionParams,
+    body: {
+      required: true,
+      content: { 'application/json': { schema: dashboard.dashboardRequestSchema } },
+    },
+  },
+  responses: {
+    200: response(dashboard.dashboardResponseSchema),
+    400: problem,
+    401: problem,
+    404: problem,
+    409: problem,
+    413: problem,
+    415: problem,
+    422: problem,
+    500: problem,
+  },
+});
 registry.registerPath({
   method: 'post',
   path: '/api/v1/workspaces/{workspaceId}/analytics/reports',

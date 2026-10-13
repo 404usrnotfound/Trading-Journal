@@ -46,6 +46,15 @@ export default async function StrategiesPage({
         <nav aria-label="Main navigation" className="main-navigation">
           <a
             className="nav-item"
+            href={
+              workspace ? `/dashboard?workspace=${encodeURIComponent(workspace.id)}` : '/dashboard'
+            }
+          >
+            <LayoutDashboard size={18} aria-hidden="true" />
+            <span>Dashboard</span>
+          </a>
+          <a
+            className="nav-item"
             href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}
           >
             <LayoutDashboard size={18} aria-hidden="true" />
@@ -99,6 +108,9 @@ export default async function StrategiesPage({
         </header>
         <main id="main-content" className="overview-main strategies-main" tabIndex={-1}>
           <nav aria-label="Mobile page navigation" className="journal-mobile-nav">
+            <a href={workspace ? `/dashboard?workspace=${workspace.id}` : '/dashboard'}>
+              Dashboard
+            </a>
             <a href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}>
               Overview
             </a>

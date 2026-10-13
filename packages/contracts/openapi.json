@@ -9268,6 +9268,1468 @@
     "parameters": {}
   },
   "paths": {
+    "/api/v1/workspaces/{workspaceId}/dashboard/catalog": {
+      "get": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          },
+                          "environment": {
+                            "type": "string",
+                            "enum": [
+                              "live",
+                              "paper"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId",
+                          "environment"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "brokers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "currencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId",
+                          "code"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "portfolios": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          },
+                          "accountIds": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/FinancialId"
+                            },
+                            "maxItems": 100
+                          },
+                          "environment": {
+                            "type": "string",
+                            "enum": [
+                              "live",
+                              "paper"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId",
+                          "accountIds",
+                          "environment",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "strategies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "strategyVersions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "assets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ]
+                          },
+                          "assetClass": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "parentId",
+                          "assetClass"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 500
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 500
+                    },
+                    "priceSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64
+                    },
+                    "fxSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64
+                    }
+                  },
+                  "required": [
+                    "accounts",
+                    "brokers",
+                    "currencies",
+                    "portfolios",
+                    "strategies",
+                    "strategyVersions",
+                    "assets",
+                    "tags",
+                    "priceSources",
+                    "fxSources"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/dashboard/reports": {
+      "post": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Coherent read-only dashboard: campaign filters apply to every trade metric; account equity is unavailable under trade-only filters. Raw equity and capital-adjusted monetary performance are separate.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reportingCurrencyId": {
+                    "$ref": "#/components/schemas/FinancialId"
+                  },
+                  "from": {
+                    "$ref": "#/components/schemas/FinancialInstant"
+                  },
+                  "to": {
+                    "$ref": "#/components/schemas/FinancialInstant"
+                  },
+                  "sourceRevision": {
+                    "$ref": "#/components/schemas/FinancialSourceRevision"
+                  },
+                  "metadataAsOf": {
+                    "$ref": "#/components/schemas/FinancialInstant"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                  },
+                  "fxPolicy": {
+                    "$ref": "#/components/schemas/AccountingFxPolicy"
+                  },
+                  "priceMaxAgeMilliseconds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "priceSourcePriority": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "live",
+                      "paper"
+                    ],
+                    "default": "live"
+                  },
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "portfolioVersionId": {
+                        "$ref": "#/components/schemas/FinancialId"
+                      },
+                      "accountIds": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "brokerIds": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "strategyIds": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "strategyVersionIds": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "assetIds": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "assetClasses": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "maxItems": 100,
+                        "default": []
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 13,
+                    "default": 7
+                  }
+                },
+                "required": [
+                  "reportingCurrencyId",
+                  "from",
+                  "to",
+                  "fxPolicy",
+                  "priceMaxAgeMilliseconds",
+                  "priceSourcePriority",
+                  "filters"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "filters": {
+                      "type": "object",
+                      "properties": {
+                        "portfolioVersionId": {
+                          "$ref": "#/components/schemas/FinancialId"
+                        },
+                        "accountIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "brokerIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "strategyIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "strategyVersionIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "assetIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "assetClasses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "maxItems": 100,
+                          "default": []
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "analytics": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/AnalyticsReportResponse"
+                        },
+                        {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        }
+                      ]
+                    },
+                    "views": {
+                      "type": "object",
+                      "properties": {
+                        "calendar": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "$ref": "#/components/schemas/FinancialDecimal"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "available",
+                                  "partial",
+                                  "unavailable"
+                                ]
+                              },
+                              "knownSubtotal": {
+                                "$ref": "#/components/schemas/FinancialDecimal"
+                              },
+                              "campaignIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                },
+                                "maxItems": 1000
+                              },
+                              "excludedIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                },
+                                "maxItems": 1000
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "value",
+                              "state",
+                              "knownSubtotal",
+                              "campaignIds",
+                              "excludedIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 1000
+                        },
+                        "periods": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "$ref": "#/components/schemas/FinancialDecimal"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "available",
+                                  "partial",
+                                  "unavailable"
+                                ]
+                              },
+                              "knownSubtotal": {
+                                "$ref": "#/components/schemas/FinancialDecimal"
+                              },
+                              "campaignIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                },
+                                "maxItems": 1000
+                              },
+                              "excludedIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                },
+                                "maxItems": 1000
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "value",
+                              "state",
+                              "knownSubtotal",
+                              "campaignIds",
+                              "excludedIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 1000
+                        },
+                        "pnlDistribution": {
+                          "type": "object",
+                          "properties": {
+                            "bins": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "lower": {
+                                    "$ref": "#/components/schemas/FinancialDecimal"
+                                  },
+                                  "upper": {
+                                    "$ref": "#/components/schemas/FinancialDecimal"
+                                  },
+                                  "count": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  "campaignIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/components/schemas/FinancialId"
+                                    },
+                                    "maxItems": 1000
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "lower",
+                                  "upper",
+                                  "count",
+                                  "campaignIds"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 6
+                            },
+                            "excludedIds": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              "maxItems": 1000
+                            }
+                          },
+                          "required": [
+                            "bins",
+                            "excludedIds"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "rDistribution": {
+                          "type": "object",
+                          "properties": {
+                            "bins": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "lower": {
+                                    "$ref": "#/components/schemas/FinancialDecimal"
+                                  },
+                                  "upper": {
+                                    "$ref": "#/components/schemas/FinancialDecimal"
+                                  },
+                                  "count": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  "campaignIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/components/schemas/FinancialId"
+                                    },
+                                    "maxItems": 1000
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "lower",
+                                  "upper",
+                                  "count",
+                                  "campaignIds"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 6
+                            },
+                            "excludedIds": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/FinancialId"
+                              },
+                              "maxItems": 1000
+                            }
+                          },
+                          "required": [
+                            "bins",
+                            "excludedIds"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "unknownChronologyIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FinancialId"
+                          },
+                          "maxItems": 1000
+                        }
+                      },
+                      "required": [
+                        "calendar",
+                        "periods",
+                        "pnlDistribution",
+                        "rDistribution",
+                        "unknownChronologyIds"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "accountView": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "unavailable"
+                          ]
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "points": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "at": {
+                                "$ref": "#/components/schemas/FinancialInstant"
+                              },
+                              "equity": {
+                                "$ref": "#/components/schemas/AccountingMetric"
+                              },
+                              "performance": {
+                                "$ref": "#/components/schemas/AccountingMetric"
+                              },
+                              "sourceIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "priceObservationIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                }
+                              },
+                              "fxObservationIds": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/FinancialId"
+                                }
+                              }
+                            },
+                            "required": [
+                              "at",
+                              "equity",
+                              "performance",
+                              "sourceIds",
+                              "priceObservationIds",
+                              "fxObservationIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 13
+                        },
+                        "allocation": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "equity": {
+                                "$ref": "#/components/schemas/AccountingMetric"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                              "equity"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 11
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "reason",
+                        "points",
+                        "allocation"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "filters",
+                    "analytics",
+                    "views",
+                    "accountView"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/analytics/reports": {
       "post": {
         "security": [

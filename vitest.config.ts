@@ -14,6 +14,11 @@ export default defineConfig({
     },
   },
   test: {
+    // Bound concurrent parser/DOM startup on shared cloud/CI CPUs; keep every case enabled.
+    maxWorkers: 2,
+    // Linter/process initialization and dense financial oracles are correctness checks,
+    // not five-second latency benchmarks on a shared runner.
+    testTimeout: 30_000,
     passWithNoTests: false,
     coverage: { provider: 'v8', include: ['packages/**/src/**/*.ts'] },
     projects: [

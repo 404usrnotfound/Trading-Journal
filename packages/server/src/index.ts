@@ -13,6 +13,8 @@ export { createFinancialLedger } from './financial/ledger.js';
 export { createFinancialObservations } from './financial/observations.js';
 export { createAccountingServices } from './accounting/service.js';
 export { createAccountingReports } from './accounting/report.js';
+export { createDashboardServices } from './dashboard/service.js';
+export { createDashboardApi } from './dashboard/api.js';
 export { createAccountingApi } from './accounting/api.js';
 export { createAnalyticsServices } from './analytics/service.js';
 export { createAnalyticsApi } from './analytics/api.js';

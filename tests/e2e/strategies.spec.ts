@@ -77,7 +77,8 @@ test('strategy playbook versions retain historical rules, attachments and trade 
   page,
   browser,
 }, testInfo) => {
-  test.setTimeout(120_000);
+  // This journey includes owner/viewer workflows and eighteen full accessibility scans.
+  test.setTimeout(360_000);
   const email = process.env.TEST_OWNER_EMAIL;
   const password = process.env.TEST_OWNER_PASSWORD;
   if (!email || !password) throw new Error('The isolated browser owner fixture is required');
