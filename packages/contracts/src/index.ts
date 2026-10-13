@@ -4,6 +4,7 @@ export * from './strategies.js';
 export * from './strategy-attachments.js';
 export * from './journal.js';
 export * from './accounting.js';
+export * from './analytics.js';
 
 export const healthResponseSchema = z.strictObject({
   status: z.literal('ok'),

@@ -8016,11 +8016,1669 @@
           "reason"
         ],
         "additionalProperties": false
+      },
+      "AnalyticsMetric": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "partial",
+              "unavailable",
+              "infinite"
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "knownSubtotal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "money",
+              "ratio",
+              "R",
+              "seconds",
+              "count"
+            ]
+          },
+          "currencyId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definitionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "eligibleIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "excludedIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "missingReferences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "state",
+          "value",
+          "knownSubtotal",
+          "unit",
+          "currencyId",
+          "definitionId",
+          "sampleSize",
+          "eligibleIds",
+          "excludedIds",
+          "reasons",
+          "missingReferences"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsSourceMetric": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "missingReferences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "state",
+          "value",
+          "reasons",
+          "missingReferences"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsDimensionValue": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsProvenance": {
+        "type": "object",
+        "properties": {
+          "originalPlanId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originalPlanHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$/u"
+          },
+          "metadataPlanId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadataPlanHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$/u"
+          },
+          "metadataPlanSource": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "original-commitment",
+              "latest-published",
+              null
+            ]
+          },
+          "journalRevisionId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "journalRevisionHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$/u"
+          },
+          "strategyId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strategyVersionId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strategyVersionHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$/u"
+          },
+          "strategyLinkTiming": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "recorded-with-trade",
+              "retrospective",
+              null
+            ]
+          },
+          "closureId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "legIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "effectiveExecutionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "allocationSetIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "feeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "instrumentVersionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "markIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          },
+          "fxObservationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          }
+        },
+        "required": [
+          "originalPlanId",
+          "originalPlanHash",
+          "metadataPlanId",
+          "metadataPlanHash",
+          "metadataPlanSource",
+          "journalRevisionId",
+          "journalRevisionHash",
+          "strategyId",
+          "strategyVersionId",
+          "strategyVersionHash",
+          "strategyLinkTiming",
+          "closureId",
+          "legIds",
+          "effectiveExecutionIds",
+          "allocationSetIds",
+          "feeIds",
+          "instrumentVersionIds",
+          "markIds",
+          "fxObservationIds"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsCampaign": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/FinancialId"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "open",
+              "excluded"
+            ]
+          },
+          "entryAt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grossPnl": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "netPnl": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "realizedPnl": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "unrealizedPnl": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "fees": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "rMultiple": {
+            "$ref": "#/components/schemas/AnalyticsSourceMetric"
+          },
+          "dimensions": {
+            "type": "object",
+            "properties": {
+              "strategy": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "strategyVersion": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "asset": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "assetClass": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "broker": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "account": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "currency": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "direction": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "weekday": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "hour": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "timeframe": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "setup": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "tag": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              },
+              "marketCondition": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnalyticsDimensionValue"
+                }
+              }
+            }
+          },
+          "exclusionReasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "originalPlanId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/AnalyticsProvenance"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "entryAt",
+          "closedAt",
+          "grossPnl",
+          "netPnl",
+          "realizedPnl",
+          "unrealizedPnl",
+          "fees",
+          "rMultiple",
+          "dimensions",
+          "exclusionReasons",
+          "originalPlanId",
+          "title",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsCurve": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ]
+          },
+          "currencyId": {
+            "$ref": "#/components/schemas/FinancialId"
+          },
+          "definitionId": {
+            "type": "string",
+            "enum": [
+              "campaign-cumulative-net-pnl/1"
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "campaignId": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FinancialId"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "economicAt": {
+                  "$ref": "#/components/schemas/FinancialInstant"
+                },
+                "cumulativePnl": {
+                  "$ref": "#/components/schemas/FinancialDecimal"
+                },
+                "peak": {
+                  "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+                },
+                "drawdown": {
+                  "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+                }
+              },
+              "required": [
+                "campaignId",
+                "economicAt",
+                "cumulativePnl",
+                "peak",
+                "drawdown"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "excludedIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            }
+          }
+        },
+        "required": [
+          "state",
+          "currencyId",
+          "definitionId",
+          "points",
+          "reasons",
+          "excludedIds"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsRecovery": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "recovered",
+              "unrecovered",
+              "no-drawdown",
+              "unavailable"
+            ]
+          },
+          "peakAt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "troughAt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recoveredAt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "peakCampaignId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "troughCampaignId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recoveredCampaignId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "elapsedSeconds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradesToRecovery": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "state",
+          "peakAt",
+          "troughAt",
+          "recoveredAt",
+          "peakCampaignId",
+          "troughCampaignId",
+          "recoveredCampaignId",
+          "durationSeconds",
+          "elapsedSeconds",
+          "tradesToRecovery",
+          "reasons"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsSummary": {
+        "type": "object",
+        "properties": {
+          "population": {
+            "type": "object",
+            "properties": {
+              "campaignIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "completedIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "openIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "excludedIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "eligibleOutcomeIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "eligibleRIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              },
+              "eligibleDurationIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                }
+              }
+            },
+            "required": [
+              "campaignIds",
+              "completedIds",
+              "openIds",
+              "excludedIds",
+              "eligibleOutcomeIds",
+              "eligibleRIds",
+              "eligibleDurationIds"
+            ],
+            "additionalProperties": false
+          },
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "grossPnl": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "netPnl": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "realizedPnl": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "unrealizedPnl": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "fees": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "winRate": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "lossRate": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "averageWinner": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "averageLoser": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "payoffRatio": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "profitFactor": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "expectancy": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "expectancyR": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "averageR": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "cumulativeR": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "averageHoldingDuration": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "maximumDrawdown": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "currentDrawdown": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "longestWinStreak": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "longestLossStreak": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "currentWinStreak": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              },
+              "currentLossStreak": {
+                "$ref": "#/components/schemas/AnalyticsMetric"
+              }
+            },
+            "required": [
+              "grossPnl",
+              "netPnl",
+              "realizedPnl",
+              "unrealizedPnl",
+              "fees",
+              "winRate",
+              "lossRate",
+              "averageWinner",
+              "averageLoser",
+              "payoffRatio",
+              "profitFactor",
+              "expectancy",
+              "expectancyR",
+              "averageR",
+              "cumulativeR",
+              "averageHoldingDuration",
+              "maximumDrawdown",
+              "currentDrawdown",
+              "longestWinStreak",
+              "longestLossStreak",
+              "currentWinStreak",
+              "currentLossStreak"
+            ],
+            "additionalProperties": false
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "selected": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "completed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "open": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "excluded": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "eligibleOutcomes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "wins": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "losses": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "breakevens": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "eligibleR": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "eligibleDuration": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "selected",
+              "completed",
+              "open",
+              "excluded",
+              "eligibleOutcomes",
+              "wins",
+              "losses",
+              "breakevens",
+              "eligibleR",
+              "eligibleDuration"
+            ],
+            "additionalProperties": false
+          },
+          "curve": {
+            "$ref": "#/components/schemas/AnalyticsCurve"
+          },
+          "recovery": {
+            "$ref": "#/components/schemas/AnalyticsRecovery"
+          }
+        },
+        "required": [
+          "population",
+          "metrics",
+          "counts",
+          "curve",
+          "recovery"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsGroup": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "$ref": "#/components/schemas/AnalyticsDimension"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "value",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "memberKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additive": {
+            "type": "boolean"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AnalyticsSummary"
+          }
+        },
+        "required": [
+          "dimension",
+          "key",
+          "label",
+          "kind",
+          "memberKeys",
+          "additive",
+          "summary"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsDimension": {
+        "type": "string",
+        "enum": [
+          "strategy",
+          "strategyVersion",
+          "asset",
+          "assetClass",
+          "broker",
+          "account",
+          "currency",
+          "direction",
+          "weekday",
+          "hour",
+          "timeframe",
+          "setup",
+          "tag",
+          "marketCondition"
+        ]
+      },
+      "AnalyticsReportRequest": {
+        "type": "object",
+        "properties": {
+          "accountIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "reportingCurrencyId": {
+            "$ref": "#/components/schemas/FinancialId"
+          },
+          "from": {
+            "$ref": "#/components/schemas/FinancialInstant"
+          },
+          "to": {
+            "$ref": "#/components/schemas/FinancialInstant"
+          },
+          "sourceRevision": {
+            "$ref": "#/components/schemas/FinancialSourceRevision"
+          },
+          "metadataAsOf": {
+            "$ref": "#/components/schemas/FinancialInstant"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+          },
+          "fxPolicy": {
+            "$ref": "#/components/schemas/AccountingFxPolicy"
+          },
+          "priceMaxAgeMilliseconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "priceSourcePriority": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "minItems": 1,
+            "maxItems": 64
+          },
+          "groupBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsDimension"
+            },
+            "maxItems": 14
+          }
+        },
+        "required": [
+          "accountIds",
+          "reportingCurrencyId",
+          "from",
+          "to",
+          "fxPolicy",
+          "priceMaxAgeMilliseconds",
+          "priceSourcePriority"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsReportResponse": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object",
+            "properties": {
+              "accountIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinancialId"
+                },
+                "minItems": 1,
+                "maxItems": 100
+              },
+              "reportingCurrencyId": {
+                "$ref": "#/components/schemas/FinancialId"
+              },
+              "from": {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              "to": {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              "sourceRevision": {
+                "$ref": "#/components/schemas/FinancialSourceRevision"
+              },
+              "recordedAt": {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              "metadataAsOf": {
+                "$ref": "#/components/schemas/FinancialInstant"
+              },
+              "timezone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+              },
+              "workspaceRevision": {
+                "$ref": "#/components/schemas/FinancialRevision"
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "live",
+                  "paper"
+                ]
+              },
+              "fxPolicy": {
+                "$ref": "#/components/schemas/AccountingFxPolicy"
+              },
+              "priceMaxAgeMilliseconds": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "priceSourcePriority": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "population": {
+                "type": "string",
+                "enum": [
+                  "campaign-attribution"
+                ]
+              },
+              "moneyPopulation": {
+                "type": "string",
+                "enum": [
+                  "selected-completed-and-open-lifetime-asof"
+                ]
+              },
+              "manifest": {
+                "$ref": "#/components/schemas/InventoryManifest"
+              }
+            },
+            "required": [
+              "accountIds",
+              "reportingCurrencyId",
+              "from",
+              "to",
+              "sourceRevision",
+              "recordedAt",
+              "metadataAsOf",
+              "timezone",
+              "workspaceRevision",
+              "environment",
+              "fxPolicy",
+              "priceMaxAgeMilliseconds",
+              "priceSourcePriority",
+              "population",
+              "moneyPopulation",
+              "manifest"
+            ],
+            "additionalProperties": false
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsCampaign"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AnalyticsSummary"
+          },
+          "completedOnly": {
+            "$ref": "#/components/schemas/AnalyticsSummary"
+          },
+          "openOnly": {
+            "$ref": "#/components/schemas/AnalyticsSummary"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsGroup"
+            }
+          },
+          "definitionVersion": {
+            "type": "string",
+            "enum": [
+              "campaign-analytics/1"
+            ]
+          }
+        },
+        "required": [
+          "context",
+          "records",
+          "summary",
+          "completedOnly",
+          "openOnly",
+          "groups",
+          "definitionVersion"
+        ],
+        "additionalProperties": false
       }
     },
     "parameters": {}
   },
   "paths": {
+    "/api/v1/workspaces/{workspaceId}/analytics/reports": {
+      "post": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Read-only viewer/editor/owner campaign-attribution analytics. This bounded JSON query never writes financial revisions. Completed behavioral samples and lifetime-as-of monetary populations are explicit. Every metric declares its mathematical definition, unit, currency, sample and missing evidence; campaign drawdown is not an account equity return.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/strategies": {
       "get": {
         "security": [

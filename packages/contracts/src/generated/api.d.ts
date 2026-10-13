@@ -1,4 +1,190 @@
 export interface paths {
+    "/api/v1/workspaces/{workspaceId}/analytics/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Read-only viewer/editor/owner campaign-attribution analytics. This bounded JSON query never writes financial revisions. Completed behavioral samples and lifetime-as-of monetary populations are explicit. Every metric declares its mathematical definition, unit, currency, sample and missing evidence; campaign drawdown is not an account equity return. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AnalyticsReportRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnalyticsReportResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspaceId}/strategies": {
         parameters: {
             query?: never;
@@ -19461,6 +19647,222 @@ export interface components {
             accountIds: components["schemas"]["FinancialId"][];
             expectedVersion: components["schemas"]["FinancialRevision"];
             reason: string;
+        };
+        AnalyticsMetric: {
+            /** @enum {string} */
+            state: "available" | "partial" | "unavailable" | "infinite";
+            value: components["schemas"]["FinancialDecimal"] | null;
+            knownSubtotal: components["schemas"]["FinancialDecimal"] | null;
+            /** @enum {string} */
+            unit: "money" | "ratio" | "R" | "seconds" | "count";
+            currencyId: components["schemas"]["FinancialId"] | null;
+            definitionId: string;
+            sampleSize: number;
+            eligibleIds: components["schemas"]["FinancialId"][];
+            excludedIds: components["schemas"]["FinancialId"][];
+            reasons: string[];
+            missingReferences: string[];
+        };
+        AnalyticsSourceMetric: {
+            /** @enum {string} */
+            state: "available" | "unavailable";
+            value: components["schemas"]["FinancialDecimal"] | null;
+            reasons: string[];
+            missingReferences: string[];
+        };
+        AnalyticsDimensionValue: {
+            key: string;
+            label: string;
+        };
+        AnalyticsProvenance: {
+            originalPlanId: components["schemas"]["FinancialId"] | null;
+            originalPlanHash: string | null;
+            metadataPlanId: components["schemas"]["FinancialId"] | null;
+            metadataPlanHash: string | null;
+            /** @enum {string|null} */
+            metadataPlanSource: "original-commitment" | "latest-published" | null;
+            journalRevisionId: components["schemas"]["FinancialId"] | null;
+            journalRevisionHash: string | null;
+            strategyId: components["schemas"]["FinancialId"] | null;
+            strategyVersionId: components["schemas"]["FinancialId"] | null;
+            strategyVersionHash: string | null;
+            /** @enum {string|null} */
+            strategyLinkTiming: "recorded-with-trade" | "retrospective" | null;
+            closureId: components["schemas"]["FinancialId"] | null;
+            legIds: components["schemas"]["FinancialId"][];
+            effectiveExecutionIds: components["schemas"]["FinancialId"][];
+            allocationSetIds: components["schemas"]["FinancialId"][];
+            feeIds: components["schemas"]["FinancialId"][];
+            instrumentVersionIds: components["schemas"]["FinancialId"][];
+            markIds: components["schemas"]["FinancialId"][];
+            fxObservationIds: components["schemas"]["FinancialId"][];
+        };
+        AnalyticsCampaign: {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            status: "completed" | "open" | "excluded";
+            entryAt: components["schemas"]["FinancialInstant"] | null;
+            closedAt: components["schemas"]["FinancialInstant"] | null;
+            grossPnl: components["schemas"]["AnalyticsSourceMetric"];
+            netPnl: components["schemas"]["AnalyticsSourceMetric"];
+            realizedPnl: components["schemas"]["AnalyticsSourceMetric"];
+            unrealizedPnl: components["schemas"]["AnalyticsSourceMetric"];
+            fees: components["schemas"]["AnalyticsSourceMetric"];
+            rMultiple: components["schemas"]["AnalyticsSourceMetric"];
+            dimensions: {
+                strategy?: components["schemas"]["AnalyticsDimensionValue"][];
+                strategyVersion?: components["schemas"]["AnalyticsDimensionValue"][];
+                asset?: components["schemas"]["AnalyticsDimensionValue"][];
+                assetClass?: components["schemas"]["AnalyticsDimensionValue"][];
+                broker?: components["schemas"]["AnalyticsDimensionValue"][];
+                account?: components["schemas"]["AnalyticsDimensionValue"][];
+                currency?: components["schemas"]["AnalyticsDimensionValue"][];
+                direction?: components["schemas"]["AnalyticsDimensionValue"][];
+                weekday?: components["schemas"]["AnalyticsDimensionValue"][];
+                hour?: components["schemas"]["AnalyticsDimensionValue"][];
+                timeframe?: components["schemas"]["AnalyticsDimensionValue"][];
+                setup?: components["schemas"]["AnalyticsDimensionValue"][];
+                tag?: components["schemas"]["AnalyticsDimensionValue"][];
+                marketCondition?: components["schemas"]["AnalyticsDimensionValue"][];
+            };
+            exclusionReasons: string[];
+            originalPlanId: components["schemas"]["FinancialId"] | null;
+            title: string;
+            provenance: components["schemas"]["AnalyticsProvenance"];
+        };
+        AnalyticsCurve: {
+            /** @enum {string} */
+            state: "available" | "unavailable";
+            currencyId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            definitionId: "campaign-cumulative-net-pnl/1";
+            points: {
+                campaignId: components["schemas"]["FinancialId"] | null;
+                economicAt: components["schemas"]["FinancialInstant"];
+                cumulativePnl: components["schemas"]["FinancialDecimal"];
+                peak: components["schemas"]["NonnegativeFinancialDecimal"];
+                drawdown: components["schemas"]["NonnegativeFinancialDecimal"];
+            }[];
+            reasons: string[];
+            excludedIds: components["schemas"]["FinancialId"][];
+        };
+        AnalyticsRecovery: {
+            /** @enum {string} */
+            state: "recovered" | "unrecovered" | "no-drawdown" | "unavailable";
+            peakAt: components["schemas"]["FinancialInstant"] | null;
+            troughAt: components["schemas"]["FinancialInstant"] | null;
+            recoveredAt: components["schemas"]["FinancialInstant"] | null;
+            peakCampaignId: components["schemas"]["FinancialId"] | null;
+            troughCampaignId: components["schemas"]["FinancialId"] | null;
+            recoveredCampaignId: components["schemas"]["FinancialId"] | null;
+            durationSeconds: components["schemas"]["NonnegativeFinancialDecimal"] | null;
+            elapsedSeconds: components["schemas"]["NonnegativeFinancialDecimal"] | null;
+            tradesToRecovery: number | null;
+            reasons: string[];
+        };
+        AnalyticsSummary: {
+            population: {
+                campaignIds: components["schemas"]["FinancialId"][];
+                completedIds: components["schemas"]["FinancialId"][];
+                openIds: components["schemas"]["FinancialId"][];
+                excludedIds: components["schemas"]["FinancialId"][];
+                eligibleOutcomeIds: components["schemas"]["FinancialId"][];
+                eligibleRIds: components["schemas"]["FinancialId"][];
+                eligibleDurationIds: components["schemas"]["FinancialId"][];
+            };
+            metrics: {
+                grossPnl: components["schemas"]["AnalyticsMetric"];
+                netPnl: components["schemas"]["AnalyticsMetric"];
+                realizedPnl: components["schemas"]["AnalyticsMetric"];
+                unrealizedPnl: components["schemas"]["AnalyticsMetric"];
+                fees: components["schemas"]["AnalyticsMetric"];
+                winRate: components["schemas"]["AnalyticsMetric"];
+                lossRate: components["schemas"]["AnalyticsMetric"];
+                averageWinner: components["schemas"]["AnalyticsMetric"];
+                averageLoser: components["schemas"]["AnalyticsMetric"];
+                payoffRatio: components["schemas"]["AnalyticsMetric"];
+                profitFactor: components["schemas"]["AnalyticsMetric"];
+                expectancy: components["schemas"]["AnalyticsMetric"];
+                expectancyR: components["schemas"]["AnalyticsMetric"];
+                averageR: components["schemas"]["AnalyticsMetric"];
+                cumulativeR: components["schemas"]["AnalyticsMetric"];
+                averageHoldingDuration: components["schemas"]["AnalyticsMetric"];
+                maximumDrawdown: components["schemas"]["AnalyticsMetric"];
+                currentDrawdown: components["schemas"]["AnalyticsMetric"];
+                longestWinStreak: components["schemas"]["AnalyticsMetric"];
+                longestLossStreak: components["schemas"]["AnalyticsMetric"];
+                currentWinStreak: components["schemas"]["AnalyticsMetric"];
+                currentLossStreak: components["schemas"]["AnalyticsMetric"];
+            };
+            counts: {
+                selected: number;
+                completed: number;
+                open: number;
+                excluded: number;
+                eligibleOutcomes: number;
+                wins: number;
+                losses: number;
+                breakevens: number;
+                eligibleR: number;
+                eligibleDuration: number;
+            };
+            curve: components["schemas"]["AnalyticsCurve"];
+            recovery: components["schemas"]["AnalyticsRecovery"];
+        };
+        AnalyticsGroup: {
+            dimension: components["schemas"]["AnalyticsDimension"];
+            key: string;
+            label: string;
+            /** @enum {string} */
+            kind: "value" | "mixed" | "unknown";
+            memberKeys: string[];
+            additive: boolean;
+            summary: components["schemas"]["AnalyticsSummary"];
+        };
+        /** @enum {string} */
+        AnalyticsDimension: "strategy" | "strategyVersion" | "asset" | "assetClass" | "broker" | "account" | "currency" | "direction" | "weekday" | "hour" | "timeframe" | "setup" | "tag" | "marketCondition";
+        AnalyticsReportRequest: {
+            accountIds: components["schemas"]["FinancialId"][];
+            reportingCurrencyId: components["schemas"]["FinancialId"];
+            from: components["schemas"]["FinancialInstant"];
+            to: components["schemas"]["FinancialInstant"];
+            sourceRevision?: components["schemas"]["FinancialSourceRevision"];
+            metadataAsOf?: components["schemas"]["FinancialInstant"];
+            timezone?: string;
+            fxPolicy: components["schemas"]["AccountingFxPolicy"];
+            priceMaxAgeMilliseconds: number;
+            priceSourcePriority: string[];
+            groupBy?: components["schemas"]["AnalyticsDimension"][];
+        };
+        AnalyticsReportResponse: {
+            context: {
+                accountIds: components["schemas"]["FinancialId"][];
+                reportingCurrencyId: components["schemas"]["FinancialId"];
+                from: components["schemas"]["FinancialInstant"];
+                to: components["schemas"]["FinancialInstant"];
+                sourceRevision: components["schemas"]["FinancialSourceRevision"];
+                recordedAt: components["schemas"]["FinancialInstant"];
+                metadataAsOf: components["schemas"]["FinancialInstant"];
+                timezone: string;
+                workspaceRevision: components["schemas"]["FinancialRevision"];
+                /** @enum {string} */
+                environment: "live" | "paper";
+                fxPolicy: components["schemas"]["AccountingFxPolicy"];
+                priceMaxAgeMilliseconds: number;
+                priceSourcePriority: string[];
+                /** @enum {string} */
+                population: "campaign-attribution";
+                /** @enum {string} */
+                moneyPopulation: "selected-completed-and-open-lifetime-asof";
+                manifest: components["schemas"]["InventoryManifest"];
+            };
+            records: components["schemas"]["AnalyticsCampaign"][];
+            summary: components["schemas"]["AnalyticsSummary"];
+            completedOnly: components["schemas"]["AnalyticsSummary"];
+            openOnly: components["schemas"]["AnalyticsSummary"];
+            groups: components["schemas"]["AnalyticsGroup"][];
+            /** @enum {string} */
+            definitionVersion: "campaign-analytics/1";
         };
     };
     responses: never;

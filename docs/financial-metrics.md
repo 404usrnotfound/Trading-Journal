@@ -75,10 +75,14 @@ Valuation is a read-only repeatable-read, current-source-revision restatement th
 
 Phase 6 implements frozen original risk and historical R in the [trade journal](trade-journal.md); those are available only with their declared complete campaign/risk inputs.
 
-Account/strategy risk assessments, sizing, completed-trade statistics, TWR/MWR, drawdown/recovery, MAE/MFE, slippage analytics, optional ratios/benchmarks, dashboards and background performance projections remain later-phase capabilities. Their definitions and sufficiency gates remain in [financial-calculations.md](financial-calculations.md); a NAV endpoint or basic campaign closure does not complete them.
+Account/strategy risk assessments, sizing, TWR/MWR, account equity/return drawdown, MAE/MFE, slippage analytics, optional ratios/benchmarks, dashboards and background performance projections remain later-phase capabilities. Phase 8 now supplies completed-campaign statistics, original-risk R aggregates and campaign monetary drawdown/recovery under [analytics definitions](analytics-definitions.md). Their definitions and sufficiency gates remain in [financial-calculations.md](financial-calculations.md); a NAV endpoint or basic campaign closure does not complete them.
 
 The independent executable fixture suite is in [financial-independent-fixtures.test.ts](../tests/unit/financial-independent-fixtures.test.ts), alongside decimal, inventory, transfer, campaign and valuation unit suites and real-PostgreSQL financial integration suites. Run `corepack pnpm test:unit`, `corepack pnpm test:integration`, `corepack pnpm api:check`, `corepack pnpm lint`, `corepack pnpm typecheck` and `corepack pnpm build` from the repository root using the pinned Node 24/pnpm 10.34.6 toolchain. Consult [Phase 4 validation](phase-4-validation.md) for exact executed counts and outcomes; documentation does not certify unrun workflows.
 
 ## Portfolio accounting extension
 
 The [portfolio accounting dictionary and examples](portfolio-accounting.md) define account/portfolio cash, signed holdings, evidenced transit, equity/NLV, gross period trading, income, actual fees/expenses, taxes/refunds, external flows, scope-boundary transfers, opening capital, monetary/holding FX, conversion effects and reconciliation variance. Period costs use their actual charge dates once. Available, partial and unavailable results retain known subtotals and dependency provenance. See [Phase 7 validation](phase-7-validation.md) for executed evidence.
+
+## Campaign analytics extension
+
+[Analytics definitions](analytics-definitions.md) specifies every Phase 8 scalar, group, curve, recovery and eligibility rule. Gross reporting campaign results include holding FX; net results deduct actual attributed costs once. Completed outcomes, open marked economics and account accounting have distinct populations. Missing inputs retain explained availability and samples, and original-risk R never borrows a later draft denominator. See [Phase 8 validation](phase-8-validation.md) for executed evidence.

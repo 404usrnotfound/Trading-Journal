@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createDatabase,
@@ -61,6 +62,22 @@ async function expectPostgresFailure(promise: Promise<unknown>, code: string): P
   }
 }
 
+async function waitForMigrationDatabaseDisconnect(operator: Database, name: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  for (;;) {
+    const result = await operator.pool.query<{ connected: boolean }>(
+      'SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname = $1) AS connected',
+      [name],
+    );
+    if (result.rows[0]?.connected === false) return;
+    if (Date.now() >= deadline)
+      throw new Error(
+        'The isolated migration database still has connections after closing its pools',
+      );
+    await delay(25);
+  }
+}
+
 // These generated databases are on the isolated integration PostgreSQL instance.
 // The operator test credential needs CREATEDB; no shared/development database is reset.
 async function withIsolatedMigrationDatabase(
@@ -79,9 +96,20 @@ async function withIsolatedMigrationDatabase(
     database = createDatabase(url.toString(), { max: 1 });
     await callback(database, url.toString());
   } finally {
-    await database?.close();
     try {
-      if (created) await operator.pool.query(`DROP DATABASE "${name}" WITH (FORCE)`);
+      await database?.close();
+      if (created) {
+        // Pool removal can precede PostgreSQL observing the socket's disconnect.
+        // Wait for this generated database only; FORCE can kill a closing client
+        // and surface an asynchronous 57P01 after otherwise successful assertions.
+        await waitForMigrationDatabaseDisconnect(operator, name);
+        await operator.pool.query(`DROP DATABASE "${name}"`);
+        const remaining = await operator.pool.query(
+          'SELECT datname FROM pg_database WHERE datname = $1',
+          [name],
+        );
+        expect(remaining.rows).toEqual([]);
+      }
     } finally {
       await operator.close();
     }

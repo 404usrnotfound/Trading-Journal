@@ -11,6 +11,7 @@ type ApiOperation =
   | 'financial.read'
   | 'financial.command'
   | 'accounting.request'
+  | 'analytics.report'
   | 'strategy.read'
   | 'strategy.command'
   | 'strategy.attachment.read'

@@ -14,6 +14,8 @@ export { createFinancialObservations } from './financial/observations.js';
 export { createAccountingServices } from './accounting/service.js';
 export { createAccountingReports } from './accounting/report.js';
 export { createAccountingApi } from './accounting/api.js';
+export { createAnalyticsServices } from './analytics/service.js';
+export { createAnalyticsApi } from './analytics/api.js';
 export { createStrategyServices } from './strategies/service.js';
 export { createStrategyApi } from './strategies/api.js';
 export { createStrategyAttachmentServices } from './strategies/attachments.js';
