@@ -1,0 +1,3 @@
+ID,Key,Kind,Group,Payload
+CASH-001,cash_movement:CASH-001,cash_movement,cash_movement:CASH-001,"{""orderingKey"":""1"",""economicAt"":""2026-10-12T07:30:00.000000Z"",""amount"":""1000"",""currencyId"":""00000000-0000-4000-8000-000000000002"",""kind"":""deposit""}"
+CASH-002,cash_movement:CASH-002,cash_movement,cash_movement:CASH-002,"{""orderingKey"":""2"",""economicAt"":""2026-10-13T12:00:00.000000Z"",""amount"":""-100"",""currencyId"":""00000000-0000-4000-8000-000000000002"",""kind"":""withdrawal""}"

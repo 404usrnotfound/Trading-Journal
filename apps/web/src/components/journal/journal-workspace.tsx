@@ -236,6 +236,7 @@ export function JournalWorkspace({
       </div>
       <nav className="journal-mobile-nav" aria-label="Mobile page navigation">
         <a href={`/dashboard?workspace=${workspace.id}`}>Dashboard</a>
+        <a href={`/imports?workspace=${workspace.id}`}>Imports</a>
         <a href={`/?workspace=${workspace.id}`}>Overview</a>
         <a href={`/strategies?workspace=${workspace.id}`}>Strategies</a>
         <a href={`/journal?workspace=${workspace.id}`} aria-current="page">

@@ -1,0 +1,26 @@
+{
+  "version": "canonical-import/1",
+  "adapterId": "generic-csv",
+  "adapterVersion": "1",
+  "conventions": {
+    "delimiter": ";",
+    "decimalSeparator": ",",
+    "thousandsSeparator": ".",
+    "dateFormat": "dmy",
+    "timezone": "Europe/Madrid"
+  },
+  "kind": "cash_movement",
+  "sourceIdColumn": "ID",
+  "fields": [
+    { "target": "orderingKey", "column": "Sequence", "transform": "text" },
+    { "target": "economicAt", "column": "Date", "transform": "instant", "empty": "error" },
+    { "target": "amount", "column": "Amount", "transform": "decimal", "empty": "error" },
+    { "target": "currencyId", "constant": "00000000-0000-4000-8000-000000000002" },
+    {
+      "target": "kind",
+      "column": "Type",
+      "values": { "Deposit": "deposit", "Withdrawal": "withdrawal" },
+      "empty": "error"
+    }
+  ]
+}

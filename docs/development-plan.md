@@ -4,24 +4,24 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current authorized increment is Phase 9 dashboard and visualization against the approved domain and architecture.** Phases 0–8 are approved and merged. The dashboard adds shared filters, financial visualizations and trade drill-downs; see [dashboard semantics](dashboard.md) and [Phase 9 validation](phase-9-validation.md). The merged Phase 8 increment adds deterministic campaign metrics, explicit eligible/excluded populations, original-risk R, monetary drawdown/recovery, dated/source-pinned valuation and historical groupings. Exact formulas and display/availability rules belong in [analytics definitions](analytics-definitions.md); checks and limits belong in [Phase 8 validation](phase-8-validation.md). Account return solvers and the later product workflows remain deferred.
+**The current authorized increment is Phase 10 broker-agnostic imports against the approved domain and architecture.** Phases 0–9 are approved and merged. The implemented import framework adds canonical adapters, universal CSV mappings, immutable templates/source evidence, actual-command dry runs, scoped duplicate/correction decisions, reviewed complete-group commits and conservative cash reversal. [Import semantics](imports.md) and [ADR 0011](decisions/0011-broker-agnostic-imports.md) define the bounded delivery; validation is still being completed and publication requires separate user approval. The merged dashboard adds shared filters, financial visualizations and trade drill-downs; see [dashboard semantics](dashboard.md) and [Phase 9 validation](phase-9-validation.md). Exact metric formulas and display/availability rules belong in [analytics definitions](analytics-definitions.md). Account return solvers, full statement reconciliation, large background imports, exports/restore and later product workflows remain deferred.
 
-The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and authorized Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine adds campaign statistics and historical breakdowns; it does not imply import, advanced native asset, account-return or whole-product completion.
+The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine and Phase 9 dashboard add campaign statistics, historical breakdowns and visualizations. Authorized Phase 10 implements the bounded import foundation within original-roadmap Phase 6; it does not imply advanced native assets, large import benchmarks, account returns or whole-product completion.
 
-| Phase          | Result                                                                                                 | Current status                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| 0              | Requirements extraction and ambiguity/decision inventory                                               | Complete: requirements-analysis document exists                                        |
-| 1              | Approved architecture, ADRs, boundaries, and gated plan                                                | Approved; platform selections used by Phase 3                                          |
-| 2              | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Approved and merged; authority for the Phase 4 implementation                          |
-| 3              | Runnable platform scaffolding and security foundations                                                 | New foundation implemented; current clean-environment verification recorded separately |
-| 4              | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX                             | Core backend implemented and verified; later workflows remain scoped below             |
-| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Strategies implemented; authorized journal increment adds frozen plans and review      |
-| 6              | Universal imports, corrections, and reconciliation                                                     | Not started                                                                            |
-| 7              | Recording/review and settlement workflows for every asset family                                       | Not started                                                                            |
-| 8              | Risk monitoring, portfolio performance, and drill-down analytics                                       | Not started                                                                            |
-| 9              | Journal workflows, attachments, saved views, exports, and restore                                      | Trade review/evidence in authorized journal increment; broader scope remains deferred  |
-| 10             | Complete security/accessibility/performance verification and delivery                                  | Not started                                                                            |
-| Optional track | Chosen broker/provider integrations and optional metrics                                               | Unscheduled; not a prerequisite for the manual core                                    |
+| Phase          | Result                                                                                                 | Current status                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| 0              | Requirements extraction and ambiguity/decision inventory                                               | Complete: requirements-analysis document exists                                                         |
+| 1              | Approved architecture, ADRs, boundaries, and gated plan                                                | Approved; platform selections used by Phase 3                                                           |
+| 2              | Complete financial-domain model, calculation conventions, capabilities and independent fixture designs | Approved and merged; authority for the Phase 4 implementation                                           |
+| 3              | Runnable platform scaffolding and security foundations                                                 | New foundation implemented; current clean-environment verification recorded separately                  |
+| 4              | Financial schema, kernel, ledger, ordinary linear assets, holdings, and FX                             | Core backend implemented and verified; later workflows remain scoped below                              |
+| 5              | Strategies, frozen plans, trade workflows, and reviewable allocations                                  | Strategies implemented; authorized journal increment adds frozen plans and review                       |
+| 6              | Universal imports, corrections, and reconciliation                                                     | Bounded import foundation implemented in authorized Phase 10; broader reconciliation/bulk work deferred |
+| 7              | Recording/review and settlement workflows for every asset family                                       | Not started                                                                                             |
+| 8              | Risk monitoring, portfolio performance, and drill-down analytics                                       | Not started                                                                                             |
+| 9              | Journal workflows, attachments, saved views, exports, and restore                                      | Trade review/evidence in authorized journal increment; broader scope remains deferred                   |
+| 10             | Complete security/accessibility/performance verification and delivery                                  | Not started                                                                                             |
+| Optional track | Chosen broker/provider integrations and optional metrics                                               | Unscheduled; not a prerequisite for the manual core                                                     |
 
 Implementation statuses and acceptance evidence must be updated after actual work. Documentation completion does not imply a runnable application or any passing application check.
 
@@ -185,6 +185,10 @@ Pass G-06 for import identity/commit/reversal and source storage before acceptin
 - [ ] Provide batch summaries/errors, safe partial imports, atomic dependency groups, auditable correction/restatement and downstream-aware batch reversals. Large work uses durable jobs with progress, retry safety and a truthful final status.
 - [ ] Compare quantity/cash/equity with reconciliation dates and variance reports; preserve audit/lot history after corrections and transfers.
 
+Authorized Phase 10 implements the first checklist item and bounded portions of the remaining import requirements. It supports universal/canonical CSV, the existing catalog/fill/cash/fee/FX/opening-lot/observation/accounting commands, explicit scoped duplicates, reviewed cash/fill corrections, execution-cash reconciliation, complete-group partial batches and independent cash reversal. Sources are private PostgreSQL text under RLS with immutable accepted text/hash and mapping provenance. [ADR 0011](decisions/0011-broker-agnostic-imports.md) refines source storage for this small-file increment; media and future large files retain ADR 0007's private-storage/job contract.
+
+The enforced synchronous limits are **2 MiB / 1,000 rows per source**, **100 rows per preview/commit selection**, and **50 rows/batches per page**. The earlier 100 MiB / 100,000-row defaults and 50,000-row benchmark remain future targets, not implemented limits or passing evidence. Full quantity/cash/equity statement variance reports, native position snapshots, every-family settlement journeys and bulk-job progress/restart/cancellation remain open. A CSV parser cannot add unvalidated financial capability; imported fills still need explicit journal/campaign allocation through the existing domain workflow.
+
 Evidence: independent CSV examples, sign/date/DST/mapping cases, duplicate/correction/import-reversal fixtures, real-database failure/retry tests and preview-to-reconciliation end-to-end journeys. Complete **AC-11** and the correction branch of **AC-09**; repeat **AC-01**, **AC-02**, **AC-10**, **AC-14**, **AC-16** through imports.
 
 ### Phase 7: every asset family and capability-aware settlement
@@ -313,7 +317,7 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is implementation and verification of Phase 9. Publication requires subsequent user approval. The increment preserves ledger, accounting, strategy and journal invariants and passes platform regressions alongside analytics kernel, source readers, contracts, grouped results and HTTP checks. Account return solvers, full financial entry screens, imports, advanced native settlement and deployment remain outside this increment.
+The current authorized action is implementation and verification of Phase 10. Publication requires subsequent user approval. The increment must preserve ledger, accounting, strategy, journal and dashboard invariants while testing adapter parsing, identities, preview rollback, deferred constraints, corrections, partial commits, concurrency, source privacy and reversal dependencies. Account return solvers, full financial entry screens, bulk imports, full statement reconciliation, exports/restore, advanced native settlement and deployment remain outside this increment.
 
 ## Authorized Phase 7: portfolio/accounting engine
 
@@ -346,3 +350,19 @@ The [analytics dictionary](analytics-definitions.md) is the implementation contr
 - Signed account allocation, source freshness controls, missing-data disclosure and exact-value accessible tables.
 - Keyboard trade drill-down, responsive desktop/tablet/mobile and light/dark themes.
 - Read-only coherent financial snapshot; no new postings, migration, service or external credential.
+
+## Authorized Phase 10: broker-agnostic imports
+
+- Versioned trusted adapter registry, canonical import envelopes and explicit generic/canonical CSV independent of broker APIs.
+- Exact decimal, explicit sign/date/timezone, catalog identity and row-reference mapping; missing imported costs remain unknown.
+- Immutable mapping templates, accepted source text/hash and raw row provenance under tenant RLS.
+- Actual-command dry runs with savepoint rollback and immediate deferred-constraint validation; review pinned to batch and financial source revisions.
+- Stable namespace/account/kind source identities, documented normalized fingerprints, ambiguity errors and financial no-op reimports.
+- Reviewed cash/execution corrections, execution-cash evidence reconciliation and atomic complete-group partial commits.
+- Conservative append-only independent-cash batch reversal using actual command ownership across every partial commit; no-op commits cannot hide dependencies.
+- Paginated source/row/operation history, authorized downloads and responsive mapping/review experience.
+- Unit, PostgreSQL, contract/security and browser regressions required before final handoff; no final counts are claimed while verification is running.
+
+The [import guide](imports.md), [adapter/source-storage ADR](decisions/0011-broker-agnostic-imports.md) and [CSV examples](examples/imports/README.md) describe implemented semantics and extension points. No named broker adapter, large-job import pipeline, full statement variance engine, export or backup/restore capability is implied. Migration 0008 adds schema version 9; the existing environment and development commands apply.
+
+Validation for this increment is recorded in [Phase 10 validation](phase-10-validation.md): 580 unit/property/UI tests, 454 PostgreSQL integration tests and all 11 browser journeys passed. API drift, formatting, lint, types, frozen install, both production builds and schema-9 migration/readiness checks passed. Regression testing also fixed the journal save/publication race without changing its financial assertions. Changes remain uncommitted pending publication approval.

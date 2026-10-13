@@ -197,6 +197,7 @@ export function JournalEditor({
       revision.current = result.revision;
       saved.current = JSON.stringify(result.document);
       command.current = null;
+      await onSaved();
       const dirty = serializedDocument(current.current) !== saved.current;
       if (!dirty) {
         current.current = result.document;
@@ -204,7 +205,6 @@ export function JournalEditor({
       }
       setSaveState(dirty ? 'dirty' : 'saved');
       onDirtyChange(dirty || uploadBusy.current);
-      await onSaved();
       return !dirty;
     } catch (error) {
       blocked.current = true;
@@ -241,7 +241,7 @@ export function JournalEditor({
     setDocument(next);
     setMessage(null);
     const dirty = serializedDocument(next) !== saved.current;
-    if (!blocked.current) setSaveState(dirty ? 'dirty' : 'saved');
+    if (!blocked.current) setSaveState(saving.current ? 'saving' : dirty ? 'dirty' : 'saved');
     onDirtyChange(dirty || uploadBusy.current);
   }
   function uploadState(value: boolean) {
@@ -734,7 +734,13 @@ export function JournalEditor({
             <JournalField label="Plan publication reason" value={reason} onChange={setReason} />
             <Button
               onClick={() => void publish()}
-              disabled={!reason.trim() || busy || uploading || saveState === 'conflict'}
+              disabled={
+                !reason.trim() ||
+                busy ||
+                uploading ||
+                saveState === 'saving' ||
+                saveState === 'conflict'
+              }
             >
               {detail.originalPlan ? 'Publish plan revision' : 'Commit original plan'}
             </Button>

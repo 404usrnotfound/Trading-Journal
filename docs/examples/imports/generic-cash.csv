@@ -1,0 +1,3 @@
+ID;Sequence;Date;Type;Amount;Memo
+CASH-001;1;12/10/2026 09:30:00;Deposit;1.000,00;Initial funding
+CASH-002;2;13/10/2026 14:00:00;Withdrawal;-100,00;External withdrawal

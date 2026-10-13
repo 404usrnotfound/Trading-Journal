@@ -91,6 +91,12 @@ export async function createAccountingFixture() {
         await client.query('SET LOCAL session_replication_role = replica');
         const workspaceIds = persons.map((person) => person.workspace.id);
         for (const table of [
+          'import_source_history',
+          'import_sources',
+          'import_operations',
+          'import_rows',
+          'import_batches',
+          'import_template_versions',
           'cash_transfer_receipts',
           'cash_transfers',
           'account_cash_events',

@@ -79,6 +79,12 @@ export default async function StrategiesPage({
             <BookOpen size={18} aria-hidden="true" />
             <span>Trade journal</span>
           </a>
+          <a
+            className="nav-item"
+            href={workspace ? `/imports?workspace=${encodeURIComponent(workspace.id)}` : '/imports'}
+          >
+            <span>Imports</span>
+          </a>
         </nav>
         <div className="sidebar-bottom">
           <Badge>Strategy playbook</Badge>
@@ -108,6 +114,7 @@ export default async function StrategiesPage({
         </header>
         <main id="main-content" className="overview-main strategies-main" tabIndex={-1}>
           <nav aria-label="Mobile page navigation" className="journal-mobile-nav">
+            <a href={workspace ? `/imports?workspace=${workspace.id}` : '/imports'}>Imports</a>
             <a href={workspace ? `/dashboard?workspace=${workspace.id}` : '/dashboard'}>
               Dashboard
             </a>

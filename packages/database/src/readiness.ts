@@ -1,7 +1,7 @@
 import { Pool, type PoolClient } from 'pg';
 import type { Database } from './index.js';
 
-export const DATABASE_SCHEMA_VERSION = 8;
+export const DATABASE_SCHEMA_VERSION = 9;
 
 /** Runtime readiness is read-only and imports no migration file/DDL tooling. */
 export async function verifyDatabaseSchema(database: Database | string): Promise<void> {

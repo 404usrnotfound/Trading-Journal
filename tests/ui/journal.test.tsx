@@ -9,7 +9,7 @@ import {
 } from '@journal/contracts';
 import { INVENTORY_CALCULATION_MANIFEST } from '@journal/domain';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JournalEditor } from '../../apps/web/src/components/journal/journal-editor.js';
 import { JournalFinancial } from '../../apps/web/src/components/journal/journal-financial.js';
@@ -163,8 +163,9 @@ function editor(
   editable = true,
   historyDocument?: JournalDocument,
   strategies: StrategyResponse[] = [],
+  onSavedImplementation?: () => Promise<void>,
 ) {
-  const onSaved = vi.fn().mockResolvedValue(undefined);
+  const onSaved = vi.fn(onSavedImplementation ?? (() => Promise.resolve()));
   const onDirtyChange = vi.fn();
   wrap(
     <JournalEditor
@@ -438,6 +439,104 @@ describe('trade journal editor', () => {
     expect(requests[1]?.document.review.customNotes).toBe('Added while saving');
     await screen.findByText('All journal changes saved');
   });
+
+  it.each([false, true])(
+    'keeps publication disabled through a deferred journal refresh and preserves edits made during it: %s',
+    async (editDuringRefresh) => {
+      let completeRefresh!: () => void;
+      const refreshing = new Promise<void>((resolve) => {
+        completeRefresh = resolve;
+      });
+      const refreshed = vi.fn().mockReturnValueOnce(refreshing).mockResolvedValue(undefined);
+      const writes: { expectedRevision: number; document: JournalDocument }[] = [];
+      const publications: {
+        expectedRevision: number;
+        expectedTradeRevision: number;
+        reason: string;
+      }[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, options?: RequestInit) => {
+          if (options?.method === 'PUT') {
+            const body = JSON.parse(String(options.body));
+            writes.push(body);
+            return response({
+              tradeId,
+              revision: writes.length,
+              document: body.document,
+              updatedAt: instant,
+              updatedBy: 'owner',
+            });
+          }
+          if (url.endsWith('/plans') && options?.method === 'POST') {
+            publications.push(JSON.parse(String(options.body)));
+            return response({
+              id: legId,
+              tradeId,
+              version: 1,
+              definition: writes.at(-1)!.document.plan,
+              definitionHash: 'b'.repeat(64),
+              createdAt: instant,
+              createdBy: 'owner',
+              changeReason: 'Commit after refresh',
+            });
+          }
+          return response([]);
+        }),
+      );
+      const { onDirtyChange } = editor(fixture(), true, undefined, [], refreshed);
+      fireEvent.change(screen.getByLabelText('Plan publication reason'), {
+        target: { value: 'Commit after refresh' },
+      });
+      fireEvent.change(screen.getByLabelText('Thesis'), {
+        target: { value: 'Draft acknowledged before refreshing' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save now' }));
+      await waitFor(() => expect(refreshed).toHaveBeenCalledTimes(1));
+      expect(screen.getByText('Saving journal…')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Commit original plan' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save now' })).toBeDisabled();
+      if (editDuringRefresh) {
+        fireEvent.change(screen.getByLabelText('Custom notes'), {
+          target: { value: 'An additional note while the refresh is pending' },
+        });
+        expect(screen.getByText('Saving journal…')).toBeVisible();
+        expect(screen.getByRole('button', { name: 'Commit original plan' })).toBeDisabled();
+      }
+      fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+      expect(publications).toHaveLength(0);
+      expect(writes).toHaveLength(1);
+
+      await act(async () => {
+        completeRefresh();
+        await refreshing;
+      });
+      if (editDuringRefresh) {
+        expect(screen.getByText('Unsaved draft · autosave pending')).toBeVisible();
+        expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+      } else {
+        expect(screen.getByText('All journal changes saved')).toBeVisible();
+        expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+      }
+      expect(screen.getByRole('button', { name: 'Commit original plan' })).not.toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+      await screen.findByText(/Plan v1 published/);
+      expect(publications).toEqual([
+        {
+          expectedRevision: editDuringRefresh ? 2 : 1,
+          expectedTradeRevision: 1,
+          reason: 'Commit after refresh',
+        },
+      ]);
+      expect(writes).toHaveLength(editDuringRefresh ? 2 : 1);
+      if (editDuringRefresh) {
+        expect(writes[1]?.expectedRevision).toBe(1);
+        expect(writes[1]?.document.review.customNotes).toBe(
+          'An additional note while the refresh is pending',
+        );
+      }
+    },
+  );
 
   it('pauses saves during private uploads and retains the selected before/during/after phase', async () => {
     let complete: ((response: Response) => void) | undefined;

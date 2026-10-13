@@ -57,6 +57,13 @@
       "when": 1791821207713,
       "tag": "0007_portfolio_accounting",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791897600000,
+      "tag": "0008_broker_agnostic_imports",
+      "breakpoints": true
     }
   ]
 }

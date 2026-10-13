@@ -29,6 +29,7 @@ import * as journal from './journal.js';
 import * as accounting from './accounting.js';
 import * as analytics from './analytics.js';
 import * as dashboard from './dashboard.js';
+import * as imports from './imports.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -91,6 +92,12 @@ for (const collection of [strategies, strategyAttachments, journal, accounting])
 for (const [name, schema] of Object.entries(analytics.analyticsSchemaComponents))
   registerSharedSchema(name, schema);
 for (const [name, schema] of Object.entries(analytics))
+  if (name.endsWith('Schema') && schema instanceof z.ZodType)
+    registerSharedSchema(
+      name.charAt(0).toUpperCase() + name.slice(1).replace(/Schema$/u, ''),
+      schema,
+    );
+for (const [name, schema] of Object.entries(imports))
   if (name.endsWith('Schema') && schema instanceof z.ZodType)
     registerSharedSchema(
       name.charAt(0).toUpperCase() + name.slice(1).replace(/Schema$/u, ''),
@@ -888,6 +895,105 @@ registry.registerPath({
     500: problem,
   },
 });
+const importPrefix = '/api/v1/workspaces/{workspaceId}/imports';
+const importParams = z.strictObject({ workspaceId: financial.financialIdSchema });
+for (const [suffix, schema] of [
+  ['catalog', imports.importCatalogResponseSchema],
+  ['templates', imports.importTemplatesResponseSchema],
+  ['batches', imports.importHistoryResponseSchema],
+] as const)
+  registry.registerPath({
+    method: 'get',
+    path: `${importPrefix}/${suffix}`,
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: importParams,
+      query: z.object({ cursor: financial.financialIdSchema.optional() }),
+    },
+    responses: { 200: response(schema), 401: problem, 404: problem, 409: problem },
+  });
+registry.registerPath({
+  method: 'get',
+  path: `${importPrefix}/batches/{batchId}`,
+  security: [{ sessionCookie: [] }],
+  request: {
+    params: importParams.extend({ batchId: financial.financialIdSchema }),
+    query: z.object({ cursor: z.coerce.number().int().nonnegative().optional() }),
+  },
+  responses: { 200: response(imports.importBatchDetailSchema), 401: problem, 404: problem },
+});
+registry.registerPath({
+  method: 'get',
+  path: `${importPrefix}/batches/{batchId}/source`,
+  security: [{ sessionCookie: [] }],
+  request: { params: importParams.extend({ batchId: financial.financialIdSchema }) },
+  responses: {
+    200: {
+      description: 'Authorized original UTF-8 source bytes; private attachment delivery',
+      content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
+    },
+    401: problem,
+    404: problem,
+  },
+});
+for (const [suffix, input, output, params] of [
+  [
+    'templates',
+    imports.importTemplateCreateSchema,
+    imports.importTemplateResponseSchema,
+    importParams,
+  ],
+  [
+    'templates/{templateId}/versions',
+    imports.importTemplateCreateSchema,
+    imports.importTemplateResponseSchema,
+    importParams.extend({ templateId: financial.financialIdSchema }),
+  ],
+  ['batches', imports.importStageSchema, imports.importBatchResponseSchema, importParams],
+  [
+    'batches/{batchId}/preview',
+    imports.importPreviewRequestSchema,
+    imports.importPreviewResponseSchema,
+    importParams.extend({ batchId: financial.financialIdSchema }),
+  ],
+  [
+    'batches/{batchId}/commit',
+    imports.importCommitRequestSchema,
+    imports.importBatchResponseSchema,
+    importParams.extend({ batchId: financial.financialIdSchema }),
+  ],
+  [
+    'batches/{batchId}/reverse',
+    imports.importReverseRequestSchema,
+    imports.importBatchResponseSchema,
+    importParams.extend({ batchId: financial.financialIdSchema }),
+  ],
+] as const)
+  registry.registerPath({
+    method: 'post',
+    path: `${importPrefix}/${suffix}`,
+    security: [{ sessionCookie: [] }],
+    request: {
+      params,
+      headers: z.object({
+        'X-CSRF-Token': z.string().min(1),
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: {
+      200: response(output),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      413: problem,
+      415: problem,
+      422: problem,
+      500: problem,
+    },
+  });
 const document = new OpenApiGeneratorV31(registry.definitions).generateDocument({
   openapi: '3.1.0',
   info: { title: 'Trading Journal Foundation API', version: '0.1.0' },

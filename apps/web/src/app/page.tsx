@@ -6,7 +6,6 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  FileDown,
   FolderClosed,
   LayoutDashboard,
   Layers,
@@ -29,7 +28,6 @@ export const runtime = 'nodejs';
 const upcomingNavigation = [
   { label: 'Trades', icon: Activity },
   { label: 'Portfolio & accounts', icon: Wallet },
-  { label: 'Imports', icon: FileDown },
   { label: 'Settings', icon: Settings2 },
 ];
 
@@ -108,6 +106,12 @@ export default async function OverviewPage({
               <span className="nav-later">Later</span>
             </button>
           ))}
+          <a
+            className="nav-item"
+            href={workspace ? `/imports?workspace=${encodeURIComponent(workspace.id)}` : '/imports'}
+          >
+            <span>Imports</span>
+          </a>
         </nav>
         <p id="navigation-note" className="navigation-note">
           Use Strategies for your playbook and Trade journal for planning and review.
@@ -148,6 +152,12 @@ export default async function OverviewPage({
                 href={workspace ? `/dashboard?workspace=${workspace.id}` : '/dashboard'}
               >
                 Open analytics dashboard
+              </a>
+              <a
+                className="button button-secondary"
+                href={workspace ? `/imports?workspace=${workspace.id}` : '/imports'}
+              >
+                Import broker activity
               </a>
               <p>A clean starting point for your trading practice.</p>
             </div>

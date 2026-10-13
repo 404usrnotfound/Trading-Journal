@@ -75,6 +75,12 @@ export default async function DashboardPage({
             <BookOpen size={18} aria-hidden="true" />
             <span>Trade journal</span>
           </a>
+          <a
+            className="nav-item"
+            href={workspace ? `/imports?workspace=${encodeURIComponent(workspace.id)}` : '/imports'}
+          >
+            <span>Imports</span>
+          </a>
         </nav>
         <div className="sidebar-bottom">
           <Badge>Analytics dashboard</Badge>

@@ -1,0 +1,14 @@
+{
+  "version": "canonical-import/1",
+  "adapterId": "canonical-csv",
+  "adapterVersion": "1",
+  "conventions": {
+    "delimiter": ",",
+    "decimalSeparator": ".",
+    "thousandsSeparator": "none",
+    "dateFormat": "iso",
+    "timezone": "UTC"
+  },
+  "kind": "cash_movement",
+  "fields": []
+}

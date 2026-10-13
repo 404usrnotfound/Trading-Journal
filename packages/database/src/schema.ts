@@ -1,3 +1,4 @@
+import { importSchema } from './import-schema.js';
 import { platformSchema } from './platform-schema.js';
 import { financialSchema } from './financial-schema.js';
 import { strategySchema } from './strategy-schema.js';
@@ -16,4 +17,7 @@ export const databaseSchema = {
   ...strategySchema,
   ...journalSchema,
   ...accountingSchema,
+  ...importSchema,
 };
+
+export * from './import-schema.js';

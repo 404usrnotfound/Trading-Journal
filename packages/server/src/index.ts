@@ -49,3 +49,9 @@ export {
   type WorkspaceRole,
   type ServerServices,
 } from './services.js';
+
+export { createImportServices } from './imports/service.js';
+export { createImportTemplates } from './imports/templates.js';
+export { createImportApi } from './imports/api.js';
+export { ImportAdapterRegistry, genericCsvAdapter } from './imports/adapters/registry.js';
+export type { ImportAdapter, ParsedImportRow } from './imports/adapters/registry.js';

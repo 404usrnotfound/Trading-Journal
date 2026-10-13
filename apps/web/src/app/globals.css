@@ -1,3 +1,4 @@
+@import '../components/imports/imports.css';
 @import 'tailwindcss';
 @import '../components/dashboard/dashboard.css';
 @source "../../../../packages/ui/src";

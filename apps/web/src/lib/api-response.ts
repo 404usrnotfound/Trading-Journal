@@ -13,6 +13,7 @@ type ApiOperation =
   | 'accounting.request'
   | 'analytics.report'
   | 'dashboard.query'
+  | 'imports.command'
   | 'strategy.read'
   | 'strategy.command'
   | 'strategy.attachment.read'
