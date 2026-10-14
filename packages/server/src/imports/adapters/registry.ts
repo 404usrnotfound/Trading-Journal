@@ -6,7 +6,14 @@ import {
   type ImportRowResponse,
 } from '@journal/contracts';
 import { decimalValue, quantizeDecimal } from '@journal/domain';
-import { parseCsv, normalizeDecimal, normalizeInstant, type CsvRow } from '../csv.js';
+import {
+  parseCsv,
+  normalizeDecimal,
+  normalizeInstant,
+  parseImportJson,
+  assertImportJsonNesting,
+  type CsvRow,
+} from '../csv.js';
 
 export type ParsedImportRow = {
   rowNumber: number;
@@ -105,7 +112,7 @@ function genericRow(row: CsvRow, mapping: ImportMapping): ParsedImportRow {
             value = text.trim() === 'true';
             break;
           case 'json':
-            value = JSON.parse(text);
+            value = parseImportJson(text);
             break;
           case 'reference': {
             const match = text.match(/^(.+):([a-zA-Z0-9.]+)$/u);
@@ -140,6 +147,15 @@ function genericRow(row: CsvRow, mapping: ImportMapping): ParsedImportRow {
   const warnings = Object.entries(row.cells)
     .filter(([key, value]) => value !== '' && !used.has(key))
     .map(([key]) => `Unmapped column retained in source: ${key}`);
+  try {
+    assertImportJsonNesting(payload);
+  } catch (error) {
+    errors.push({
+      code: 'INVALID_CANONICAL_ROW',
+      message: error instanceof Error ? error.message : 'Invalid payload.',
+    });
+    return { rowNumber: row.rowNumber, raw: row.cells, draft: null, errors };
+  }
   const result = canonicalImportDraftSchema.safeParse({
     sourceKey,
     sourceId,
@@ -186,7 +202,7 @@ export const canonicalCsvAdapter: ImportAdapter = {
           sourceId,
           groupKey: row.cells.Group?.trim() || sourceKey,
           kind,
-          payload: JSON.parse(row.cells.Payload ?? ''),
+          payload: parseImportJson(row.cells.Payload ?? ''),
           warnings: Object.keys(row.cells)
             .filter((key) => !['ID', 'Key', 'Kind', 'Group', 'Payload'].includes(key))
             .map((key) => `Unmapped column retained in source: ${key}`),

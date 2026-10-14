@@ -152,18 +152,17 @@ function mount(role: c.WorkspaceResponse['role'] = 'owner') {
     </QueryClientProvider>,
   );
 }
-async function stage() {
+async function stage(content = 'ID,Date,Amount\nD1,2030-01-01T00:00:00Z,100') {
   await screen.findByText('Account alpha');
   fireEvent.change(screen.getByLabelText('Account', { exact: true }), {
     target: { value: uuid(2) },
   });
   fireEvent.change(screen.getByLabelText('Currency field 4'), { target: { value: uuid(3) } });
-  const file = new File(['ID,Date,Amount\nD1,2030-01-01T00:00:00Z,100'], 'statement.csv', {
+  const file = new File([content], 'statement.csv', {
     type: 'text/csv',
   });
   Object.defineProperty(file, 'arrayBuffer', {
-    value: async () =>
-      new TextEncoder().encode('ID,Date,Amount\nD1,2030-01-01T00:00:00Z,100').buffer,
+    value: async () => new TextEncoder().encode(content).buffer,
   });
   fireEvent.change(screen.getByLabelText('Broker CSV file'), { target: { files: [file] } });
   await screen.findByText(/Selected: statement.csv/);
@@ -177,6 +176,95 @@ async function preview() {
   await screen.findByRole('status');
 }
 describe('import review UI', () => {
+  it('stages the exact UTF-8 source including BOM, CRLF and non-ASCII characters', async () => {
+    const content = '\uFEFFID,Date,Amount,Note\r\nD1,2030-01-01T00:00:00Z,100,"café 東京"\r\n';
+    mount();
+    await stage(content);
+    const body = requests.find((request) => request.path.endsWith('/batches'))?.body as {
+      content: string;
+    };
+    expect(body.content).toBe(content);
+    expect(new TextEncoder().encode(body.content)).toEqual(new TextEncoder().encode(content));
+  });
+
+  it('blocks staging malformed UTF-8, preserves chosen input and mapping, and permits a corrected file', async () => {
+    const saved: c.ImportTemplateResponse = {
+      id: uuid(10),
+      templateId: uuid(11),
+      name: 'Reviewed mapping',
+      version: 1,
+      archived: false,
+      mapping: c.importMappingSchema.parse({
+        kind: 'cash_movement',
+        fields: [{ target: 'amount', column: 'Amount', transform: 'decimal' }],
+      }),
+    };
+    savedTemplates = [saved];
+    mount();
+    await screen.findByText('Reviewed mapping · v1');
+    fireEvent.change(screen.getByLabelText('Saved mapping'), { target: { value: saved.id } });
+    fireEvent.change(screen.getByLabelText('Account', { exact: true }), {
+      target: { value: uuid(2) },
+    });
+    fireEvent.change(screen.getByLabelText('Broker source namespace'), {
+      target: { value: 'reviewed-source' },
+    });
+    const invalidBytes = Uint8Array.from([0x49, 0x44, 0x0a, 0xc3, 0x28]);
+    const invalidFile = new File([invalidBytes.buffer], 'invalid.csv', { type: 'text/csv' });
+    Object.defineProperty(invalidFile, 'arrayBuffer', { value: async () => invalidBytes.buffer });
+    fireEvent.change(screen.getByLabelText('Broker CSV file'), {
+      target: { files: [invalidFile] },
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Choose a CSV encoded as valid UTF-8. The source has not been staged.',
+    );
+    expect(screen.getByLabelText('Saved mapping')).toHaveValue(saved.id);
+    expect(screen.getByLabelText('Account', { exact: true })).toHaveValue(uuid(2));
+    expect(screen.getByLabelText('Broker source namespace')).toHaveValue('reviewed-source');
+    expect((screen.getByLabelText('Broker CSV file') as HTMLInputElement).files?.[0]).toBe(
+      invalidFile,
+    );
+    const stageButton = screen.getByRole('button', { name: 'Stage file for review' });
+    expect(stageButton).toBeDisabled();
+    fireEvent.click(stageButton);
+    expect(requests).toEqual([]);
+
+    const corrected = 'Amount\r\n100\r\n';
+    const validFile = new File([corrected], 'corrected.csv', { type: 'text/csv' });
+    Object.defineProperty(validFile, 'arrayBuffer', {
+      value: async () => new TextEncoder().encode(corrected).buffer,
+    });
+    fireEvent.change(screen.getByLabelText('Broker CSV file'), { target: { files: [validFile] } });
+    await screen.findByText(/Selected: corrected.csv/u);
+    fireEvent.click(screen.getByRole('button', { name: 'Stage file for review' }));
+    await screen.findByRole('heading', { name: '2. Review statement.csv' });
+    expect(requests[0]?.body).toMatchObject({
+      accountId: uuid(2),
+      namespace: 'reviewed-source',
+      filename: 'corrected.csv',
+      content: corrected,
+      templateVersionId: saved.id,
+    });
+    expect(requests[0]?.body).not.toHaveProperty('mapping');
+  });
+  it('renders untrusted source filenames as text and explains the raw-evidence download boundary', async () => {
+    batch.filename = '<img src=x onerror="alert(1)">.csv';
+    historyItems = [batch];
+    mount('viewer');
+    expect(await screen.findByText(batch.filename)).toBeVisible();
+    fireEvent.click(await screen.findByRole('button', { name: 'Review batch' }));
+    expect(
+      await screen.findByRole('heading', { name: `2. Review ${batch.filename}` }),
+    ).toBeVisible();
+    expect(document.querySelector('img')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Download original source' })).toHaveAttribute(
+      'href',
+      `/api/v1/workspaces/${workspace.id}/imports/batches/${batch.id}/source`,
+    );
+    expect(screen.getByText(/Spreadsheet formulas may execute/u)).toBeVisible();
+    expect(screen.getByText(/Inspect it in a text editor/u)).toBeVisible();
+    expect(requests).toEqual([]);
+  });
   it('sends explicit account/unit mapping, validates complete groups and requires a separate commit action', async () => {
     mount();
     await stage();

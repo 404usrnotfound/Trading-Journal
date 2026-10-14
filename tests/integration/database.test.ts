@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   createDatabase,
   createPersonalWorkspace,
@@ -202,6 +202,63 @@ describe('PostgreSQL platform foundation with actual runtime roles', () => {
           .filter(Boolean)
           .map((database) => database.close()),
       );
+    }
+  });
+
+  it('handles one owned idle connection termination safely and reconnects without hiding query failures', async () => {
+    const resilient = createDatabase(testUrl('TEST_APP_DATABASE_URL'), { max: 1 });
+    const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      const owned = await resilient.pool.connect();
+      let identity: {
+        pid: number;
+        database: string;
+        role: string;
+        started_at: string;
+      };
+      try {
+        const result = await owned.query<typeof identity>(
+          `SELECT pg_backend_pid() AS pid, current_database() AS database,
+          current_user AS role, backend_start::text AS started_at
+          FROM pg_stat_activity WHERE pid=pg_backend_pid()`,
+        );
+        identity = result.rows[0]!;
+      } finally {
+        owned.release();
+      }
+      expect(resilient.pool.idleCount).toBe(1);
+      let failedOwnedClient = false;
+      const idleError = new Promise<void>((resolve) => {
+        resilient.pool.once('error', (_error, client) => {
+          failedOwnedClient = client === owned;
+          resolve();
+        });
+      });
+      // Select the exact generated connection by PID, database, role and start
+      // instant. This cannot terminate any pre-existing or PID-reused backend.
+      const terminated = await admin.pool.query<{ terminated: boolean }>(
+        `SELECT pg_terminate_backend(pid) AS terminated FROM pg_stat_activity
+        WHERE pid=$1 AND datname=$2 AND usename=$3 AND backend_start=$4::timestamptz`,
+        [identity.pid, identity.database, identity.role, identity.started_at],
+      );
+      expect(terminated.rows).toEqual([{ terminated: true }]);
+      await idleError;
+      expect(failedOwnedClient).toBe(true);
+      expect(resilient.pool.totalCount).toBe(0);
+      const captured = write.mock.calls.map(([value]) => String(value)).join('');
+      expect(captured).toBe('{"event":"database.idle-connection-failed"}\n');
+      const reconnected = await resilient.pool.query<{ healthy: number; pid: number }>(
+        'SELECT 1 AS healthy, pg_backend_pid() AS pid',
+      );
+      expect(reconnected.rows[0]?.healthy).toBe(1);
+      expect(reconnected.rows[0]?.pid).not.toBe(identity.pid);
+      await expectPostgresFailure(resilient.pool.query('SELECT 1/0'), '22012');
+      expect(write).toHaveBeenCalledOnce();
+      const afterFailure = await resilient.pool.query<{ healthy: number }>('SELECT 1 AS healthy');
+      expect(afterFailure.rows).toEqual([{ healthy: 1 }]);
+    } finally {
+      write.mockRestore();
+      await resilient.close();
     }
   });
 

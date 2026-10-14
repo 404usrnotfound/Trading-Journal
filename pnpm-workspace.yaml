@@ -1,6 +1,9 @@
 packages:
   - apps/*
   - packages/*
+overrides:
+  '@esbuild-kit/core-utils>esbuild': 0.25.12
+  'tsup>esbuild': 0.28.2
 onlyBuiltDependencies:
   - esbuild
   - sharp

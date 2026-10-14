@@ -19179,13 +19179,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Authorized original UTF-8 source bytes; private attachment delivery */
+                /** @description Authorized original UTF-8 source bytes, including any untrusted formulas; private plain-text attachment with an inert .source.txt filename. Original filename and source hash remain in batch metadata. Not a sanitized spreadsheet export. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/octet-stream": string;
+                        "text/plain": string;
                     };
                 };
                 /** @description Safe problem details; no credentials or database diagnostics */

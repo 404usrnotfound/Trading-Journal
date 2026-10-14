@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   journalDocumentSchema,
@@ -45,6 +46,22 @@ async function rejected(operation: Promise<unknown>, codes: string | string[] = 
     throw new Error('Invalid journal history was accepted');
   } catch (error) {
     expect(Array.isArray(codes) ? codes : [codes]).toContain(postgresCode(error));
+  }
+}
+
+async function waitForMigrationDatabaseDisconnect(operator: Database, name: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  for (;;) {
+    const result = await operator.pool.query<{ connected: boolean }>(
+      'SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname = $1) AS connected',
+      [name],
+    );
+    if (result.rows[0]?.connected === false) return;
+    if (Date.now() >= deadline)
+      throw new Error(
+        'The isolated migration database still has connections after closing its pools',
+      );
+    await delay(25);
   }
 }
 
@@ -1006,9 +1023,17 @@ describe('journal snapshots, original commitments and evidence enforce PostgreSQ
         }
         expect((await records()).rows).toEqual(before);
       } finally {
-        await database?.close();
-        if (created) await operator.pool.query(`DROP DATABASE "${databaseName}" WITH(FORCE)`);
-        await operator.close();
+        try {
+          await database?.close();
+          if (created) {
+            // Pool shutdown can precede PostgreSQL observing the socket disconnect.
+            // Wait only for this generated fixture; FORCE can kill a closing client.
+            await waitForMigrationDatabaseDisconnect(operator, databaseName);
+            await operator.pool.query(`DROP DATABASE "${databaseName}"`);
+          }
+        } finally {
+          await operator.close();
+        }
       }
     },
   );
@@ -1200,9 +1225,16 @@ describe('journal snapshots, original commitments and evidence enforce PostgreSQ
         })),
       );
     } finally {
-      await database?.close();
-      if (created) await operator.pool.query(`DROP DATABASE "${databaseName}" WITH(FORCE)`);
-      await operator.close();
+      try {
+        await database?.close();
+        if (created) {
+          // Observe completion of owned connections before dropping the fixture.
+          await waitForMigrationDatabaseDisconnect(operator, databaseName);
+          await operator.pool.query(`DROP DATABASE "${databaseName}"`);
+        }
+      } finally {
+        await operator.close();
+      }
     }
   });
 });

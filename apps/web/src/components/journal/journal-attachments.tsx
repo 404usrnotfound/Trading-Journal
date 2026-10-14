@@ -130,7 +130,10 @@ export function JournalAttachments({
               onChange={(event) => void upload(event)}
               disabled={uploading || attachments.length >= 100}
             />
-            <small>PNG, JPEG, WEBP or PDF · 10 MiB maximum.</small>
+            <small>
+              PNG, JPEG, WEBP or PDF · 10 MiB maximum. Images: up to 8,192 pixels per side and
+              16,777,216 pixels in total.
+            </small>
           </div>
         </div>
       )}

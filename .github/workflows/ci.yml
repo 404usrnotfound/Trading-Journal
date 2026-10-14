@@ -32,6 +32,8 @@ jobs:
           corepack pnpm --version
       - name: Install locked dependencies
         run: corepack pnpm install --frozen-lockfile
+      - name: Check dependency security advisories
+        run: corepack pnpm security:audit
       - name: Create isolated local configuration and databases
         run: |
           corepack pnpm env:init

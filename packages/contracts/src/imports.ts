@@ -9,6 +9,30 @@ export const IMPORT_LIMITS = {
   fieldBytes: 16_384,
   commitRows: 100,
 } as const;
+/** Raw import JSON must be inspected before recursive schemas clone/drop object keys. */
+export function importJsonInputIssue(value: unknown): string | undefined {
+  const pending = [{ value, depth: 0 }];
+  while (pending.length) {
+    const item = pending.pop()!;
+    if (item.depth > 12) return 'Import payload nesting exceeds twelve levels.';
+    if (item.value !== null && typeof item.value === 'object') {
+      for (const [key, child] of Object.entries(item.value)) {
+        if (['__proto__', 'constructor', 'prototype'].includes(key))
+          return 'Reserved field in import payload.';
+        pending.push({ value: child, depth: item.depth + 1 });
+      }
+    }
+  }
+  return undefined;
+}
+const importConstantSchema = z.preprocess((value, context) => {
+  const issue = importJsonInputIssue(value);
+  if (issue) {
+    context.addIssue({ code: 'custom', message: issue });
+    return z.NEVER;
+  }
+  return value;
+}, financial.financialJsonSchema);
 const label = z
   .string()
   .trim()
@@ -110,7 +134,7 @@ export const importFieldMappingSchema = z
     kinds: importKindSchema.array().max(14).optional(),
     target: path,
     column: label.optional(),
-    constant: financial.financialJsonSchema.optional(),
+    constant: importConstantSchema.optional(),
     transform: z
       .enum(['text', 'decimal', 'negate_decimal', 'instant', 'boolean', 'json', 'reference'])
       .default('text'),

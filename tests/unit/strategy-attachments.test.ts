@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ATTACHMENT_IMAGE_MAXIMUM_DIMENSION,
+  ATTACHMENT_IMAGE_MAXIMUM_PIXELS,
   STRATEGY_ATTACHMENT_MAXIMUM_BYTES,
   strategyAttachmentResponseSchema,
 } from '@journal/contracts';
@@ -11,6 +13,7 @@ import {
   readStrategyAttachmentBody,
   strategyAttachmentDisposition,
 } from '../../packages/server/src/strategies/attachment-api.js';
+import { grayscalePng } from '../helpers/attachment-images.js';
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lVYAAAAASUVORK5CYII=',
@@ -63,6 +66,68 @@ describe('strategy attachment binary boundary', () => {
     expect(() => validateStrategyAttachmentBytes(png, 'image/svg+xml')).toThrow();
   });
 
+  it('rejects highly compressed real PNGs beyond the pixel budget and accepts both exact limits', () => {
+    const large = grayscalePng(6144, 4096);
+    expect(large.length).toBeLessThan(100_000);
+    expect(() => validateStrategyAttachmentBytes(large, 'image/png')).toThrowError(
+      expect.objectContaining({ status: 413, code: 'IMAGE_DIMENSIONS_EXCEEDED' }),
+    );
+    const boundary = grayscalePng(
+      ATTACHMENT_IMAGE_MAXIMUM_DIMENSION,
+      ATTACHMENT_IMAGE_MAXIMUM_PIXELS / ATTACHMENT_IMAGE_MAXIMUM_DIMENSION,
+    );
+    expect(validateStrategyAttachmentBytes(boundary, 'image/png')).toBe('image/png');
+    expect(() =>
+      validateStrategyAttachmentBytes(
+        grayscalePng(ATTACHMENT_IMAGE_MAXIMUM_DIMENSION + 1, 1),
+        'image/png',
+      ),
+    ).toThrowError(expect.objectContaining({ code: 'IMAGE_DIMENSIONS_EXCEEDED' }));
+  });
+
+  it('bounds JPEG frame dimensions and both WebP bitstream and extended canvas dimensions', () => {
+    const frame = Buffer.from([
+      255, 216, 255, 192, 0, 11, 8, 255, 255, 255, 255, 1, 1, 17, 0, 255, 218, 0, 8, 1, 1, 0, 0, 63,
+      0, 0, 255, 217,
+    ]);
+    expect(() => validateStrategyAttachmentBytes(frame, 'image/jpeg')).toThrowError(
+      expect.objectContaining({ code: 'IMAGE_DIMENSIONS_EXCEEDED' }),
+    );
+    function webpChunk(type: string, payload: Buffer): Buffer {
+      const chunk = Buffer.alloc(8);
+      chunk.write(type, 0, 'ascii');
+      chunk.writeUInt32LE(payload.length, 4);
+      return Buffer.concat([chunk, payload, Buffer.alloc(payload.length % 2)]);
+    }
+    function webp(...chunks: Buffer[]): Buffer {
+      const header = Buffer.alloc(12);
+      header.write('RIFF', 0, 'ascii');
+      header.writeUInt32LE(4 + chunks.reduce((total, chunk) => total + chunk.length, 0), 4);
+      header.write('WEBP', 8, 'ascii');
+      return Buffer.concat([header, ...chunks]);
+    }
+    const vp8 = Buffer.from([0, 0, 0, 157, 1, 42, 255, 63, 255, 63]);
+    const vp8l = Buffer.alloc(5);
+    vp8l[0] = 47;
+    vp8l.writeUInt32LE(16382 | (16382 << 14), 1);
+    const canvas = Buffer.alloc(10);
+    canvas.writeUIntLE(65534, 4, 3);
+    canvas.writeUIntLE(65534, 7, 3);
+    const smallVp8 = Buffer.from([0, 0, 0, 157, 1, 42, 1, 0, 1, 0]);
+    for (const body of [
+      webp(webpChunk('VP8 ', vp8)),
+      webp(webpChunk('VP8L', vp8l)),
+      webp(webpChunk('VP8X', canvas), webpChunk('VP8 ', smallVp8)),
+    ])
+      expect(() => validateStrategyAttachmentBytes(body, 'image/webp')).toThrowError(
+        expect.objectContaining({ code: 'IMAGE_DIMENSIONS_EXCEEDED' }),
+      );
+    const zeroVp8 = Buffer.from([0, 0, 0, 157, 1, 42, 0, 0, 1, 0]);
+    expect(() =>
+      validateStrategyAttachmentBytes(webp(webpChunk('VP8 ', zeroVp8)), 'image/webp'),
+    ).toThrowError(expect.objectContaining({ status: 415, code: 'INVALID_ATTACHMENT_CONTENT' }));
+  });
+
   it('bounds a chunked body independently of Content-Length and cancels overflow', async () => {
     const cancel = vi.fn();
     const stream = new ReadableStream<Uint8Array>({
@@ -108,6 +173,66 @@ describe('strategy attachment binary boundary', () => {
       duplex: 'half',
     } as RequestInit);
     expect(Buffer.from(await readStrategyAttachmentBody(request))).toEqual(png);
+  });
+
+  it('snapshots reusable fragmented stream buffers exactly across multiple bounded blocks', async () => {
+    const expected = Buffer.alloc(3 * 64 * 1024 + 17);
+    for (let index = 0; index < expected.length; index += 1) expected[index] = index % 251;
+    const shared = Buffer.alloc(257);
+    let offset = 0;
+    let empty = true;
+    const stream = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          if (offset === expected.length) {
+            controller.close();
+            return;
+          }
+          if (empty) {
+            controller.enqueue(new Uint8Array(0));
+            empty = false;
+            return;
+          }
+          const length = Math.min(shared.length, expected.length - offset);
+          expected.copy(shared, 0, offset, offset + length);
+          controller.enqueue(shared.subarray(0, length));
+          offset += length;
+          empty = true;
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const request = new Request('http://localhost/upload', {
+      method: 'POST',
+      body: stream,
+      duplex: 'half',
+    } as RequestInit);
+    const bytes = await readStrategyAttachmentBody(request);
+    expect(bytes.byteLength).toBe(expected.byteLength);
+    expect(Buffer.from(bytes)).toEqual(expected);
+    expect(stream.locked).toBe(false);
+  });
+
+  it('ignores many empty chunks and preserves a tiny file fragmented into single bytes', async () => {
+    let empty = 32_768;
+    let offset = 0;
+    const stream = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          if (empty-- > 0) controller.enqueue(new Uint8Array(0));
+          else if (offset < png.length) controller.enqueue(png.subarray(offset, ++offset));
+          else controller.close();
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const request = new Request('http://localhost/upload', {
+      method: 'POST',
+      body: stream,
+      duplex: 'half',
+    } as RequestInit);
+    expect(Buffer.from(await readStrategyAttachmentBody(request))).toEqual(png);
+    expect(stream.locked).toBe(false);
   });
 
   it('uses safe RFC 5987 Unicode names and always downloads PDFs', () => {

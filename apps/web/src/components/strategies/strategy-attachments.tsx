@@ -99,8 +99,8 @@ export function StrategyAttachments({
             disabled={uploading || attachmentIds.length >= 100}
           />
           <small>
-            PNG, JPEG, WEBP or PDF, up to 10 MiB. Uploaded files become part of this version when
-            you save.
+            PNG, JPEG, WEBP or PDF, up to 10 MiB. Images: up to 8,192 pixels per side and 16,777,216
+            pixels in total. Uploaded files become part of this version when you save.
           </small>
         </div>
       )}

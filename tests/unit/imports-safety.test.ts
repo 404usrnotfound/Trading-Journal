@@ -8,6 +8,11 @@ import {
   ImportAdapterRegistry,
   type AuthorizationContext,
 } from '@journal/server';
+import { assertImportJsonNesting, parseImportJson } from '../../packages/server/src/imports/csv.js';
+import {
+  canonicalCsvAdapter,
+  genericCsvAdapter,
+} from '../../packages/server/src/imports/adapters/registry.js';
 
 const accountId = '00000000-0000-4000-8000-000000000001';
 const instrumentVersionId = '00000000-0000-4000-8000-000000000002';
@@ -251,5 +256,190 @@ describe('import financial completeness normalization', () => {
       ),
     ).rejects.toMatchObject({ status: 422, code: 'INVALID_FINANCIAL_INPUT' });
     expect(databaseCalls).toBe(0);
+  });
+});
+
+describe('untrusted CSV embedded JSON', () => {
+  const quoted = (text: string) => `"${text.replaceAll('"', '""')}"`;
+  const nested = (levels: number) => '{"x":'.repeat(levels) + '0' + '}'.repeat(levels);
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects raw own %s keys before schema cloning, including objects inside arrays',
+    (key) => {
+      const marker = 'phase13_import_polluted';
+      expect(Object.hasOwn(Object.prototype, marker)).toBe(false);
+      const raw = `{"${key}":{"${marker}":true}}`;
+      expect(Object.hasOwn(JSON.parse(raw), key)).toBe(true);
+      const genericMapping = importMappingSchema.parse({
+        kind: 'instrument',
+        fields: [{ target: 'metadata', column: 'Metadata', transform: 'json' }],
+      });
+      const canonicalMapping = importMappingSchema.parse({
+        adapterId: 'canonical-csv',
+        kind: 'instrument',
+        fields: [],
+      });
+      for (const hostile of [raw, `{"evidence":[${raw}]}`]) {
+        const [generic] = genericCsvAdapter.parse(`Metadata\n${quoted(hostile)}`, genericMapping);
+        expect(generic?.errors).toContainEqual({
+          code: 'INVALID_FIELD',
+          field: 'metadata',
+          message: 'Reserved field in import payload.',
+        });
+        expect(generic?.raw.Metadata).toBe(hostile);
+        const [canonical] = canonicalCsvAdapter.parse(
+          `Kind,Payload\ninstrument,${quoted(hostile)}`,
+          canonicalMapping,
+        );
+        expect(canonical?.draft).toBeNull();
+        expect(canonical?.errors[0]?.code).toBe('INVALID_CANONICAL_CSV');
+        expect(canonical?.raw.Payload).toBe(hostile);
+        expect(Object.hasOwn(Object.prototype, marker)).toBe(false);
+      }
+    },
+  );
+
+  it('retains reserved-looking text values and ordinary metadata without executing or rewriting them', () => {
+    const payload = '{"name":"constructor","evidence":["__proto__","prototype"]}';
+    expect(parseImportJson(payload)).toEqual({
+      name: 'constructor',
+      evidence: ['__proto__', 'prototype'],
+    });
+  });
+
+  it('rejects deeply nested generic JSON as a row error before recursive schema validation', () => {
+    // Fits inside the field-byte bound, but previously exhausted Zod's call stack.
+    const hostile = nested(2_000);
+    const mapping = importMappingSchema.parse({
+      kind: 'instrument',
+      fields: [{ target: 'metadata', column: 'Metadata', transform: 'json' }],
+    });
+    const rows = genericCsvAdapter.parse(
+      `Metadata\n${quoted(hostile)}\n${quoted('{"priceConvention":"unit-price"}')}`,
+      mapping,
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.errors).toContainEqual({
+      code: 'INVALID_FIELD',
+      field: 'metadata',
+      message: 'Import payload nesting exceeds twelve levels.',
+    });
+    expect(rows[0]?.raw.Metadata).toBe(hostile);
+    expect(rows[1]?.errors).toEqual([]);
+    expect(rows[1]?.draft?.payload).toEqual({ metadata: { priceConvention: 'unit-price' } });
+  });
+
+  it('rejects deeply nested canonical JSON without throwing or discarding accepted source text', () => {
+    const hostile = nested(2_000);
+    const mapping = importMappingSchema.parse({
+      adapterId: 'canonical-csv',
+      kind: 'instrument',
+      fields: [],
+    });
+    const rows = canonicalCsvAdapter.parse(
+      `Kind,Payload\ninstrument,${quoted(hostile)}\ninstrument,${quoted('{"name":"Safe"}')}`,
+      mapping,
+    );
+    expect(rows[0]?.draft).toBeNull();
+    expect(rows[0]?.errors[0]?.code).toBe('INVALID_CANONICAL_CSV');
+    expect(rows[0]?.raw.Payload).toBe(hostile);
+    expect(rows[1]?.errors).toEqual([]);
+    expect(rows[1]?.draft?.payload).toEqual({ name: 'Safe' });
+  });
+
+  it('enforces the existing twelve-level limit for objects, arrays and assembled mapping targets', () => {
+    expect(parseImportJson(nested(12))).toEqual(JSON.parse(nested(12)));
+    expect(() => parseImportJson(nested(13))).toThrow(/twelve levels/u);
+    expect(() =>
+      assertImportJsonNesting(JSON.parse('['.repeat(13) + '0' + ']'.repeat(13))),
+    ).toThrow(/twelve levels/u);
+    const mapping = importMappingSchema.parse({
+      kind: 'instrument',
+      fields: [{ target: Array.from({ length: 13 }, () => 'x').join('.'), column: 'Value' }],
+    });
+    const [row] = genericCsvAdapter.parse('Value\nsafe scalar', mapping);
+    expect(row?.draft).toBeNull();
+    expect(row?.errors).toContainEqual({
+      code: 'INVALID_CANONICAL_ROW',
+      message: 'Import payload nesting exceeds twelve levels.',
+    });
+  });
+});
+
+describe('raw import mapping constants', () => {
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects own %s keys before constant-schema cloning in contracts, staging and saved templates',
+    async (key) => {
+      const withWorkspaceContext = async () => {
+        throw new Error('Unvalidated mapping must not open a database transaction');
+      };
+      const platform = { withWorkspaceContext };
+      const context = {
+        actorId: 'unit-owner',
+        workspaceId: accountId,
+        role: 'owner',
+        requiredRole: 'editor',
+        requestId: 'raw-constant-boundary',
+      } as AuthorizationContext;
+      for (const raw of [
+        JSON.parse(`{"${key}":{"phase13_import_polluted":true}}`),
+        JSON.parse(`{"evidence":[{"${key}":{"phase13_import_polluted":true}}]}`),
+      ]) {
+        const mapping = {
+          kind: 'instrument',
+          fields: [{ target: 'metadata', constant: raw }],
+        };
+        const parsed = importMappingSchema.safeParse(mapping);
+        expect(parsed.success).toBe(false);
+        if (!parsed.success)
+          expect(parsed.error.issues).toContainEqual(
+            expect.objectContaining({
+              path: ['fields', 0, 'constant'],
+              message: 'Reserved field in import payload.',
+            }),
+          );
+        await expect(
+          createImportServices(platform).stage(
+            context,
+            {
+              accountId,
+              namespace: 'example',
+              filename: 'statement.csv',
+              content: 'ID\nA',
+              mapping,
+            },
+            instrumentVersionId,
+          ),
+        ).rejects.toMatchObject({ name: 'ZodError' });
+        await expect(
+          createImportTemplates(platform, new ImportAdapterRegistry()).save(
+            context,
+            { name: 'Hostile constant', mapping },
+            instrumentVersionId,
+          ),
+        ).rejects.toMatchObject({ name: 'ZodError' });
+        expect(Object.hasOwn(Object.prototype, 'phase13_import_polluted')).toBe(false);
+      }
+    },
+  );
+
+  it('inspects constants rather than imposing the payload-depth limit on the whole mapping wrapper', () => {
+    const constant = JSON.parse('{"x":'.repeat(11) + '"__proto__"' + '}'.repeat(11));
+    const mapping = importMappingSchema.parse({
+      kind: 'instrument',
+      fields: [{ target: 'metadata', constant }],
+    });
+    expect(mapping.fields[0]?.constant).toEqual(constant);
+    const [row] = genericCsvAdapter.parse('ID\nA', mapping);
+    expect(row?.errors).toEqual([]);
+    expect(row?.draft?.payload.metadata).toEqual(constant);
+    expect(
+      importMappingSchema.safeParse({
+        kind: 'instrument',
+        fields: [
+          { target: 'metadata', constant: JSON.parse('{"x":'.repeat(13) + '0' + '}'.repeat(13)) },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });

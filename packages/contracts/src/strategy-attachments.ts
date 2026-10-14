@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const STRATEGY_ATTACHMENT_MAXIMUM_BYTES = 10 * 1024 * 1024;
+export const ATTACHMENT_IMAGE_MAXIMUM_DIMENSION = 8192;
+export const ATTACHMENT_IMAGE_MAXIMUM_PIXELS = 16 * 1024 * 1024;
 export const strategyAttachmentMediaTypeSchema = z.enum([
   'image/png',
   'image/jpeg',

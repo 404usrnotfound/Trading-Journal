@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { sql, type DbTransaction } from '@journal/database';
 import {
+  ATTACHMENT_IMAGE_MAXIMUM_DIMENSION,
+  ATTACHMENT_IMAGE_MAXIMUM_PIXELS,
   STRATEGY_ATTACHMENT_MAXIMUM_BYTES,
   strategyAttachmentMediaTypeSchema,
   strategyAttachmentNameSchema,
@@ -75,14 +77,29 @@ function checksum(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
+function validImageDimensions(width: number, height: number): boolean {
+  if (width === 0 || height === 0) return false;
+  if (
+    width > ATTACHMENT_IMAGE_MAXIMUM_DIMENSION ||
+    height > ATTACHMENT_IMAGE_MAXIMUM_DIMENSION ||
+    width * height > ATTACHMENT_IMAGE_MAXIMUM_PIXELS
+  )
+    throw new ApplicationError(
+      413,
+      'IMAGE_DIMENSIONS_EXCEEDED',
+      'Image dimensions too large',
+      'Use an image up to 8,192 pixels per side and 16,777,216 pixels in total.',
+    );
+  return true;
+}
+
 function validPng(body: Buffer): boolean {
   if (
     body.length < 45 ||
     !body.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
     body.readUInt32BE(8) !== 13 ||
     body.toString('ascii', 12, 16) !== 'IHDR' ||
-    body.readUInt32BE(16) === 0 ||
-    body.readUInt32BE(20) === 0
+    !validImageDimensions(body.readUInt32BE(16), body.readUInt32BE(20))
   )
     return false;
   let offset = 8;
@@ -130,7 +147,10 @@ function validJpeg(body: Buffer): boolean {
     const length = body.readUInt16BE(offset);
     if (length < 2 || offset + length > body.length - 2) return false;
     if ([192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207].includes(marker)) {
-      if (length < 8 || body.readUInt16BE(offset + 3) === 0 || body.readUInt16BE(offset + 5) === 0)
+      if (
+        length < 8 ||
+        !validImageDimensions(body.readUInt16BE(offset + 5), body.readUInt16BE(offset + 3))
+      )
         return false;
       frame = true;
     }
@@ -158,11 +178,31 @@ function validWebp(body: Buffer): boolean {
     if (type === 'VP8 ') {
       if (length < 10 || !body.subarray(offset + 11, offset + 14).equals(Buffer.from([157, 1, 42])))
         return false;
+      if (
+        !validImageDimensions(
+          body.readUInt16LE(offset + 14) & 0x3fff,
+          body.readUInt16LE(offset + 16) & 0x3fff,
+        )
+      )
+        return false;
       imageData = true;
     }
     if (type === 'VP8L') {
       if (length < 5 || body[offset + 8] !== 47) return false;
+      const dimensions = body.readUInt32LE(offset + 9);
+      if (!validImageDimensions((dimensions & 0x3fff) + 1, ((dimensions >>> 14) & 0x3fff) + 1))
+        return false;
       imageData = true;
+    }
+    if (type === 'VP8X') {
+      if (
+        length !== 10 ||
+        !validImageDimensions(
+          body.readUIntLE(offset + 12, 3) + 1,
+          body.readUIntLE(offset + 15, 3) + 1,
+        )
+      )
+        return false;
     }
     offset += 8 + length + (length % 2);
   }
@@ -216,8 +256,13 @@ export function createStrategyAttachmentServices(platform: Platform, store: Priv
       const bytes = await store.read({ workspaceId: row.workspace_id, objectId: row.storage_key });
       if (bytes.byteLength !== row.size || checksum(bytes) !== row.sha256)
         throw storageUnavailable();
+      // Apply the current delivery budget to immutable files accepted under an
+      // older policy, too. Their historical bytes remain private and intact.
+      validateStrategyAttachmentBytes(bytes, row.media_type);
       return bytes;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApplicationError && error.code === 'IMAGE_DIMENSIONS_EXCEEDED')
+        throw error;
       throw storageUnavailable();
     }
   }

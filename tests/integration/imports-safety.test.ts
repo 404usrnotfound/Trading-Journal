@@ -250,13 +250,13 @@ describe('import concurrency, private sources and append-only financial safety',
       expect(response.status).toBe(200);
       expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from(input.content, 'utf8'));
       expect(response.headers.get('cache-control')).toBe('private, no-store');
-      expect(response.headers.get('content-type')).toBe('application/octet-stream');
+      expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
       expect(response.headers.get('x-content-type-options')).toBe('nosniff');
       expect(response.headers.get('x-source-sha256')).toBe(
         createHash('sha256').update(input.content).digest('hex'),
       );
       expect(response.headers.get('content-disposition')).toBe(
-        "attachment; filename*=UTF-8''%C3%A9vidence%20%22safety%22.csv",
+        `attachment; filename="import-${batch.id}.source.txt"`,
       );
     }
     expect(
@@ -270,6 +270,30 @@ describe('import concurrency, private sources and append-only financial safety',
       expect(response.status).toBe(404);
       expect(await response.text()).not.toContain(input.content);
     }
+  });
+
+  it('preserves formula-bearing evidence while delivering an inert name independent of an attacker filename', async () => {
+    const formula = '=HYPERLINK("https://untrusted.example/statement","Open statement")';
+    const input = stageInput([{ id: 'CASH', kind: 'cash_movement', payload: cash() }]);
+    input.filename = '../../statement "open-me".csv';
+    input.content = input.content
+      .replace('Payload\r\n', 'Payload,Note\r\n')
+      .replace(/\r\n$/u, `,${quote(formula)}\r\n`);
+    const batch = await imports.stage(context(), input, randomUUID());
+    expect(batch.filename).toBe(input.filename);
+    const source = await request(`batches/${batch.id}/source`);
+    expect(source.status).toBe(200);
+    expect(source.headers.get('content-disposition')).toBe(
+      `attachment; filename="import-${batch.id}.source.txt"`,
+    );
+    expect(source.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(source.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(source.headers.get('x-source-sha256')).toBe(
+      createHash('sha256').update(input.content).digest('hex'),
+    );
+    expect(Buffer.from(await source.arrayBuffer())).toEqual(Buffer.from(input.content, 'utf8'));
+    expect((await imports.detail(context(), batch.id)).rows[0]?.raw.Note).toBe(formula);
+    expect(await balance()).toEqual([]);
   });
 
   it('requires editors, same-origin CSRF proof and valid idempotency keys before staging', async () => {
@@ -289,6 +313,41 @@ describe('import concurrency, private sources and append-only financial safety',
       );
     }
     expect((await request('batches', 'POST', input, { actor: fixture.editor })).status).toBe(200);
+    expect(await balance()).toEqual([]);
+  });
+
+  it('rejects reserved raw mapping constants before staging or persisting templates', async () => {
+    const before = await fixture.admin.pool.query(
+      'SELECT (SELECT count(*) FROM app.import_batches WHERE workspace_id=$1) AS batches,(SELECT count(*) FROM app.import_template_versions WHERE workspace_id=$1) AS templates',
+      [context().workspaceId],
+    );
+    for (const constant of [
+      JSON.parse('{"__proto__":{"phase13_import_polluted":true}}'),
+      JSON.parse('{"evidence":[{"constructor":{"prototype":{"phase13_import_polluted":true}}}]}'),
+    ]) {
+      const mapping = {
+        kind: 'cash_movement',
+        fields: [{ target: 'metadata', constant }],
+      };
+      const staged = await request('batches', 'POST', {
+        accountId,
+        namespace,
+        filename: 'statement.csv',
+        content: 'ID\nA',
+        mapping,
+      });
+      expect(staged.status).toBe(400);
+      expect(await staged.json()).toMatchObject({ code: 'INVALID_REQUEST' });
+      const saved = await request('templates', 'POST', { name: 'Hostile mapping', mapping });
+      expect(saved.status).toBe(400);
+      expect(await saved.json()).toMatchObject({ code: 'INVALID_REQUEST' });
+      expect(Object.hasOwn(Object.prototype, 'phase13_import_polluted')).toBe(false);
+    }
+    const after = await fixture.admin.pool.query(
+      'SELECT (SELECT count(*) FROM app.import_batches WHERE workspace_id=$1) AS batches,(SELECT count(*) FROM app.import_template_versions WHERE workspace_id=$1) AS templates',
+      [context().workspaceId],
+    );
+    expect(after.rows).toEqual(before.rows);
     expect(await balance()).toEqual([]);
   });
 

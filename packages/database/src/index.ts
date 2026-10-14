@@ -47,6 +47,16 @@ export function createDatabase(connectionString: string, options: { max?: number
     statement_timeout: 10_000,
     application_name: 'trading-journal',
   });
+  pool.on('error', () => {
+    // pg has already removed the failed idle client. The error can carry that
+    // client and connection details; never forward it to framework/raw logging.
+    // Active query failures still reject through pg's ordinary query path.
+    try {
+      process.stderr.write('{"event":"database.idle-connection-failed"}\n');
+    } catch {
+      // A failed diagnostic sink must not turn a handled idle error into a crash.
+    }
+  });
   return { pool, db: drizzle(pool, { schema: databaseSchema }), close: () => pool.end() };
 }
 

@@ -4,6 +4,9 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 import '@/components/ux/ux.css';
 
+// CSP nonces belong to one response. Private pages must never reuse a prerendered nonce.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: { default: 'Trading Journal', template: '%s · Trading Journal' },
   description: 'A private workspace for your trading journal.',

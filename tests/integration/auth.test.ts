@@ -171,6 +171,114 @@ describe('real database authentication and tenant boundaries', () => {
     expect(JSON.stringify(await rejected.json())).not.toContain(password);
   });
 
+  it('rejects login CSRF origin variants before creating a session', async () => {
+    const owner = await isolatedOwner();
+    const hostileHeaders: Array<Record<string, string>> = [
+      {},
+      { origin: 'null' },
+      { origin: `${origin}.attacker.example` },
+      { origin: `${origin}, https://attacker.example` },
+      { origin, 'sec-fetch-site': 'cross-site' },
+    ];
+    for (const headers of hostileHeaders) {
+      const response = await services.handleAuthRequest(
+        new Request(`${origin}/api/auth/sign-in/email`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...headers },
+          body: JSON.stringify({ email: owner.user.email, password }),
+        }),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({ code: 'UNTRUSTED_ORIGIN' });
+      expect(response.headers.getSetCookie()).toHaveLength(0);
+    }
+    const stored = await administrator.pool.query<{ count: number }>(
+      'SELECT count(*)::int AS count FROM auth.session WHERE user_id=$1',
+      [owner.user.id],
+    );
+    expect(stored.rows[0]?.count).toBe(0);
+  });
+
+  it('returns a controlled problem for deeply nested untrusted login JSON', async () => {
+    const response = await services.handleAuthRequest(
+      new Request(`${origin}/api/auth/sign-in/email`, {
+        method: 'POST',
+        headers: { origin, 'content-type': 'application/json' },
+        body: '{"a":'.repeat(2_000) + 'null' + '}'.repeat(2_000),
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INPUT_TOO_DEEP' });
+    expect(response.headers.getSetCookie()).toHaveLength(0);
+  });
+
+  it('does not adopt a supplied session during login and rejects tampered cookies', async () => {
+    const owner = await isolatedOwner();
+    const response = await services.handleAuthRequest(
+      request(
+        '/api/auth/sign-in/email',
+        'POST',
+        { email: owner.user.email, password },
+        secondCookies,
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    const issued = cookiesFrom(response);
+    expect(issued).not.toBe(secondCookies);
+    expect(
+      await services.getSafeSession(request('/api/auth/session', 'GET', undefined, issued)),
+    ).toMatchObject({ user: owner.user });
+    expect(
+      await services.getSafeSession(request('/api/auth/session', 'GET', undefined, secondCookies)),
+    ).toMatchObject({ user: second.user });
+    const sessionCookie = issued
+      .split('; ')
+      .find((part) => part.startsWith('journal.session_token='))!;
+    const delimiter = sessionCookie.indexOf('=');
+    const value = sessionCookie.slice(delimiter + 1);
+    const changedValue = `${value[0] === 'A' ? 'B' : 'A'}${value.slice(1)}`;
+    for (const cookie of [
+      `journal.session_token=${changedValue}`,
+      'journal.session_token=attacker-selected-unsigned-token',
+    ]) {
+      expect(
+        await services.getSafeSession(request('/api/auth/session', 'GET', undefined, cookie)),
+      ).toBeNull();
+      await expect(
+        services.authorizeWorkspace(
+          request('/api/v1/workspaces', 'GET', undefined, cookie),
+          owner.workspace.id,
+          'owner',
+        ),
+      ).rejects.toMatchObject({ status: 401, code: 'UNAUTHENTICATED' });
+    }
+  });
+
+  it('keeps raw authentication routes closed across unsafe method and path variants', async () => {
+    for (const [path, method] of [
+      ['/api/auth/sign-in/email', 'GET'],
+      ['/api/auth/sign-out', 'GET'],
+      ['/api/auth/session', 'POST'],
+      ['/api/auth/get-session', 'GET'],
+      ['/api/auth/token', 'POST'],
+      ['/api/auth/reset-password', 'POST'],
+      ['/api/auth/update-user', 'POST'],
+      ['/api/auth/sign-up/email', 'POST'],
+      ['/api/auth/sign-in/email/', 'POST'],
+      ['/api/auth/%73ign-in/email', 'POST'],
+    ] as const) {
+      const response = await services.handleAuthRequest(
+        request(path, method, method === 'GET' ? undefined : {}, firstCookies),
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.getSetCookie()).toHaveLength(0);
+      const serialized = JSON.stringify(await response.json());
+      expect(serialized).not.toContain(firstCookies);
+      expect(serialized).not.toContain(password);
+    }
+  });
+
   it("discovers only current memberships and hides another owner's workspace", async () => {
     const firstRequest = request('/api/v1/workspaces', 'GET', undefined, firstCookies);
     expect(await services.getWorkspaces(firstRequest)).toEqual([first.workspace]);

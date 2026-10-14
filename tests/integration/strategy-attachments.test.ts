@@ -19,6 +19,7 @@ import {
   PrivateStorageError,
   type PrivateFileStore,
 } from '@journal/server/storage';
+import { grayscalePng } from '../helpers/attachment-images.js';
 
 const origin = 'http://localhost:3000';
 const password = 'strategy-attachment-isolated-fixture-passphrase-42';
@@ -214,6 +215,45 @@ describe('private immutable strategy attachments with PostgreSQL, sessions and r
       expect([400, 415]).toContain(response.status);
       expect(await row(commandId)).toBeUndefined();
     }
+  });
+
+  it('rejects a highly compressed oversized image before reserving metadata or publishing private bytes', async () => {
+    const commandId = randomUUID();
+    const response = await request('POST', undefined, grayscalePng(6144, 4096), { commandId });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'IMAGE_DIMENSIONS_EXCEEDED' });
+    expect(await row(commandId)).toBeUndefined();
+  });
+
+  it('blocks oversized images accepted under a legacy policy while retaining their immutable private history', async () => {
+    const bytes = grayscalePng(6144, 4096);
+    const id = randomUUID();
+    const commandId = randomUUID();
+    const workspaceId = owner.person.workspace.id;
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const payload = createHash('sha256')
+      .update(
+        JSON.stringify({ name: 'legacy.png', mediaType: 'image/png', size: bytes.length, sha256 }),
+      )
+      .digest('hex');
+    // Operator fixture models a file accepted before the pixel limit existed;
+    // normal upload validation, immutable triggers and runtime grants stay intact.
+    await admin.pool.query(
+      `INSERT INTO app.strategy_attachments
+        (workspace_id,id,actor_id,command_id,payload_sha256,name,media_type,size,sha256,storage_key,state)
+        VALUES($1::uuid,$2::uuid,$3,$4::uuid,$5,'legacy.png','image/png',$6,$7,$2::uuid::text,'pending')`,
+      [workspaceId, id, owner.person.user.id, commandId, payload, bytes.length, sha256],
+    );
+    await store.write({ workspaceId, objectId: id }, bytes);
+    await admin.pool.query(
+      "UPDATE app.strategy_attachments SET state='ready',ready_at=now() WHERE workspace_id=$1 AND id=$2",
+      [workspaceId, id],
+    );
+    const response = await request('GET', id, undefined, { actor: viewer });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'IMAGE_DIMENSIONS_EXCEEDED' });
+    expect((await row(commandId))?.state).toBe('ready');
+    expect(Buffer.from(await store.read({ workspaceId, objectId: id }))).toEqual(bytes);
   });
 
   it('enforces sessions, CSRF, roles and workspace ownership for both bytes and metadata', async () => {

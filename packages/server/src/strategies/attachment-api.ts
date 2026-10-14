@@ -38,14 +38,19 @@ export async function readStrategyAttachmentBody(request: Request): Promise<Uint
       'File required',
       'Send the binary attachment body.',
     );
-  const chunks: Uint8Array[] = [];
+  // Retain fixed-size blocks rather than one object per untrusted body chunk.
+  // Even millions of tiny/empty chunks cannot grow upload metadata without
+  // contributing bytes. Partial final blocks are excluded from the result.
+  const blockBytes = 64 * 1024;
+  const chunks: Buffer[] = [];
+  let block: Buffer | undefined;
+  let blockOffset = 0;
   let size = 0;
   try {
     for (;;) {
       const next = await reader.read();
       if (next.done) break;
-      size += next.value.byteLength;
-      if (size > STRATEGY_ATTACHMENT_MAXIMUM_BYTES) {
+      if (size + next.value.byteLength > STRATEGY_ATTACHMENT_MAXIMUM_BYTES) {
         await reader.cancel();
         throw new ApplicationError(
           413,
@@ -54,7 +59,21 @@ export async function readStrategyAttachmentBody(request: Request): Promise<Uint
           'The attachment exceeds 10 MiB.',
         );
       }
-      chunks.push(next.value);
+      let offset = 0;
+      while (offset < next.value.byteLength) {
+        if (!block || blockOffset === block.length) {
+          block = Buffer.allocUnsafe(
+            Math.min(blockBytes, STRATEGY_ATTACHMENT_MAXIMUM_BYTES - size),
+          );
+          chunks.push(block);
+          blockOffset = 0;
+        }
+        const count = Math.min(block.length - blockOffset, next.value.byteLength - offset);
+        block.set(next.value.subarray(offset, offset + count), blockOffset);
+        offset += count;
+        blockOffset += count;
+        size += count;
+      }
     }
   } finally {
     reader.releaseLock();

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as c from '@journal/contracts';
 import { Button, Panel } from '@journal/ui';
 import { ConfirmDialog } from '@/components/ux/confirm-dialog';
+import { readImportFile } from './import-file';
 
 type Workspace = c.WorkspaceResponse;
 type Field = c.ImportMapping['fields'][number];
@@ -465,11 +466,7 @@ export function ImportWorkspace({
                   if (!value) return;
                   setFile(null);
                   void run(async () => {
-                    if (value.size > c.IMPORT_LIMITS.fileBytes)
-                      throw new Error('Choose a CSV up to 2 MiB.');
-                    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
-                      await value.arrayBuffer(),
-                    );
+                    const text = await readImportFile(value);
                     setFile({ name: value.name, text });
                   });
                 }}
@@ -1066,6 +1063,11 @@ export function ImportWorkspace({
             Source SHA-256: <code>{current.fileHash}</code>
           </p>
           <a href={`${prefix}/batches/${current.id}/source`}>Download original source</a>
+          <p className="muted">
+            Raw source is untrusted text and downloads as .source.txt with its original bytes.
+            Spreadsheet formulas may execute if you manually open or import it in a spreadsheet.
+            Inspect it in a text editor.
+          </p>
           {detail.isPending && <p className="muted">Loading source rows and dependency groups…</p>}
           {current.state === 'reversed' && (
             <p className="import-guidance">

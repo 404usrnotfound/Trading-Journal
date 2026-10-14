@@ -1,7 +1,17 @@
-import { IMPORT_LIMITS, type ImportMapping } from '@journal/contracts';
+import { IMPORT_LIMITS, importJsonInputIssue, type ImportMapping } from '@journal/contracts';
 import { decimal, decimalValue } from '@journal/domain';
 
 export type CsvRow = { rowNumber: number; cells: Record<string, string> };
+/** Inspect before recursive validation or record cloning can discard a reserved source key. */
+export function assertImportJsonNesting(value: unknown): void {
+  const issue = importJsonInputIssue(value);
+  if (issue) throw new Error(issue);
+}
+export function parseImportJson(text: string): unknown {
+  const value: unknown = JSON.parse(text);
+  assertImportJsonNesting(value);
+  return value;
+}
 export function parseCsv(
   content: string,
   delimiter: string,

@@ -1,6 +1,6 @@
 # ADR-0012: Guided financial workflows and explicit review boundaries
 
-- **Status:** Proposed in the authorized Phase 12 implementation; pending user review
+- **Status:** Accepted following user approval and Phase 12 merge
 - **Date:** 2026-10-14
 - **Requirements:** Specification §4, §6–§12 and §14; Phase 12's ten recording, import, strategy, review and account workflows.
 

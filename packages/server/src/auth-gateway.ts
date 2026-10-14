@@ -21,6 +21,21 @@ import {
   readBoundedJson,
 } from './security.js';
 
+// Independent of libuv's externally configured worker-pool size. Keep native
+// credential work bounded without queuing requests or delaying session reads.
+const maximumCredentialHandlers = 4;
+let activeCredentialHandlers = 0;
+
+async function admitCredentialHandler(work: () => Promise<Response>): Promise<Response | null> {
+  if (activeCredentialHandlers >= maximumCredentialHandlers) return null;
+  activeCredentialHandlers += 1;
+  try {
+    return await work();
+  } finally {
+    activeCredentialHandlers -= 1;
+  }
+}
+
 /** Preserve individual cookie headers; public JSON never inherits library credentials. */
 export function authResponseHeaders(source?: Headers): Headers {
   const headers = new Headers({
@@ -244,9 +259,30 @@ export function createAuthGateway(auth: Authentication, database: Database, conf
       headers.delete('content-length');
       const target = new URL(request.url);
       target.pathname = libraryPath;
-      const libraryResponse = await auth.handler(
-        new Request(target, { method: 'POST', headers, body: JSON.stringify(libraryBody) }),
-      );
+      const libraryRequest = new Request(target, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(libraryBody),
+      });
+      const invoke = () => auth.handler(libraryRequest);
+      const credentials =
+        path === '/api/auth/sign-in/email' || path === '/api/auth/change-password';
+      // Origin, session/CSRF, body validation and persisted login limits have
+      // completed before reserving a slot. Slow bodies never hold credential work.
+      const libraryResponse = credentials ? await admitCredentialHandler(invoke) : await invoke();
+      if (!libraryResponse) {
+        const busy = toProblemResponse(
+          new ApplicationError(
+            429,
+            'RATE_LIMITED',
+            'Too many requests',
+            'Wait before trying again.',
+          ),
+          requestId,
+        );
+        busy.headers.set('retry-after', '1');
+        return busy;
+      }
       const shapedHeaders = authResponseHeaders(libraryResponse.headers);
       shapedHeaders.set('x-request-id', requestId);
       if (!libraryResponse.ok) {

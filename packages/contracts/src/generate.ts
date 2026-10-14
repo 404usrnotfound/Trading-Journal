@@ -930,8 +930,9 @@ registry.registerPath({
   request: { params: importParams.extend({ batchId: financial.financialIdSchema }) },
   responses: {
     200: {
-      description: 'Authorized original UTF-8 source bytes; private attachment delivery',
-      content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
+      description:
+        'Authorized original UTF-8 source bytes, including any untrusted formulas; private plain-text attachment with an inert .source.txt filename. Original filename and source hash remain in batch metadata. Not a sanitized spreadsheet export.',
+      content: { 'text/plain': { schema: { type: 'string', format: 'binary' } } },
     },
     401: problem,
     404: problem,

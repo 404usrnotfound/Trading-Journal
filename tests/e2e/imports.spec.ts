@@ -202,7 +202,8 @@ test('reviewed CSV imports preserve exact cash, private sources, duplicates and 
   const original = await page.request.get(`${prefix}/imports/batches/${batch.id}/source`);
   expect(original.status()).toBe(200);
   expect(original.headers()).toMatchObject({
-    'content-type': 'application/octet-stream',
+    'content-type': 'text/plain; charset=utf-8',
+    'content-disposition': `attachment; filename="import-${batch.id}.source.txt"`,
     'cache-control': 'private, no-store',
     'x-content-type-options': 'nosniff',
     'x-source-sha256': batch.fileHash,

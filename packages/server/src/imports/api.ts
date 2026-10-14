@@ -63,8 +63,10 @@ export function createImportApi(
         const source = await services.source(context, id);
         return new Response(source.content, {
           headers: {
-            'content-type': 'application/octet-stream',
-            'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(source.filename).replace(/['()*]/gu, (char) => `%${char.charCodeAt(0).toString(16)}`)}`,
+            // Preserve evidence bytes, but do not associate raw, attacker-supplied formulas
+            // or names with a spreadsheet/executable file handler on download.
+            'content-type': 'text/plain; charset=utf-8',
+            'content-disposition': `attachment; filename="import-${id}.source.txt"`,
             'cache-control': 'private, no-store',
             'x-content-type-options': 'nosniff',
             'x-source-sha256': source.fileHash,

@@ -34,7 +34,8 @@
     "test:e2e": "playwright test",
     "api:generate": "tsx packages/contracts/src/generate.ts",
     "api:check": "tsx packages/contracts/src/generate.ts --check",
-    "verify": "corepack pnpm api:check && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build"
+    "verify": "corepack pnpm api:check && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "security:audit": "corepack pnpm audit --audit-level=low"
   },
   "dependencies": {
     "@journal/contracts": "workspace:*",
@@ -56,7 +57,6 @@
     "@types/pg": "8.23.1",
     "@playwright/test": "1.63.0",
     "@axe-core/playwright": "4.13.0",
-    "concurrently": "10.0.5",
     "dotenv": "18.0.5",
     "eslint": "10.12.0",
     "fast-check": "4.10.2",
