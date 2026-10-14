@@ -9,7 +9,9 @@ import {
   type StrategyResponse,
 } from '@journal/contracts';
 import { Button, Panel } from '@journal/ui';
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { ConfirmDialog } from '@/components/ux/confirm-dialog';
+import './strategies.css';
 import { StrategyAttachments } from './strategy-attachments';
 
 export const strategyNarrativeFields = [
@@ -38,6 +40,31 @@ const listFields = [
   ['indicators', 'Indicators'],
   ['tags', 'Tags'],
 ] as const;
+const basicNarratives = new Set<string>([
+  'description',
+  'setupConditions',
+  'entryRules',
+  'stopLossMethodology',
+  'riskRules',
+]);
+
+function OptionalSection({
+  title,
+  initiallyOpen,
+  children,
+}: {
+  title: string;
+  initiallyOpen: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details className="strategy-optional" open={initiallyOpen}>
+      <summary>{title}</summary>
+      <div>{children}</div>
+    </details>
+  );
+}
+
 type ListField = (typeof listFields)[number][0];
 type StringField = (typeof strategyNarrativeFields)[number][0] | 'name' | 'style';
 
@@ -76,6 +103,7 @@ export function StrategyEditor({
   onCancel,
   conflict,
   onReload,
+  onDirtyChange,
 }: {
   workspaceId: string;
   strategy: StrategyResponse | null;
@@ -83,6 +111,7 @@ export function StrategyEditor({
   onCancel: () => void;
   conflict: boolean;
   onReload: () => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [definition, setDefinition] = useState<StrategyDefinition>(
     () =>
@@ -113,6 +142,20 @@ export function StrategyEditor({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [discarding, setDiscarding] = useState(false);
+  const snapshot = JSON.stringify({
+    definition,
+    lists,
+    instrumentIds,
+    parameterOptions,
+    effectiveAt,
+    changeReason,
+  });
+  const [initialSnapshot] = useState(snapshot);
+  const dirty = snapshot !== initialSnapshot;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
   const command = useRef<{ serialized: string; id: string } | null>(null);
   const errorSummary = useRef<HTMLDivElement>(null);
 
@@ -129,6 +172,39 @@ export function StrategyEditor({
   }
   function fieldInvalid(key: string) {
     return errors.some((error) => error.path === key || error.path.startsWith(`${key}.`));
+  }
+
+  function fieldErrors(key: string) {
+    const messages = errors.filter(
+      (error) => error.path === key || error.path.startsWith(`${key}.`),
+    );
+    return messages.length > 0 ? (
+      <p id={`strategy-${key}-error`} className="strategy-field-error">
+        {messages.map((error) => error.message).join(' ')}
+      </p>
+    ) : null;
+  }
+  function focusError(path: string) {
+    const key = path.split('.')[0] ?? path;
+    const input =
+      document.getElementById(
+        key === 'eligibleInstruments'
+          ? 'strategy-instruments'
+          : key === 'effectiveAt'
+            ? 'strategy-effective'
+            : key === 'changeReason'
+              ? 'strategy-reason'
+              : `strategy-${key}`,
+      ) ??
+      document.querySelector<HTMLElement>(
+        `[data-strategy-field="${key}"] input, [data-strategy-field="${key}"] textarea, [data-strategy-field="${key}"] button`,
+      );
+    let ancestor = input?.parentElement;
+    while (ancestor) {
+      if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+      ancestor = ancestor.parentElement;
+    }
+    input?.focus();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -190,6 +266,9 @@ export function StrategyEditor({
           ? `Saving creates version ${strategy.currentVersion.version + 1}. Previous versions and trade references stay unchanged.`
           : 'Create an independent playbook. Each save preserves a complete version of its rules.'}
       </p>
+      <p className="strategy-readonly-note">
+        Start with the basics. Optional sections can be completed now or in a later version.
+      </p>
       <form className="strategy-form" onSubmit={submit} noValidate aria-busy={saving}>
         {errors.length > 0 && (
           <div className="strategy-errors" role="alert" tabIndex={-1} ref={errorSummary}>
@@ -197,7 +276,13 @@ export function StrategyEditor({
             <ul>
               {errors.map((error, index) => (
                 <li key={`${error.path}-${index}`}>
-                  {error.path}: {error.message}
+                  <button
+                    type="button"
+                    className="strategy-error-link"
+                    onClick={() => focusError(error.path)}
+                  >
+                    {error.path}: {error.message}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -214,7 +299,7 @@ export function StrategyEditor({
               Your changes have been kept here. This strategy changed elsewhere; saving is blocked
               until you reload or cancel.
             </p>
-            <Button variant="secondary" onClick={() => void onReload()}>
+            <Button variant="secondary" onClick={() => setDiscarding(true)}>
               Discard edits and reload latest
             </Button>
           </div>
@@ -231,8 +316,11 @@ export function StrategyEditor({
                 maxLength={160}
                 required
                 aria-invalid={fieldInvalid('name')}
+                aria-describedby={fieldInvalid('name') ? 'strategy-name-error' : undefined}
                 autoComplete="off"
+                autoFocus
               />
+              {fieldErrors('name')}
             </div>
             <div className="strategy-field">
               <label htmlFor="strategy-status">Status</label>
@@ -271,400 +359,502 @@ export function StrategyEditor({
                 <option value="short">Short</option>
               </select>
             </div>
-            {listFields.map(([key, label]) => (
-              <div className="strategy-field" key={key}>
-                <label htmlFor={`strategy-${key}`}>{label}</label>
-                <input
-                  id={`strategy-${key}`}
-                  value={lists[key]}
-                  onChange={(event) =>
-                    setLists((previous) => ({ ...previous, [key]: event.target.value }))
-                  }
-                  aria-describedby={`strategy-${key}-help`}
-                  aria-invalid={fieldInvalid(key)}
-                />
-                <small id={`strategy-${key}-help`}>Separate entries with commas.</small>
-              </div>
-            ))}
-            <div className="strategy-field">
-              <label htmlFor="strategy-style">Trading style</label>
-              <input
-                id="strategy-style"
-                value={definition.style}
-                onChange={(event) => updateString('style', event.target.value)}
-                maxLength={160}
-              />
-            </div>
-            <div className="strategy-field">
-              <label htmlFor="strategy-instruments">Eligible instrument IDs</label>
-              <textarea
-                id="strategy-instruments"
-                value={instrumentIds}
-                onChange={(event) => setInstrumentIds(event.target.value)}
-                aria-invalid={fieldInvalid('eligibleInstruments')}
-              />
-              <small>
-                Optional workspace instrument UUIDs, separated by commas. Leave blank for no
-                explicit instrument restriction.
-              </small>
-            </div>
-          </div>
-        </fieldset>
-        <fieldset className="strategy-fieldset">
-          <legend>Rules &amp; reference notes</legend>
-          <div className="strategy-fields">
-            {strategyNarrativeFields.map(([key, label]) => (
-              <div className="strategy-field wide" key={key}>
-                <label htmlFor={`strategy-${key}`}>{label}</label>
-                <textarea
-                  id={`strategy-${key}`}
-                  value={definition[key]}
-                  onChange={(event) => updateString(key, event.target.value)}
-                  maxLength={20_000}
-                  aria-invalid={fieldInvalid(key)}
-                />
-              </div>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="strategy-fieldset">
-          <legend>Required checklist</legend>
-          <div className="strategy-repeater">
-            {definition.checklist.map((item, index) => (
-              <div className="strategy-repeater-row" key={item.id}>
-                <div className="strategy-repeater-heading">
-                  <strong>Item {index + 1}</strong>
-                  <Button
-                    variant="quiet"
-                    onClick={() =>
-                      setDefinition((previous) => ({
-                        ...previous,
-                        checklist: previous.checklist.filter((entry) => entry.id !== item.id),
-                        setups: previous.setups.map((setup) => ({
-                          ...setup,
-                          checklistItemIds: setup.checklistItemIds.filter((id) => id !== item.id),
-                        })),
-                      }))
-                    }
-                  >
-                    Remove checklist item {index + 1}
-                  </Button>
-                </div>
-                <div className="strategy-field">
-                  <label htmlFor={`checklist-${item.id}`}>Checklist item {index + 1}</label>
+            {listFields
+              .filter(([key]) => ['assetClasses', 'markets', 'timeframes'].includes(key))
+              .map(([key, label]) => (
+                <div className="strategy-field" key={key}>
+                  <label htmlFor={`strategy-${key}`}>{label}</label>
                   <input
-                    id={`checklist-${item.id}`}
-                    value={item.label}
+                    id={`strategy-${key}`}
+                    value={lists[key]}
                     onChange={(event) =>
-                      setDefinition((previous) => ({
-                        ...previous,
-                        checklist: previous.checklist.map((entry) =>
-                          entry.id === item.id ? { ...entry, label: event.target.value } : entry,
-                        ),
-                      }))
+                      setLists((previous) => ({ ...previous, [key]: event.target.value }))
                     }
-                    maxLength={160}
+                    aria-describedby={`strategy-${key}-help${fieldInvalid(key) ? ` strategy-${key}-error` : ''}`}
+                    aria-invalid={fieldInvalid(key)}
                   />
+                  <small id={`strategy-${key}-help`}>Separate entries with commas.</small>
+                  {fieldErrors(key)}
                 </div>
-                <label className="strategy-check">
-                  <input
-                    type="checkbox"
-                    checked={item.required}
-                    onChange={(event) =>
-                      setDefinition((previous) => ({
-                        ...previous,
-                        checklist: previous.checklist.map((entry) =>
-                          entry.id === item.id
-                            ? { ...entry, required: event.target.checked }
-                            : entry,
-                        ),
-                      }))
-                    }
-                  />
-                  Required item {index + 1}
-                </label>
-              </div>
-            ))}
-            <Button
-              variant="secondary"
-              disabled={definition.checklist.length >= 100}
-              onClick={() =>
-                setDefinition((previous) => ({
-                  ...previous,
-                  checklist: [
-                    ...previous.checklist,
-                    { id: crypto.randomUUID(), label: '', required: true },
-                  ],
-                }))
-              }
-            >
-              Add checklist item
-            </Button>
+              ))}
           </div>
         </fieldset>
-        <fieldset className="strategy-fieldset">
-          <legend>Named setups</legend>
-          <p className="strategy-readonly-note">
-            A setup is a specific pattern within this strategy, with its own conditions and
-            checklist selection.
-          </p>
-          <div className="strategy-repeater">
-            {definition.setups.map((setup, index) => (
-              <div className="strategy-repeater-row" key={setup.id}>
-                <div className="strategy-repeater-heading">
-                  <strong>Setup {index + 1}</strong>
-                  <Button
-                    variant="quiet"
-                    onClick={() =>
-                      setDefinition((previous) => ({
-                        ...previous,
-                        setups: previous.setups.filter((entry) => entry.id !== setup.id),
-                      }))
-                    }
-                  >
-                    Remove setup {index + 1}
-                  </Button>
-                </div>
-                <div className="strategy-fields">
-                  {(['name', 'description', 'conditions'] as const).map((key) => (
-                    <div className="strategy-field wide" key={key}>
-                      <label htmlFor={`setup-${setup.id}-${key}`}>
-                        Setup {index + 1} {key}
-                      </label>
-                      <textarea
-                        id={`setup-${setup.id}-${key}`}
-                        value={setup[key]}
-                        maxLength={key === 'name' ? 160 : 20_000}
-                        onChange={(event) =>
-                          setDefinition((previous) => ({
-                            ...previous,
-                            setups: previous.setups.map((entry) =>
-                              entry.id === setup.id
-                                ? { ...entry, [key]: event.target.value }
-                                : entry,
-                            ),
-                          }))
-                        }
-                      />
-                    </div>
-                  ))}
-                  {definition.checklist.map((item) => (
-                    <label className="strategy-check" key={item.id}>
-                      <input
-                        type="checkbox"
-                        checked={setup.checklistItemIds.includes(item.id)}
-                        onChange={(event) =>
-                          setDefinition((previous) => ({
-                            ...previous,
-                            setups: previous.setups.map((entry) =>
-                              entry.id === setup.id
-                                ? {
-                                    ...entry,
-                                    checklistItemIds: event.target.checked
-                                      ? [...entry.checklistItemIds, item.id]
-                                      : entry.checklistItemIds.filter((id) => id !== item.id),
-                                  }
-                                : entry,
-                            ),
-                          }))
-                        }
-                      />
-                      Setup {index + 1}: {item.label || 'Unnamed checklist item'}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <Button
-              variant="secondary"
-              disabled={definition.setups.length >= 100}
-              onClick={() =>
-                setDefinition((previous) => ({
-                  ...previous,
-                  setups: [
-                    ...previous.setups,
-                    {
-                      id: crypto.randomUUID(),
-                      name: '',
-                      description: '',
-                      conditions: '',
-                      checklistItemIds: [],
-                    },
-                  ],
-                }))
-              }
-            >
-              Add named setup
-            </Button>
-          </div>
-        </fieldset>
-        <fieldset className="strategy-fieldset">
-          <legend>Typed parameters</legend>
-          <p className="strategy-readonly-note">
-            These values describe your rules. They do not automatically evaluate market conditions
-            or enforce risk limits.
-          </p>
-          <div className="strategy-repeater">
-            {definition.parameters.map((parameter, index) => (
-              <div className="strategy-repeater-row" key={parameter.id}>
-                <div className="strategy-repeater-heading">
-                  <strong>Parameter {index + 1}</strong>
-                  <Button
-                    variant="quiet"
-                    onClick={() =>
-                      setDefinition((previous) => ({
-                        ...previous,
-                        parameters: previous.parameters.filter(
-                          (entry) => entry.id !== parameter.id,
-                        ),
-                      }))
-                    }
-                  >
-                    Remove parameter {index + 1}
-                  </Button>
-                </div>
-                <div className="strategy-fields">
-                  <div className="strategy-field">
-                    <label htmlFor={`parameter-${parameter.id}-name`}>
-                      Parameter {index + 1} name
-                    </label>
+        <OptionalSection
+          title="Additional eligibility & context"
+          initiallyOpen={Boolean(
+            strategy &&
+            (strategy.currentVersion.definition.style ||
+              strategy.currentVersion.definition.sessions.length ||
+              strategy.currentVersion.definition.indicators.length ||
+              strategy.currentVersion.definition.tags.length ||
+              strategy.currentVersion.definition.eligibleInstruments.length),
+          )}
+        >
+          <fieldset className="strategy-fieldset">
+            <legend>Additional eligibility &amp; context</legend>
+            <div className="strategy-fields">
+              {listFields
+                .filter(([key]) => ['sessions', 'indicators', 'tags'].includes(key))
+                .map(([key, label]) => (
+                  <div className="strategy-field" key={key}>
+                    <label htmlFor={`strategy-${key}`}>{label}</label>
                     <input
-                      id={`parameter-${parameter.id}-name`}
-                      value={parameter.name}
-                      maxLength={160}
+                      id={`strategy-${key}`}
+                      value={lists[key]}
                       onChange={(event) =>
-                        updateParameter(index, { ...parameter, name: event.target.value })
+                        setLists((previous) => ({ ...previous, [key]: event.target.value }))
                       }
+                      aria-describedby={`strategy-${key}-help${fieldInvalid(key) ? ` strategy-${key}-error` : ''}`}
+                      aria-invalid={fieldInvalid(key)}
                     />
+                    <small id={`strategy-${key}-help`}>Separate entries with commas.</small>
+                    {fieldErrors(key)}
                   </div>
-                  <div className="strategy-field">
-                    <label htmlFor={`parameter-${parameter.id}-type`}>
-                      Parameter {index + 1} type
-                    </label>
-                    <select
-                      id={`parameter-${parameter.id}-type`}
-                      value={parameter.type}
-                      onChange={(event) =>
-                        updateParameter(index, {
-                          ...newParameter(
-                            event.target.value as StrategyParameter['type'],
-                            parameter.id,
-                          ),
-                          name: parameter.name,
-                          description: parameter.description,
-                        })
+                ))}
+              <div className="strategy-field">
+                <label htmlFor="strategy-style">Trading style</label>
+                <input
+                  id="strategy-style"
+                  value={definition.style}
+                  onChange={(event) => updateString('style', event.target.value)}
+                  maxLength={160}
+                />
+              </div>
+              <div className="strategy-field">
+                <label htmlFor="strategy-instruments">Eligible instrument IDs</label>
+                <textarea
+                  id="strategy-instruments"
+                  value={instrumentIds}
+                  onChange={(event) => setInstrumentIds(event.target.value)}
+                  aria-invalid={fieldInvalid('eligibleInstruments')}
+                  aria-describedby={
+                    fieldInvalid('eligibleInstruments')
+                      ? 'strategy-eligibleInstruments-error'
+                      : undefined
+                  }
+                />
+                <small>
+                  Optional workspace instrument UUIDs, separated by commas. Leave blank for no
+                  explicit instrument restriction.
+                </small>
+                {fieldErrors('eligibleInstruments')}
+              </div>
+            </div>
+          </fieldset>
+        </OptionalSection>
+        <fieldset className="strategy-fieldset">
+          <legend>Core trading rules</legend>
+          <div className="strategy-fields">
+            {strategyNarrativeFields
+              .filter(([key]) => basicNarratives.has(key))
+              .map(([key, label]) => (
+                <div className="strategy-field wide" key={key}>
+                  <label htmlFor={`strategy-${key}`}>{label}</label>
+                  <textarea
+                    id={`strategy-${key}`}
+                    value={definition[key]}
+                    onChange={(event) => updateString(key, event.target.value)}
+                    maxLength={20_000}
+                    aria-invalid={fieldInvalid(key)}
+                    aria-describedby={fieldInvalid(key) ? `strategy-${key}-error` : undefined}
+                  />
+                  {fieldErrors(key)}
+                </div>
+              ))}
+          </div>
+        </fieldset>
+        <OptionalSection
+          title="Detailed rules & reference notes"
+          initiallyOpen={Boolean(
+            strategy &&
+            strategyNarrativeFields.some(
+              ([key]) => !basicNarratives.has(key) && strategy.currentVersion.definition[key],
+            ),
+          )}
+        >
+          <fieldset className="strategy-fieldset">
+            <legend>Detailed rules &amp; reference notes</legend>
+            <div className="strategy-fields">
+              {strategyNarrativeFields
+                .filter(([key]) => !basicNarratives.has(key))
+                .map(([key, label]) => (
+                  <div className="strategy-field wide" key={key}>
+                    <label htmlFor={`strategy-${key}`}>{label}</label>
+                    <textarea
+                      id={`strategy-${key}`}
+                      value={definition[key]}
+                      onChange={(event) => updateString(key, event.target.value)}
+                      maxLength={20_000}
+                      aria-invalid={fieldInvalid(key)}
+                      aria-describedby={fieldInvalid(key) ? `strategy-${key}-error` : undefined}
+                    />
+                    {fieldErrors(key)}
+                  </div>
+                ))}
+            </div>
+          </fieldset>
+        </OptionalSection>
+        <OptionalSection
+          title="Required checklist"
+          initiallyOpen={Boolean(strategy?.currentVersion.definition.checklist.length)}
+        >
+          <fieldset className="strategy-fieldset" data-strategy-field="checklist">
+            <legend>Required checklist</legend>
+            {fieldErrors('checklist')}
+            <div className="strategy-repeater">
+              {definition.checklist.map((item, index) => (
+                <div className="strategy-repeater-row" key={item.id}>
+                  <div className="strategy-repeater-heading">
+                    <strong>Item {index + 1}</strong>
+                    <Button
+                      variant="quiet"
+                      onClick={() =>
+                        setDefinition((previous) => ({
+                          ...previous,
+                          checklist: previous.checklist.filter((entry) => entry.id !== item.id),
+                          setups: previous.setups.map((setup) => ({
+                            ...setup,
+                            checklistItemIds: setup.checklistItemIds.filter((id) => id !== item.id),
+                          })),
+                        }))
                       }
                     >
-                      <option value="decimal">Decimal number</option>
-                      <option value="boolean">Boolean</option>
-                      <option value="text">Text</option>
-                      <option value="enum">Choice</option>
-                    </select>
+                      Remove checklist item {index + 1}
+                    </Button>
                   </div>
-                  <div className="strategy-field wide">
-                    <label htmlFor={`parameter-${parameter.id}-description`}>
-                      Parameter {index + 1} description
-                    </label>
+                  <div className="strategy-field">
+                    <label htmlFor={`checklist-${item.id}`}>Checklist item {index + 1}</label>
                     <input
-                      id={`parameter-${parameter.id}-description`}
-                      value={parameter.description}
+                      id={`checklist-${item.id}`}
+                      value={item.label}
                       onChange={(event) =>
-                        updateParameter(index, { ...parameter, description: event.target.value })
+                        setDefinition((previous) => ({
+                          ...previous,
+                          checklist: previous.checklist.map((entry) =>
+                            entry.id === item.id ? { ...entry, label: event.target.value } : entry,
+                          ),
+                        }))
                       }
+                      maxLength={160}
                     />
                   </div>
-                  {parameter.type === 'boolean' ? (
-                    <label className="strategy-check">
-                      <input
-                        type="checkbox"
-                        checked={parameter.value}
-                        onChange={(event) =>
-                          updateParameter(index, { ...parameter, value: event.target.checked })
-                        }
-                      />
-                      Parameter {index + 1} enabled
-                    </label>
-                  ) : (
-                    <div className="strategy-field">
-                      <label htmlFor={`parameter-${parameter.id}-value`}>
-                        Parameter {index + 1} value
-                      </label>
-                      <input
-                        id={`parameter-${parameter.id}-value`}
-                        value={parameter.value}
-                        inputMode={parameter.type === 'decimal' ? 'decimal' : 'text'}
-                        onChange={(event) =>
-                          updateParameter(index, { ...parameter, value: event.target.value })
-                        }
-                      />
-                    </div>
-                  )}
-                  {parameter.type === 'decimal' &&
-                    (['unit', 'minimum', 'maximum'] as const).map((key) => (
-                      <div className="strategy-field" key={key}>
-                        <label htmlFor={`parameter-${parameter.id}-${key}`}>
-                          Parameter {index + 1} {key}
+                  <label className="strategy-check">
+                    <input
+                      type="checkbox"
+                      checked={item.required}
+                      onChange={(event) =>
+                        setDefinition((previous) => ({
+                          ...previous,
+                          checklist: previous.checklist.map((entry) =>
+                            entry.id === item.id
+                              ? { ...entry, required: event.target.checked }
+                              : entry,
+                          ),
+                        }))
+                      }
+                    />
+                    Required item {index + 1}
+                  </label>
+                </div>
+              ))}
+              <Button
+                variant="secondary"
+                disabled={definition.checklist.length >= 100}
+                onClick={() =>
+                  setDefinition((previous) => ({
+                    ...previous,
+                    checklist: [
+                      ...previous.checklist,
+                      { id: crypto.randomUUID(), label: '', required: true },
+                    ],
+                  }))
+                }
+              >
+                Add checklist item
+              </Button>
+            </div>
+          </fieldset>
+        </OptionalSection>
+        <OptionalSection
+          title="Named setups"
+          initiallyOpen={Boolean(strategy?.currentVersion.definition.setups.length)}
+        >
+          <fieldset className="strategy-fieldset" data-strategy-field="setups">
+            <legend>Named setups</legend>
+            <p className="strategy-readonly-note">
+              A setup is a specific pattern within this strategy, with its own conditions and
+              checklist selection.
+            </p>
+            {fieldErrors('setups')}
+            <div className="strategy-repeater">
+              {definition.setups.map((setup, index) => (
+                <div className="strategy-repeater-row" key={setup.id}>
+                  <div className="strategy-repeater-heading">
+                    <strong>Setup {index + 1}</strong>
+                    <Button
+                      variant="quiet"
+                      onClick={() =>
+                        setDefinition((previous) => ({
+                          ...previous,
+                          setups: previous.setups.filter((entry) => entry.id !== setup.id),
+                        }))
+                      }
+                    >
+                      Remove setup {index + 1}
+                    </Button>
+                  </div>
+                  <div className="strategy-fields">
+                    {(['name', 'description', 'conditions'] as const).map((key) => (
+                      <div className="strategy-field wide" key={key}>
+                        <label htmlFor={`setup-${setup.id}-${key}`}>
+                          Setup {index + 1} {key}
                         </label>
-                        <input
-                          id={`parameter-${parameter.id}-${key}`}
-                          value={parameter[key] ?? ''}
-                          inputMode={key === 'unit' ? 'text' : 'decimal'}
+                        <textarea
+                          id={`setup-${setup.id}-${key}`}
+                          value={setup[key]}
+                          maxLength={key === 'name' ? 160 : 20_000}
                           onChange={(event) =>
-                            updateParameter(index, {
-                              ...parameter,
-                              [key]: event.target.value.trim() === '' ? null : event.target.value,
-                            })
+                            setDefinition((previous) => ({
+                              ...previous,
+                              setups: previous.setups.map((entry) =>
+                                entry.id === setup.id
+                                  ? { ...entry, [key]: event.target.value }
+                                  : entry,
+                              ),
+                            }))
                           }
                         />
                       </div>
                     ))}
-                  {parameter.type === 'enum' && (
+                    {definition.checklist.map((item) => (
+                      <label className="strategy-check" key={item.id}>
+                        <input
+                          type="checkbox"
+                          checked={setup.checklistItemIds.includes(item.id)}
+                          onChange={(event) =>
+                            setDefinition((previous) => ({
+                              ...previous,
+                              setups: previous.setups.map((entry) =>
+                                entry.id === setup.id
+                                  ? {
+                                      ...entry,
+                                      checklistItemIds: event.target.checked
+                                        ? [...entry.checklistItemIds, item.id]
+                                        : entry.checklistItemIds.filter((id) => id !== item.id),
+                                    }
+                                  : entry,
+                              ),
+                            }))
+                          }
+                        />
+                        Setup {index + 1}: {item.label || 'Unnamed checklist item'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <Button
+                variant="secondary"
+                disabled={definition.setups.length >= 100}
+                onClick={() =>
+                  setDefinition((previous) => ({
+                    ...previous,
+                    setups: [
+                      ...previous.setups,
+                      {
+                        id: crypto.randomUUID(),
+                        name: '',
+                        description: '',
+                        conditions: '',
+                        checklistItemIds: [],
+                      },
+                    ],
+                  }))
+                }
+              >
+                Add named setup
+              </Button>
+            </div>
+          </fieldset>
+        </OptionalSection>
+        <OptionalSection
+          title="Typed parameters"
+          initiallyOpen={Boolean(strategy?.currentVersion.definition.parameters.length)}
+        >
+          <fieldset className="strategy-fieldset" data-strategy-field="parameters">
+            <legend>Typed parameters</legend>
+            <p className="strategy-readonly-note">
+              These values describe your rules. They do not automatically evaluate market conditions
+              or enforce risk limits.
+            </p>
+            {fieldErrors('parameters')}
+            <div className="strategy-repeater">
+              {definition.parameters.map((parameter, index) => (
+                <div className="strategy-repeater-row" key={parameter.id}>
+                  <div className="strategy-repeater-heading">
+                    <strong>Parameter {index + 1}</strong>
+                    <Button
+                      variant="quiet"
+                      onClick={() =>
+                        setDefinition((previous) => ({
+                          ...previous,
+                          parameters: previous.parameters.filter(
+                            (entry) => entry.id !== parameter.id,
+                          ),
+                        }))
+                      }
+                    >
+                      Remove parameter {index + 1}
+                    </Button>
+                  </div>
+                  <div className="strategy-fields">
                     <div className="strategy-field">
-                      <label htmlFor={`parameter-${parameter.id}-options`}>
-                        Parameter {index + 1} choices
+                      <label htmlFor={`parameter-${parameter.id}-name`}>
+                        Parameter {index + 1} name
                       </label>
                       <input
-                        id={`parameter-${parameter.id}-options`}
-                        value={parameterOptions[parameter.id] ?? parameter.options.join(', ')}
+                        id={`parameter-${parameter.id}-name`}
+                        value={parameter.name}
+                        maxLength={160}
                         onChange={(event) =>
-                          setParameterOptions((previous) => ({
-                            ...previous,
-                            [parameter.id]: event.target.value,
-                          }))
+                          updateParameter(index, { ...parameter, name: event.target.value })
                         }
                       />
-                      <small>Separate declared choices with commas.</small>
                     </div>
-                  )}
+                    <div className="strategy-field">
+                      <label htmlFor={`parameter-${parameter.id}-type`}>
+                        Parameter {index + 1} type
+                      </label>
+                      <select
+                        id={`parameter-${parameter.id}-type`}
+                        value={parameter.type}
+                        onChange={(event) =>
+                          updateParameter(index, {
+                            ...newParameter(
+                              event.target.value as StrategyParameter['type'],
+                              parameter.id,
+                            ),
+                            name: parameter.name,
+                            description: parameter.description,
+                          })
+                        }
+                      >
+                        <option value="decimal">Decimal number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="text">Text</option>
+                        <option value="enum">Choice</option>
+                      </select>
+                    </div>
+                    <div className="strategy-field wide">
+                      <label htmlFor={`parameter-${parameter.id}-description`}>
+                        Parameter {index + 1} description
+                      </label>
+                      <input
+                        id={`parameter-${parameter.id}-description`}
+                        value={parameter.description}
+                        onChange={(event) =>
+                          updateParameter(index, { ...parameter, description: event.target.value })
+                        }
+                      />
+                    </div>
+                    {parameter.type === 'boolean' ? (
+                      <label className="strategy-check">
+                        <input
+                          type="checkbox"
+                          checked={parameter.value}
+                          onChange={(event) =>
+                            updateParameter(index, { ...parameter, value: event.target.checked })
+                          }
+                        />
+                        Parameter {index + 1} enabled
+                      </label>
+                    ) : (
+                      <div className="strategy-field">
+                        <label htmlFor={`parameter-${parameter.id}-value`}>
+                          Parameter {index + 1} value
+                        </label>
+                        <input
+                          id={`parameter-${parameter.id}-value`}
+                          value={parameter.value}
+                          inputMode={parameter.type === 'decimal' ? 'decimal' : 'text'}
+                          onChange={(event) =>
+                            updateParameter(index, { ...parameter, value: event.target.value })
+                          }
+                        />
+                      </div>
+                    )}
+                    {parameter.type === 'decimal' &&
+                      (['unit', 'minimum', 'maximum'] as const).map((key) => (
+                        <div className="strategy-field" key={key}>
+                          <label htmlFor={`parameter-${parameter.id}-${key}`}>
+                            Parameter {index + 1} {key}
+                          </label>
+                          <input
+                            id={`parameter-${parameter.id}-${key}`}
+                            value={parameter[key] ?? ''}
+                            inputMode={key === 'unit' ? 'text' : 'decimal'}
+                            onChange={(event) =>
+                              updateParameter(index, {
+                                ...parameter,
+                                [key]: event.target.value.trim() === '' ? null : event.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      ))}
+                    {parameter.type === 'enum' && (
+                      <div className="strategy-field">
+                        <label htmlFor={`parameter-${parameter.id}-options`}>
+                          Parameter {index + 1} choices
+                        </label>
+                        <input
+                          id={`parameter-${parameter.id}-options`}
+                          value={parameterOptions[parameter.id] ?? parameter.options.join(', ')}
+                          onChange={(event) =>
+                            setParameterOptions((previous) => ({
+                              ...previous,
+                              [parameter.id]: event.target.value,
+                            }))
+                          }
+                        />
+                        <small>Separate declared choices with commas.</small>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <Button
-              variant="secondary"
-              disabled={definition.parameters.length >= 100}
-              onClick={() =>
-                setDefinition((previous) => ({
-                  ...previous,
-                  parameters: [...previous.parameters, newParameter('decimal')],
-                }))
+              ))}
+              <Button
+                variant="secondary"
+                disabled={definition.parameters.length >= 100}
+                onClick={() =>
+                  setDefinition((previous) => ({
+                    ...previous,
+                    parameters: [...previous.parameters, newParameter('decimal')],
+                  }))
+                }
+              >
+                Add parameter
+              </Button>
+            </div>
+          </fieldset>
+        </OptionalSection>
+        <OptionalSection
+          title="Screenshots & attachments"
+          initiallyOpen={Boolean(strategy?.currentVersion.definition.attachmentIds.length)}
+        >
+          <fieldset className="strategy-fieldset" data-strategy-field="attachmentIds">
+            <legend>Screenshots &amp; attachments</legend>
+            <StrategyAttachments
+              workspaceId={workspaceId}
+              attachmentIds={definition.attachmentIds}
+              editable
+              onUploadingChange={setUploading}
+              onChange={(attachmentIds) =>
+                setDefinition((previous) => ({ ...previous, attachmentIds }))
               }
-            >
-              Add parameter
-            </Button>
-          </div>
-        </fieldset>
-        <fieldset className="strategy-fieldset">
-          <legend>Screenshots &amp; attachments</legend>
-          <StrategyAttachments
-            workspaceId={workspaceId}
-            attachmentIds={definition.attachmentIds}
-            editable
-            onUploadingChange={setUploading}
-            onChange={(attachmentIds) =>
-              setDefinition((previous) => ({ ...previous, attachmentIds }))
-            }
-          />
-        </fieldset>
+            />
+          </fieldset>
+        </OptionalSection>
         <fieldset className="strategy-fieldset">
           <legend>Version record</legend>
           <div className="strategy-fields">
@@ -676,7 +866,12 @@ export function StrategyEditor({
                 value={effectiveAt}
                 onChange={(event) => setEffectiveAt(event.target.value)}
                 required
+                aria-invalid={fieldInvalid('effectiveAt')}
+                aria-describedby={
+                  fieldInvalid('effectiveAt') ? 'strategy-effectiveAt-error' : undefined
+                }
               />
+              {fieldErrors('effectiveAt')}
               <small>
                 Entered in your browser’s local timezone. Stored with an explicit UTC instant.
               </small>
@@ -690,19 +885,39 @@ export function StrategyEditor({
                 maxLength={2_000}
                 required
                 aria-invalid={fieldInvalid('changeReason')}
+                aria-describedby={
+                  fieldInvalid('changeReason') ? 'strategy-changeReason-error' : undefined
+                }
               />
+              {fieldErrors('changeReason')}
             </div>
           </div>
         </fieldset>
-        <div className="strategy-actions">
+        <div className="strategy-actions strategy-save-bar">
           <Button type="submit" disabled={saving || uploading || conflict}>
             {saving ? 'Saving…' : strategy ? 'Save new version' : 'Create strategy'}
           </Button>
-          <Button variant="secondary" disabled={saving} onClick={onCancel}>
+          <Button
+            variant="secondary"
+            disabled={saving || uploading}
+            onClick={() => (dirty ? setDiscarding(true) : onCancel())}
+          >
             Cancel editing
           </Button>
         </div>
       </form>
+      <ConfirmDialog
+        open={discarding}
+        title={conflict ? 'Discard edits and reload?' : 'Discard unsaved strategy changes?'}
+        description="Your unsaved rules and version details will be discarded. Saved historical versions remain unchanged."
+        confirmLabel={conflict ? 'Discard and reload' : 'Discard changes'}
+        onCancel={() => setDiscarding(false)}
+        onConfirm={() => {
+          setDiscarding(false);
+          if (conflict) void onReload();
+          else onCancel();
+        }}
+      />
     </Panel>
   );
 }

@@ -6,8 +6,10 @@ import {
   strategyTradesResponseSchema,
   strategyTradeLinkCreateSchema,
   strategyVersionListResponseSchema,
+  strategyVersionResponseSchema,
   tradeResponseSchema,
   type StrategyDefinition,
+  type StrategyTradeLinkCreateInput,
   type StrategyResponse,
   type StrategyVersionResponse,
   type WorkspaceResponse,
@@ -16,7 +18,13 @@ import { Badge, Button, Panel } from '@journal/ui';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ConfirmDialog } from '@/components/ux/confirm-dialog';
+import {
+  WORKSPACE_NAVIGATION_REQUEST,
+  type WorkspaceNavigationRequestDetail,
+} from '../ux/navigation-request';
+import './strategies.css';
 import { StrategyAttachments } from './strategy-attachments';
 import {
   StrategyApiError,
@@ -68,12 +76,14 @@ function RuleSnapshot({
           ))}
         </dl>
       </section>
-      {strategyNarrativeFields.map(([key, label]) => (
-        <section className="strategy-section" key={key}>
-          <h3>{label}</h3>
-          <p className="strategy-rules">{display(definition[key])}</p>
-        </section>
-      ))}
+      {strategyNarrativeFields
+        .filter(([key]) => definition[key].trim())
+        .map(([key, label]) => (
+          <section className="strategy-section" key={key}>
+            <h3>{label}</h3>
+            <p className="strategy-rules">{display(definition[key])}</p>
+          </section>
+        ))}
       <section className="strategy-section">
         <h3>Checklist</h3>
         {definition.checklist.length === 0 ? (
@@ -186,10 +196,14 @@ export function StrategyWorkspace({
   workspace,
   workspaces,
   initialStrategyId,
+  initialVersionId = null,
+  initialTradeId = null,
 }: {
   workspace: WorkspaceResponse;
   workspaces: WorkspaceResponse[];
   initialStrategyId: string | null;
+  initialVersionId?: string | null;
+  initialTradeId?: string | null;
 }) {
   const prefix = `/api/v1/workspaces/${workspace.id}/strategies`;
   const client = useQueryClient();
@@ -199,17 +213,90 @@ export function StrategyWorkspace({
   const [status, setStatus] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
   const [selectedId, setSelectedId] = useState(initialStrategyId);
-  const [versionId, setVersionId] = useState<string | null>(null);
+  const [versionId, setVersionId] = useState<string | null>(initialVersionId);
   const [editing, setEditing] = useState<StrategyResponse | 'new' | null>(null);
+  const [draftKey, setDraftKey] = useState(0);
   const [conflict, setConflict] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [archiveForm, setArchiveForm] = useState(false);
   const [archiveReason, setArchiveReason] = useState('');
   const [busy, setBusy] = useState(false);
-  const [tradeId, setTradeId] = useState('');
+  const [tradeId, setTradeId] = useState(initialTradeId ?? '');
   const [linkReason, setLinkReason] = useState('');
   const [comparisonId, setComparisonId] = useState('');
+  const [editorDirty, setEditorDirty] = useState(false);
+  const navigationApproved = useRef(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const pendingSignOut = useRef(false);
+  const [archiveConfirmation, setArchiveConfirmation] = useState<{
+    strategyId: string;
+    name: string;
+    expectedRevision: number;
+    reason: string;
+    commandId: string;
+  } | null>(null);
+  const [linkConfirmation, setLinkConfirmation] = useState<{
+    strategyId: string;
+    tradeTitle: string;
+    versionName: string;
+    version: number;
+    input: StrategyTradeLinkCreateInput;
+    commandId: string;
+  } | null>(null);
+
+  function protectNavigation(action: () => void) {
+    pendingSignOut.current = false;
+    if (editorDirty) setPendingNavigation(() => action);
+    else action();
+  }
+  useEffect(() => {
+    if (!editorDirty) return;
+    navigationApproved.current = false;
+    const protectDraft = (event: BeforeUnloadEvent) => {
+      if (navigationApproved.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectDraft);
+    const protectLink = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.target === '_blank' ||
+        anchor.hasAttribute('download') ||
+        anchor.origin !== window.location.origin ||
+        (anchor.hash &&
+          anchor.pathname === window.location.pathname &&
+          anchor.search === window.location.search)
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      pendingSignOut.current = false;
+      setPendingNavigation(() => () => window.location.assign(anchor.href));
+    };
+    const protectSignOut = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceNavigationRequestDetail>).detail;
+      if (detail?.handled) return;
+      event.preventDefault();
+      const continuation = detail?.continue;
+      if (typeof continuation === 'function') {
+        detail.handled = true;
+        pendingSignOut.current = true;
+        setPendingNavigation(() => continuation);
+      } else setActionError('Save your strategy changes or cancel the edit before signing out.');
+    };
+    document.addEventListener('click', protectLink, true);
+    window.addEventListener(WORKSPACE_NAVIGATION_REQUEST, protectSignOut);
+    return () => {
+      document.removeEventListener('click', protectLink, true);
+      window.removeEventListener('beforeunload', protectDraft);
+      window.removeEventListener(WORKSPACE_NAVIGATION_REQUEST, protectSignOut);
+    };
+  }, [editorDirty]);
 
   const list = useInfiniteQuery({
     queryKey: ['strategies', workspace.id, { search, status, includeArchived }],
@@ -242,6 +329,12 @@ export function StrategyWorkspace({
       ),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
+  const pinnedVersion = useQuery({
+    queryKey: ['strategy-version', workspace.id, selectedId, versionId],
+    enabled: selectedId !== null && versionId !== null,
+    queryFn: () =>
+      strategyRead(`${prefix}/${selectedId}/versions/${versionId}`, strategyVersionResponseSchema),
+  });
   const linked = useInfiniteQuery({
     queryKey: ['strategy-trades', workspace.id, selectedId],
     enabled: selectedId !== null,
@@ -263,9 +356,13 @@ export function StrategyWorkspace({
       ),
   });
   const strategy = detail.data;
-  const history = versions.data?.pages.flatMap((page) => page.versions) ?? [];
+  const loadedHistory = versions.data?.pages.flatMap((page) => page.versions) ?? [];
+  const history =
+    pinnedVersion.data && !loadedHistory.some((version) => version.id === pinnedVersion.data.id)
+      ? [...loadedHistory, pinnedVersion.data]
+      : loadedHistory;
   const selectedVersion = versionId
-    ? history.find((version) => version.id === versionId)
+    ? (history.find((version) => version.id === versionId) ?? pinnedVersion.data)
     : strategy?.currentVersion;
   const comparisonVersion = history.find((version) => version.id === comparisonId);
   const availableTrades =
@@ -281,9 +378,10 @@ export function StrategyWorkspace({
     setActionError(null);
     setArchiveForm(false);
     setComparisonId('');
-    setTradeId('');
+    setEditorDirty(false);
+    setTradeId(initialTradeId ?? '');
     router.replace(
-      `/strategies?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(id)}`,
+      `/strategies?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(id)}${initialTradeId ? `&trade=${encodeURIComponent(initialTradeId)}` : ''}`,
       { scroll: false },
     );
   }
@@ -310,10 +408,11 @@ export function StrategyWorkspace({
       setSelectedId(updated.id);
       setVersionId(null);
       setEditing(null);
+      setEditorDirty(false);
       setConflict(false);
       client.setQueryData(['strategy', workspace.id, updated.id], updated);
       router.replace(
-        `/strategies?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(updated.id)}`,
+        `/strategies?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(updated.id)}${initialTradeId ? `&trade=${encodeURIComponent(initialTradeId)}` : ''}`,
         { scroll: false },
       );
       await refreshViews();
@@ -333,20 +432,24 @@ export function StrategyWorkspace({
     setConflict(false);
   }
   async function archive() {
-    if (!strategy || busy || !archiveReason.trim()) return;
+    if (!archiveConfirmation || busy) return;
     setBusy(true);
     setActionError(null);
     setMessage(null);
     try {
       await strategyWrite(
-        `${prefix}/${strategy.id}`,
+        `${prefix}/${archiveConfirmation.strategyId}`,
         'DELETE',
-        { expectedRevision: strategy.revision, reason: archiveReason.trim() },
+        {
+          expectedRevision: archiveConfirmation.expectedRevision,
+          reason: archiveConfirmation.reason,
+        },
         strategyResponseSchema,
-        crypto.randomUUID(),
+        archiveConfirmation.commandId,
       );
       await refreshViews();
       setArchiveForm(false);
+      setArchiveConfirmation(null);
       setMessage('Strategy archived. Its versions and linked trades have been preserved.');
     } catch (error) {
       setActionError(strategyErrorMessage(error));
@@ -354,7 +457,7 @@ export function StrategyWorkspace({
       setBusy(false);
     }
   }
-  async function linkTrade() {
+  function prepareLink() {
     const trade = availableTrades.find((entry) => entry.id === tradeId);
     if (!trade || !selectedVersion || !strategy || busy) return;
     const parsed = strategyTradeLinkCreateSchema.safeParse({
@@ -369,22 +472,34 @@ export function StrategyWorkspace({
       );
       return;
     }
+    setLinkConfirmation({
+      strategyId: strategy.id,
+      tradeTitle: trade.title,
+      versionName: selectedVersion.definition.name,
+      version: selectedVersion.version,
+      input: parsed.data,
+      commandId: crypto.randomUUID(),
+    });
+  }
+  async function linkTrade() {
+    if (!linkConfirmation || busy) return;
     setBusy(true);
     setActionError(null);
     setMessage(null);
     try {
       await strategyWrite(
-        `${prefix}/${strategy.id}/trade-links`,
+        `${prefix}/${linkConfirmation.strategyId}/trade-links`,
         'POST',
-        parsed.data,
+        linkConfirmation.input,
         tradeResponseSchema,
-        crypto.randomUUID(),
+        linkConfirmation.commandId,
       );
       await refreshViews();
       setTradeId('');
       setLinkReason('');
+      setLinkConfirmation(null);
       setMessage(
-        `Trade assigned retrospectively to version ${selectedVersion.version}. This association cannot be reassigned.`,
+        `Trade assigned retrospectively to version ${linkConfirmation.version}. This association cannot be reassigned.`,
       );
     } catch (error) {
       setActionError(strategyErrorMessage(error));
@@ -405,12 +520,16 @@ export function StrategyWorkspace({
         </div>
         {canEdit && (
           <Button
-            onClick={() => {
-              setEditing('new');
-              setConflict(false);
-              setMessage(null);
-              setActionError(null);
-            }}
+            onClick={() =>
+              protectNavigation(() => {
+                setEditorDirty(false);
+                setDraftKey((previous) => previous + 1);
+                setEditing('new');
+                setConflict(false);
+                setMessage(null);
+                setActionError(null);
+              })
+            }
           >
             <Plus size={17} aria-hidden="true" />
             New strategy
@@ -434,9 +553,13 @@ export function StrategyWorkspace({
             id="strategy-workspace"
             value={workspace.id}
             onChange={(event) => {
-              client.clear();
-              router.replace(`/strategies?workspace=${encodeURIComponent(event.target.value)}`);
-              router.refresh();
+              const targetWorkspace = event.target.value;
+              protectNavigation(() => {
+                setEditorDirty(false);
+                client.clear();
+                router.replace(`/strategies?workspace=${encodeURIComponent(targetWorkspace)}`);
+                router.refresh();
+              });
             }}
           >
             {workspaces.map((entry) => (
@@ -453,7 +576,7 @@ export function StrategyWorkspace({
           {message}
         </p>
       )}
-      {actionError && (
+      {actionError && !archiveConfirmation && !linkConfirmation && (
         <p className="strategy-errors" role="alert">
           {actionError}
         </p>
@@ -511,8 +634,9 @@ export function StrategyWorkspace({
               <button
                 className="strategy-card"
                 key={entry.id}
+                aria-label={`${entry.currentVersion.definition.name} · ${entry.archivedAt ? 'Archived' : title(entry.currentVersion.definition.status)} · Version ${entry.currentVersion.version}`}
                 aria-current={entry.id === selectedId ? 'true' : undefined}
-                onClick={() => choose(entry.id)}
+                onClick={() => protectNavigation(() => choose(entry.id))}
               >
                 <div className="strategy-row-title">
                   <strong>{entry.currentVersion.definition.name}</strong>
@@ -530,8 +654,43 @@ export function StrategyWorkspace({
             ))}
           {list.data && list.data.pages.every((page) => page.strategies.length === 0) && (
             <Panel className="strategy-empty">
-              <h2>No matching strategies</h2>
-              <p>Create a strategy or adjust your search and filters.</p>
+              <h2>
+                {search || status || includeArchived
+                  ? 'No matching strategies'
+                  : 'Build your first playbook'}
+              </h2>
+              <p>
+                {search || status || includeArchived
+                  ? 'Try a different search or clear the filters.'
+                  : 'Start with a name and your core rules. Save a draft, then add detail as your process develops.'}
+              </p>
+              {search || status || includeArchived ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setSearch('');
+                    setStatus('');
+                    setIncludeArchived(false);
+                  }}
+                >
+                  Clear strategy filters
+                </Button>
+              ) : (
+                canEdit && (
+                  <Button
+                    onClick={() =>
+                      protectNavigation(() => {
+                        setDraftKey((previous) => previous + 1);
+                        setEditing('new');
+                        setEditorDirty(false);
+                        setConflict(false);
+                      })
+                    }
+                  >
+                    Create your first strategy
+                  </Button>
+                )
+              )}
             </Panel>
           )}
           {list.hasNextPage && (
@@ -547,11 +706,13 @@ export function StrategyWorkspace({
         <div>
           {editing !== null ? (
             <StrategyEditor
-              key={editing === 'new' ? 'new' : `${editing.id}:${editing.revision}`}
+              key={editing === 'new' ? `new:${draftKey}` : `${editing.id}:${editing.revision}`}
               workspaceId={workspace.id}
               strategy={editing === 'new' ? null : editing}
               onSave={save}
+              onDirtyChange={setEditorDirty}
               onCancel={() => {
+                setEditorDirty(false);
                 setEditing(null);
                 setConflict(false);
               }}
@@ -632,7 +793,15 @@ export function StrategyWorkspace({
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void archive();
+                    setActionError(null);
+                    if (archiveReason.trim())
+                      setArchiveConfirmation({
+                        strategyId: strategy.id,
+                        name: strategy.currentVersion.definition.name,
+                        expectedRevision: strategy.revision,
+                        reason: archiveReason.trim(),
+                        commandId: crypto.randomUUID(),
+                      });
                   }}
                   className="strategy-repeater-row"
                 >
@@ -671,8 +840,13 @@ export function StrategyWorkspace({
                   id="strategy-version"
                   value={selectedVersion.id}
                   onChange={(event) => {
-                    setVersionId(event.target.value);
+                    const nextVersionId = event.target.value;
+                    setVersionId(nextVersionId);
                     setComparisonId('');
+                    router.replace(
+                      `/strategies?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(strategy.id)}&version=${encodeURIComponent(nextVersionId)}${initialTradeId ? `&trade=${encodeURIComponent(initialTradeId)}` : ''}`,
+                      { scroll: false },
+                    );
                   }}
                 >
                   {history.length === 0 && (
@@ -702,6 +876,153 @@ export function StrategyWorkspace({
                   </p>
                 )}
               </div>
+              <div className="strategy-actions strategy-review-actions">
+                <a
+                  className="strategy-action-link"
+                  href={`/dashboard?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(strategy.id)}&version=${encodeURIComponent(selectedVersion.id)}`}
+                >
+                  Review performance for version {selectedVersion.version}
+                </a>
+                <a
+                  className="strategy-action-link"
+                  href={`/dashboard?workspace=${encodeURIComponent(workspace.id)}&strategy=${encodeURIComponent(strategy.id)}`}
+                >
+                  Compare all versions
+                </a>
+              </div>
+              <section className="strategy-section">
+                <h3>Trades linked to version {selectedVersion.version}</h3>
+                <p className="strategy-readonly-note">
+                  Trade associations keep their original version. Retrospective assignments are
+                  labeled separately.
+                </p>
+                {linked.isPending && <p role="status">Loading linked trades…</p>}
+                {linked.isError && (
+                  <p role="alert" className="form-error">
+                    Linked trades could not be loaded.
+                  </p>
+                )}
+                {linked.data && (
+                  <ul className="strategy-trade-list">
+                    {linked.data.pages
+                      .flatMap((page) => page.trades)
+                      .filter((trade) => trade.strategyVersionId === selectedVersion.id)
+                      .map((trade) => (
+                        <li key={trade.id}>
+                          <a
+                            href={`/journal?workspace=${encodeURIComponent(workspace.id)}&trade=${encodeURIComponent(trade.id)}`}
+                          >
+                            {trade.title}
+                          </a>
+                          <span className="muted">
+                            {' '}
+                            · {title(trade.status)} ·{' '}
+                            {trade.strategyLinkTiming === 'retrospective'
+                              ? 'Retrospective assignment'
+                              : 'Recorded with trade'}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+                {linked.data &&
+                  !linked.data.pages.some((page) =>
+                    page.trades.some((trade) => trade.strategyVersionId === selectedVersion.id),
+                  ) && (
+                    <p className="muted">No linked trades in the loaded pages for this version.</p>
+                  )}
+                {linked.hasNextPage && (
+                  <Button
+                    variant="secondary"
+                    disabled={linked.isFetchingNextPage}
+                    onClick={() => void linked.fetchNextPage()}
+                  >
+                    Load more linked trades
+                  </Button>
+                )}
+                {canEdit && !strategy.archivedAt && (
+                  <form
+                    className="strategy-repeater-row"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      setActionError(null);
+                      prepareLink();
+                    }}
+                  >
+                    <h4>
+                      {initialTradeId
+                        ? 'Assign this trade to a strategy version'
+                        : 'Assign an existing unclassified trade retrospectively'}
+                    </h4>
+                    <p className="strategy-readonly-note">
+                      This records a later classification using version {selectedVersion.version}.
+                      It does not claim the rules were chosen before the trade. Once assigned, the
+                      trade cannot be reassigned.
+                    </p>
+                    {unclassified.isPending && <p role="status">Loading unclassified trades…</p>}
+                    {unclassified.isSuccess && availableTrades.length === 0 && (
+                      <p className="strategy-inline-notice">
+                        No unclassified trades are available in the recent trade list.{' '}
+                        <a href={`/journal?workspace=${encodeURIComponent(workspace.id)}`}>
+                          Open the trade journal
+                        </a>{' '}
+                        to review an existing assignment, or{' '}
+                        <a href={`/record?workspace=${encodeURIComponent(workspace.id)}`}>
+                          record a manual trade
+                        </a>
+                        .
+                      </p>
+                    )}
+                    {initialTradeId &&
+                      unclassified.isSuccess &&
+                      !availableTrades.some((trade) => trade.id === initialTradeId) && (
+                        <p role="status">
+                          The requested trade is already classified or is outside the 200 recent
+                          trades shown here.
+                        </p>
+                      )}
+                    <div className="strategy-field">
+                      <label htmlFor="strategy-link-trade">Unclassified trade</label>
+                      <select
+                        id="strategy-link-trade"
+                        value={tradeId}
+                        onChange={(event) => setTradeId(event.target.value)}
+                      >
+                        <option value="">Choose a trade</option>
+                        {availableTrades.map((trade) => (
+                          <option key={trade.id} value={trade.id}>
+                            {trade.title} · {title(trade.status)}
+                          </option>
+                        ))}
+                      </select>
+                      <small>
+                        Showing up to 200 recent workspace trades with no strategy assignment.
+                      </small>
+                    </div>
+                    <div className="strategy-field">
+                      <label htmlFor="strategy-link-reason">
+                        Reason for retrospective assignment
+                      </label>
+                      <textarea
+                        id="strategy-link-reason"
+                        value={linkReason}
+                        onChange={(event) => setLinkReason(event.target.value)}
+                        maxLength={2_000}
+                      />
+                    </div>
+                    <div className="strategy-actions">
+                      <Button type="submit" disabled={busy || !tradeId || !linkReason.trim()}>
+                        Assign to version {selectedVersion.version}
+                      </Button>
+                    </div>
+                    {unclassified.isError && (
+                      <p role="alert" className="form-error">
+                        Unclassified trades could not be loaded.
+                      </p>
+                    )}
+                  </form>
+                )}
+              </section>
               <RuleSnapshot version={selectedVersion} workspaceId={workspace.id} />
               <section className="strategy-section">
                 <h3>Compare version rules</h3>
@@ -759,112 +1080,14 @@ export function StrategyWorkspace({
                   </table>
                 )}
               </section>
-              <section className="strategy-section">
-                <h3>Trades linked to version {selectedVersion.version}</h3>
-                <p className="strategy-readonly-note">
-                  Trade associations keep their original version. Retrospective assignments are
-                  labeled separately.
-                </p>
-                {linked.isPending && <p role="status">Loading linked trades…</p>}
-                {linked.isError && (
-                  <p role="alert" className="form-error">
-                    Linked trades could not be loaded.
-                  </p>
-                )}
-                {linked.data && (
-                  <ul className="strategy-trade-list">
-                    {linked.data.pages
-                      .flatMap((page) => page.trades)
-                      .filter((trade) => trade.strategyVersionId === selectedVersion.id)
-                      .map((trade) => (
-                        <li key={trade.id}>
-                          <strong>{trade.title}</strong>
-                          <span className="muted">
-                            {' '}
-                            · {title(trade.status)} ·{' '}
-                            {trade.strategyLinkTiming === 'retrospective'
-                              ? 'Retrospective assignment'
-                              : 'Recorded with trade'}
-                          </span>
-                        </li>
-                      ))}
-                  </ul>
-                )}
-                {linked.data &&
-                  !linked.data.pages.some((page) =>
-                    page.trades.some((trade) => trade.strategyVersionId === selectedVersion.id),
-                  ) && (
-                    <p className="muted">No linked trades in the loaded pages for this version.</p>
-                  )}
-                {linked.hasNextPage && (
-                  <Button
-                    variant="secondary"
-                    disabled={linked.isFetchingNextPage}
-                    onClick={() => void linked.fetchNextPage()}
-                  >
-                    Load more linked trades
-                  </Button>
-                )}
-                {canEdit && !strategy.archivedAt && (
-                  <form
-                    className="strategy-repeater-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void linkTrade();
-                    }}
-                  >
-                    <h4>Assign an existing unclassified trade retrospectively</h4>
-                    <p className="strategy-readonly-note">
-                      This records a later classification using version {selectedVersion.version}.
-                      It does not claim the rules were chosen before the trade. Once assigned, the
-                      trade cannot be reassigned.
-                    </p>
-                    <div className="strategy-field">
-                      <label htmlFor="strategy-link-trade">Unclassified trade</label>
-                      <select
-                        id="strategy-link-trade"
-                        value={tradeId}
-                        onChange={(event) => setTradeId(event.target.value)}
-                      >
-                        <option value="">Choose a trade</option>
-                        {availableTrades.map((trade) => (
-                          <option key={trade.id} value={trade.id}>
-                            {trade.title} · {title(trade.status)}
-                          </option>
-                        ))}
-                      </select>
-                      <small>
-                        Showing up to 200 recent workspace trades with no strategy assignment.
-                      </small>
-                    </div>
-                    <div className="strategy-field">
-                      <label htmlFor="strategy-link-reason">
-                        Reason for retrospective assignment
-                      </label>
-                      <textarea
-                        id="strategy-link-reason"
-                        value={linkReason}
-                        onChange={(event) => setLinkReason(event.target.value)}
-                        maxLength={2_000}
-                      />
-                    </div>
-                    <div className="strategy-actions">
-                      <Button type="submit" disabled={busy || !tradeId || !linkReason.trim()}>
-                        Assign to version {selectedVersion.version}
-                      </Button>
-                    </div>
-                    {unclassified.isError && (
-                      <p role="alert" className="form-error">
-                        Unclassified trades could not be loaded.
-                      </p>
-                    )}
-                  </form>
-                )}
-              </section>
             </Panel>
           ) : (
             <Panel className="strategy-empty">
-              <p role="alert">This version is unavailable. Reload the strategy’s history.</p>
+              {pinnedVersion.isPending && versionId ? (
+                <p role="status">Loading strategy version…</p>
+              ) : (
+                <p role="alert">This version is unavailable. Reload the strategy’s history.</p>
+              )}
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -878,6 +1101,70 @@ export function StrategyWorkspace({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={pendingNavigation !== null}
+        title="Discard unsaved strategy changes?"
+        description="Your unsaved rules and version details will be discarded. Saved historical versions remain unchanged."
+        confirmLabel="Discard and continue"
+        onCancel={() => {
+          pendingSignOut.current = false;
+          setPendingNavigation(null);
+        }}
+        onConfirm={() => {
+          const navigate = pendingNavigation;
+          const signingOut = pendingSignOut.current;
+          pendingSignOut.current = false;
+          setPendingNavigation(null);
+          if (!signingOut) {
+            navigationApproved.current = true;
+            setEditorDirty(false);
+          }
+          navigate?.();
+        }}
+      />
+      <ConfirmDialog
+        open={archiveConfirmation !== null}
+        title="Archive this strategy?"
+        description={
+          <>
+            <p>
+              Archive {archiveConfirmation?.name}? The strategy will leave the default list. Its
+              versions and trade references remain available. Reason: {archiveReason}
+            </p>
+            {actionError && (
+              <p role="alert" className="form-error">
+                {actionError}
+              </p>
+            )}
+          </>
+        }
+        confirmLabel="Archive strategy"
+        busy={busy}
+        onCancel={() => setArchiveConfirmation(null)}
+        onConfirm={() => void archive()}
+      />
+      <ConfirmDialog
+        open={linkConfirmation !== null}
+        title="Confirm strategy assignment"
+        description={
+          <>
+            <p>
+              Assign {availableTrades.find((trade) => trade.id === tradeId)?.title ?? 'this trade'}{' '}
+              to {selectedVersion?.definition.name}, version {selectedVersion?.version}? This is a
+              retrospective assignment and cannot be changed later.
+            </p>
+            {actionError && (
+              <p role="alert" className="form-error">
+                {actionError}
+              </p>
+            )}
+          </>
+        }
+        confirmLabel="Confirm assignment"
+        busy={busy}
+        onCancel={() => setLinkConfirmation(null)}
+        onConfirm={() => void linkTrade()}
+      />
     </>
   );
 }

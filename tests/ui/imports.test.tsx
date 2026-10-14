@@ -26,7 +26,11 @@ let batch: c.ImportBatchResponse,
   requests: { path: string; body: unknown }[],
   invalid: boolean,
   stale: boolean,
-  warnings: boolean;
+  warnings: boolean,
+  correction: boolean,
+  groupRows: number,
+  historyItems: c.ImportBatchResponse[],
+  savedTemplates: c.ImportTemplateResponse[];
 const row = (): c.ImportRowResponse => ({
   id: uuid(5),
   rowNumber: 2,
@@ -49,6 +53,10 @@ beforeEach(() => {
   invalid = false;
   stale = false;
   warnings = false;
+  correction = false;
+  groupRows = 1;
+  historyItems = [];
+  savedTemplates = [];
   batch = {
     id: uuid(4),
     accountId: uuid(2),
@@ -71,26 +79,43 @@ beforeEach(() => {
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       if (body) requests.push({ path, body });
       if (path.endsWith('/catalog')) return json(catalog);
-      if (path.endsWith('/templates')) return json({ items: [] });
-      if (path.endsWith('/batches') && !body) return json({ items: [], nextCursor: null });
+      if (path.endsWith('/templates')) return json({ items: savedTemplates });
+      if (path.endsWith('/batches') && !body)
+        return json({ items: historyItems, nextCursor: null });
       if (path.endsWith('/batches') && body) return json(batch);
       if (path.includes('/preview')) {
         batch = { ...batch, revision: 2 };
+        const correctionReasons = c.importPreviewRequestSchema.parse(body).corrections;
+        const needsCorrection = correction && !correctionReasons[uuid(5)]?.trim();
         return json({
           id: uuid(6),
           batchRevision: 2,
           sourceRevision: '7',
           groups: ['cash_movement:D1'],
-          corrections: {},
-          committable: !invalid,
+          corrections: correctionReasons,
+          committable: !invalid && !needsCorrection,
           rows: [
             {
               ...row(),
-              status: invalid ? 'invalid' : 'new',
-              errors: invalid ? [{ code: 'BAD_SIGN', message: 'Deposit must be positive.' }] : [],
+              status: invalid ? 'invalid' : needsCorrection ? 'correction' : 'new',
+              errors: invalid
+                ? [{ code: 'BAD_SIGN', message: 'Deposit must be positive.' }]
+                : needsCorrection
+                  ? [
+                      {
+                        code: 'IMPORT_CORRECTION_REQUIRED',
+                        message:
+                          'This broker source ID has changed. Review an explicit correction; do not append it.',
+                      },
+                    ]
+                  : [],
             },
           ],
         });
+      }
+      if (path.endsWith('/reverse')) {
+        batch = { ...batch, state: 'reversed', revision: batch.revision + 1 };
+        return json(batch);
       }
       if (path.includes('/commit')) {
         if (stale)
@@ -112,7 +137,7 @@ beforeEach(() => {
         batch,
         rows: [row()],
         nextCursor: null,
-        groups: [{ key: 'cash_movement:D1', rows: 1, invalid: 0, committed: 0 }],
+        groups: [{ key: 'cash_movement:D1', rows: groupRows, invalid: 0, committed: 0 }],
         history: [],
       });
     }),
@@ -144,7 +169,7 @@ async function stage() {
   await screen.findByText(/Selected: statement.csv/);
   fireEvent.click(screen.getByRole('button', { name: 'Stage file for review' }));
   await screen.findByRole('heading', { name: '2. Review statement.csv' });
-  await screen.findByText(/cash_movement:D1 · 1 rows/);
+  await screen.findByText(/cash_movement:D1 · \d+ rows/);
 }
 async function preview() {
   fireEvent.click(screen.getByRole('checkbox', { name: /cash_movement:D1/ }));
@@ -172,6 +197,9 @@ describe('import review UI', () => {
       groups: ['cash_movement:D1'],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Commit reviewed import' }));
+    await screen.findByRole('dialog', { name: 'Post this reviewed import?' });
+    expect(requests.some((request) => request.path.endsWith('/commit'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm posting' }));
     await waitFor(() =>
       expect(requests.some((request) => request.path.endsWith('/commit'))).toBe(true),
     );
@@ -192,6 +220,7 @@ describe('import review UI', () => {
     await stage();
     await preview();
     fireEvent.click(screen.getByRole('button', { name: 'Commit reviewed import' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm posting' }));
     await screen.findByRole('alert');
     expect(screen.getByText('Financial activity changed after preview.')).toBeVisible();
     expect(
@@ -220,5 +249,111 @@ describe('import review UI', () => {
     expect(screen.queryByLabelText('Broker CSV file')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Stage file for review' })).not.toBeInTheDocument();
     expect(requests).toEqual([]);
+  });
+  it('lets the user cancel financial posting without sending a commit', async () => {
+    mount();
+    await stage();
+    await preview();
+    fireEvent.click(screen.getByRole('button', { name: 'Commit reviewed import' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Post this reviewed import?' });
+    expect(dialog).toHaveTextContent('statement.csv');
+    expect(dialog).toHaveTextContent('Account alpha');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(requests.some((request) => request.path.endsWith('/commit'))).toBe(false);
+  });
+  it('explains changed source IDs and requires revalidation after editing a correction reason', async () => {
+    correction = true;
+    mount();
+    await stage();
+    await preview();
+    expect(screen.getByText(/This broker source ID has changed/)).toBeVisible();
+    const input = screen.getByLabelText('Correction reason row 2');
+    fireEvent.change(input, { target: { value: 'Correct broker statement amount' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Correction reasons changed.');
+    expect(screen.getByRole('button', { name: 'Commit reviewed import' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Validate selected groups' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Commit reviewed import' })).toBeEnabled(),
+    );
+    expect(requests.at(-1)?.body).toMatchObject({
+      corrections: { [uuid(5)]: 'Correct broker statement amount' },
+    });
+    expect(screen.getByLabelText('Correction reason row 2')).toHaveValue(
+      'Correct broker statement amount',
+    );
+    fireEvent.change(screen.getByLabelText('Correction reason row 2'), {
+      target: { value: 'Revised review reason' },
+    });
+    expect(screen.getByRole('button', { name: 'Commit reviewed import' })).toBeDisabled();
+    expect(requests.some((request) => request.path.endsWith('/commit'))).toBe(false);
+  });
+  it('selects complete groups in one action and explains the existing 100-row review limit', async () => {
+    groupRows = 101;
+    mount();
+    await stage();
+    fireEvent.click(screen.getByRole('button', { name: 'Select all groups' }));
+    expect(screen.getByRole('checkbox', { name: /cash_movement:D1/ })).toBeChecked();
+    expect(screen.getByText(/Choose fewer groups/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Validate selected groups' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+    expect(screen.getByRole('checkbox', { name: /cash_movement:D1/ })).not.toBeChecked();
+    expect(requests.some((request) => request.path.includes('/preview'))).toBe(false);
+  });
+  it('preserves the selected mapping when choosing another source file', async () => {
+    const saved: c.ImportTemplateResponse = {
+      id: uuid(10),
+      templateId: uuid(11),
+      name: 'Reviewed mapping',
+      version: 1,
+      archived: false,
+      mapping: c.importMappingSchema.parse({
+        kind: 'cash_movement',
+        sourceIdColumn: 'ID',
+        fields: [
+          { target: 'economicAt', column: 'Date', transform: 'instant', empty: 'omit' },
+          { target: 'amount', column: 'Amount', transform: 'decimal', empty: 'omit' },
+          { target: 'currencyId', constant: uuid(3), transform: 'text', empty: 'omit' },
+        ],
+      }),
+    };
+    savedTemplates = [saved];
+    mount();
+    await screen.findByText('Reviewed mapping · v1');
+    fireEvent.change(screen.getByLabelText('Saved mapping'), { target: { value: saved.id } });
+    fireEvent.change(screen.getByLabelText('Account', { exact: true }), {
+      target: { value: uuid(2) },
+    });
+    const source = new File(['ID,Date,Amount'], 'new-statement.csv', { type: 'text/csv' });
+    Object.defineProperty(source, 'arrayBuffer', {
+      value: async () => new TextEncoder().encode('ID,Date,Amount').buffer,
+    });
+    fireEvent.change(screen.getByLabelText('Broker CSV file'), { target: { files: [source] } });
+    await screen.findByText(/Selected: new-statement.csv/);
+    fireEvent.click(screen.getByRole('button', { name: 'Stage file for review' }));
+    await screen.findByRole('heading', { name: '2. Review statement.csv' });
+    expect(requests[0]?.body).toMatchObject({ templateVersionId: saved.id });
+    expect(requests[0]?.body).not.toHaveProperty('mapping');
+  });
+  it('shows the reversal reason and requires confirmation before appending monetary reversals', async () => {
+    batch = { ...batch, state: 'committed' };
+    historyItems = [batch];
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Review batch' }));
+    await screen.findByRole('heading', { name: '2. Review statement.csv' });
+    fireEvent.click(screen.getByText('Reverse eligible cash-only batch', { exact: true }));
+    fireEvent.change(screen.getByLabelText('Reversal reason'), {
+      target: { value: 'Wrong account statement' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Review and reverse cash batch' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Reverse this cash batch?' });
+    expect(dialog).toHaveTextContent('Wrong account statement');
+    expect(requests.some((request) => request.path.endsWith('/reverse'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm reversal' }));
+    await waitFor(() => expect(requests.at(-1)?.path).toContain('/reverse'));
+    expect(requests.at(-1)?.body).toMatchObject({
+      reason: 'Wrong account statement',
+      expectedRevision: 1,
+    });
   });
 });

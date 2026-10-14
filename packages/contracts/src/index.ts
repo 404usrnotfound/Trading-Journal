@@ -106,3 +106,4 @@ export type RevokeSessionInput = z.infer<typeof revokeSessionSchema>;
 export type SafeSessionListResponse = z.infer<typeof safeSessionListResponseSchema>;
 
 export * from './imports.js';
+export { ZodError } from 'zod';

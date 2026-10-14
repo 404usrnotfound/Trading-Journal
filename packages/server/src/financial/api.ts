@@ -320,7 +320,11 @@ export function createFinancialApi(
       }
     } else if (path.length === 3) {
       const id = contract.financialIdSchema.parse(path[1]);
-      if (resource === 'trades' && path[2] === 'legs' && request.method === 'GET') {
+      if (resource === 'executions' && path[2] === 'allocations' && request.method === 'GET') {
+        value = contract.executionAllocationResponseSchema.parse(
+          await ledger.executionAllocations(context, id),
+        );
+      } else if (resource === 'trades' && path[2] === 'legs' && request.method === 'GET') {
         value = contract.tradeLegResponseSchema
           .array()
           .parse(await catalog.listTradeLegs(context, id));

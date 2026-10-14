@@ -1,5 +1,6 @@
 import {
   strategyDefinitionSchema,
+  tradeResponseSchema,
   type StrategyResponse,
   type StrategyVersionResponse,
   type WorkspaceResponse,
@@ -9,6 +10,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StrategyEditor } from '../../apps/web/src/components/strategies/strategy-editor.js';
 import { StrategyWorkspace } from '../../apps/web/src/components/strategies/strategy-workspace.js';
+import type { WorkspaceNavigationRequestDetail } from '../../apps/web/src/components/ux/navigation-request.js';
 
 const { session, replace, refresh } = vi.hoisted(() => ({
   session: vi.fn(),
@@ -84,6 +86,11 @@ function editor(strategyValue: StrategyResponse | null = null, conflict = false)
   );
   return { save, cancel, reload };
 }
+function openSection(name: string) {
+  const summary = screen.getByText(name, { selector: 'summary' });
+  const section = summary.closest('details')!;
+  if (!section.open) fireEvent.click(summary);
+}
 function submitEditor(name = 'New rule set') {
   fireEvent.change(screen.getByLabelText('Name', { exact: true }), { target: { value: name } });
   fireEvent.submit(screen.getByRole('button', { name: 'Create strategy' }).closest('form')!);
@@ -103,6 +110,51 @@ describe('strategy editor', () => {
     submitEditor('   ');
     expect(await screen.findByRole('alert')).toHaveTextContent('name');
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('starts with essential fields and keeps optional configuration behind named disclosures', () => {
+    editor();
+    expect(screen.getByLabelText('Name', { exact: true })).toBeVisible();
+    expect(screen.getByLabelText('Entry rules')).toBeVisible();
+    expect(
+      screen.getByText('Typed parameters', { selector: 'summary' }).closest('details'),
+    ).not.toHaveAttribute('open');
+    expect(
+      screen
+        .getByText('Detailed rules & reference notes', { selector: 'summary' })
+        .closest('details'),
+    ).not.toHaveAttribute('open');
+    openSection('Typed parameters');
+    expect(screen.getByRole('button', { name: 'Add parameter' })).toBeVisible();
+  });
+
+  it('explains a field error next to the field and focuses it from the summary', async () => {
+    editor();
+    submitEditor('');
+    const alert = await screen.findByRole('alert');
+    const name = screen.getByLabelText('Name', { exact: true });
+    expect(name).toHaveAttribute('aria-invalid', 'true');
+    expect(name).toHaveAccessibleDescription(/at least|too small/iu);
+    fireEvent.click(within(alert).getByRole('button', { name: /^name:/u }));
+    expect(name).toHaveFocus();
+  });
+
+  it('preserves unsaved rules until a cancellation is explicitly confirmed', async () => {
+    const { cancel } = editor();
+    fireEvent.change(screen.getByLabelText('Name', { exact: true }), {
+      target: { value: 'Unsaved playbook' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Discard unsaved strategy changes?');
+    expect(cancel).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByLabelText('Name', { exact: true })).toHaveValue('Unsaved playbook');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard changes' }),
+    );
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it('stores all rule families and precise decimal parameters in a complete snapshot', async () => {
@@ -126,6 +178,7 @@ describe('strategy editor', () => {
     fireEvent.change(screen.getByLabelText('Notes'), {
       target: { value: '<script>alert("test")</script>' },
     });
+    openSection('Typed parameters');
     fireEvent.click(screen.getByRole('button', { name: 'Add parameter' }));
     fireEvent.change(screen.getByLabelText('Parameter 1 name'), {
       target: { value: 'Risk fraction' },
@@ -161,10 +214,12 @@ describe('strategy editor', () => {
 
   it('retains stable checklist/setup identities and removes dangling references', async () => {
     const { save } = editor();
+    openSection('Required checklist');
     fireEvent.click(screen.getByRole('button', { name: 'Add checklist item' }));
     fireEvent.change(screen.getByLabelText('Checklist item 1'), {
       target: { value: 'Volume confirmed' },
     });
+    openSection('Named setups');
     fireEvent.click(screen.getByRole('button', { name: 'Add named setup' }));
     fireEvent.change(screen.getByLabelText('Setup 1 name'), {
       target: { value: 'Opening pullback' },
@@ -181,6 +236,7 @@ describe('strategy editor', () => {
   it('rejects duplicate tags and decimal values outside declared bounds', async () => {
     const { save } = editor();
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'momentum, momentum' } });
+    openSection('Typed parameters');
     fireEvent.click(screen.getByRole('button', { name: 'Add parameter' }));
     fireEvent.change(screen.getByLabelText('Parameter 1 name'), {
       target: { value: 'RSI threshold' },
@@ -218,6 +274,10 @@ describe('strategy editor', () => {
     expect(screen.getByRole('button', { name: 'Save new version' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('Your changes have been kept here.');
     fireEvent.click(screen.getByRole('button', { name: 'Discard edits and reload latest' }));
+    expect(reload).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard and reload' }),
+    );
     expect(reload).toHaveBeenCalledOnce();
     expect(save).not.toHaveBeenCalled();
   });
@@ -293,6 +353,8 @@ describe('strategy history view', () => {
         if (url.endsWith('/trades?limit=25')) return response({ trades: [], nextCursor: null });
         if (url.includes('/financial/trades')) return response([]);
         if (url.includes('/strategy-attachments')) return response([]);
+        if (url.endsWith(`/versions/${v1.id}`)) return response(v1);
+        if (url.endsWith(`/versions/${v2.id}`)) return response(v2);
         if (url.endsWith(`/${strategyId}`)) return response(current);
         return response({ strategies: [current], nextCursor: null });
       }),
@@ -330,6 +392,199 @@ describe('strategy history view', () => {
     expect(within(comparison).getByText('RSI below 30')).toBeVisible();
     expect(within(comparison).getByText('RSI below 25')).toBeVisible();
     expect(screen.queryByText(/win rate|expectancy/iu)).not.toBeInTheDocument();
+  });
+
+  it('links performance to the selected historical version and persists version selection in the URL', async () => {
+    const v2 = historyFetch();
+    withQueries(
+      <StrategyWorkspace
+        workspace={workspace}
+        workspaces={[workspace]}
+        initialStrategyId={strategyId}
+        initialVersionId={v1.id}
+      />,
+    );
+    const performance = await screen.findByRole('link', {
+      name: 'Review performance for version 1',
+    });
+    expect(performance).toHaveAttribute(
+      'href',
+      `/dashboard?workspace=${workspace.id}&strategy=${strategyId}&version=${v1.id}`,
+    );
+    fireEvent.change(screen.getByLabelText('View strategy version'), { target: { value: v2.id } });
+    expect(screen.getByRole('link', { name: 'Review performance for version 2' })).toHaveAttribute(
+      'href',
+      `/dashboard?workspace=${workspace.id}&strategy=${strategyId}&version=${v2.id}`,
+    );
+    expect(replace).toHaveBeenLastCalledWith(
+      `/strategies?workspace=${workspace.id}&strategy=${strategyId}&version=${v2.id}`,
+      { scroll: false },
+    );
+  });
+
+  it('protects unsaved rule edits when another strategy is selected', async () => {
+    historyFetch();
+    withQueries(
+      <StrategyWorkspace
+        workspace={workspace}
+        workspaces={[workspace]}
+        initialStrategyId={strategyId}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'RSI pullback refined', level: 2 });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit current version' }));
+    fireEvent.change(screen.getByLabelText('Entry rules'), {
+      target: { value: 'Unsaved threshold' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /RSI pullback refined · Active/u }));
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('Discard unsaved strategy changes?');
+    expect(screen.getByLabelText('Entry rules')).toHaveValue('Unsaved threshold');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByLabelText('Entry rules')).toHaveValue('Unsaved threshold');
+    expect(replace).not.toHaveBeenCalled();
+  });
+  it('keeps dirty rules guarded when confirmed sign-out fails to navigate', async () => {
+    historyFetch();
+    withQueries(
+      <StrategyWorkspace
+        workspace={workspace}
+        workspaces={[workspace]}
+        initialStrategyId={strategyId}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'RSI pullback refined', level: 2 });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit current version' }));
+    fireEvent.change(screen.getByLabelText('Entry rules'), {
+      target: { value: 'Retain unsaved threshold after failed logout' },
+    });
+    const continuation = vi.fn();
+    const detail: WorkspaceNavigationRequestDetail = {
+      destination: '/sign-in',
+      continue: continuation,
+      handled: false,
+    };
+    const request = new CustomEvent('journal:navigation-request', { cancelable: true, detail });
+    fireEvent(window, request);
+    expect(request.defaultPrevented).toBe(true);
+    expect(detail.handled).toBe(true);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Discard unsaved strategy changes?');
+    expect(continuation).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Discard and continue' }));
+    expect(continuation).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('Entry rules')).toHaveValue(
+      'Retain unsaved threshold after failed logout',
+    );
+    const unload = new Event('beforeunload', { cancelable: true });
+    fireEvent(window, unload);
+    expect(unload.defaultPrevented).toBe(true);
+    const retry = new CustomEvent('journal:navigation-request', {
+      cancelable: true,
+      detail: { destination: '/sign-in', continue: continuation, handled: false },
+    });
+    fireEvent(window, retry);
+    expect(await screen.findByRole('dialog')).toHaveAccessibleName(
+      'Discard unsaved strategy changes?',
+    );
+    expect(continuation).toHaveBeenCalledOnce();
+  });
+
+  it('preselects the journal trade and requires confirmation before immutable retrospective assignment', async () => {
+    historyFetch();
+    const tradeId = '951fba8b-7db1-4773-9954-f94766075157';
+    const trade = tradeResponseSchema.parse({
+      id: tradeId,
+      title: 'Opening pullback trade',
+      classification: 'active-trading',
+      revision: 1,
+      archivedAt: null,
+      strategyVersionId: null,
+      strategyId: null,
+      strategyLinkTiming: null,
+      status: 'closed',
+      closureReviewRequired: false,
+    });
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.includes('/financial/trades')) return response([trade]);
+      if (options?.method === 'POST' && url.endsWith('/trade-links'))
+        return response({
+          ...trade,
+          strategyId,
+          strategyVersionId: v1.id,
+          strategyLinkTiming: 'retrospective',
+          revision: 2,
+        });
+      return originalFetch(url, options);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    withQueries(
+      <StrategyWorkspace
+        workspace={workspace}
+        workspaces={[workspace]}
+        initialStrategyId={strategyId}
+        initialVersionId={v1.id}
+        initialTradeId={tradeId}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'RSI pullback', level: 2 });
+    await waitFor(() => expect(screen.getByLabelText('Unclassified trade')).toHaveValue(tradeId));
+    fireEvent.change(screen.getByLabelText('Reason for retrospective assignment'), {
+      target: { value: 'Classify after weekly review' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Assign to version 1' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Opening pullback trade');
+    expect(dialog).toHaveTextContent('version 1');
+    expect(dialog).toHaveTextContent('cannot be changed later');
+    expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(
+      0,
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm assignment' }));
+    await screen.findByText(
+      'Trade assigned retrospectively to version 1. This association cannot be reassigned.',
+    );
+    const mutation = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST');
+    expect(JSON.parse(String(mutation?.[1]?.body))).toMatchObject({
+      tradeId,
+      versionId: v1.id,
+      expectedTradeRevision: 1,
+      reason: 'Classify after weekly review',
+    });
+  });
+
+  it('collects an archive reason and confirms the consequence before mutating', async () => {
+    historyFetch();
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async (url: string, options?: RequestInit) =>
+      originalFetch(url, options),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    withQueries(
+      <StrategyWorkspace
+        workspace={workspace}
+        workspaces={[workspace]}
+        initialStrategyId={strategyId}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'RSI pullback refined', level: 2 });
+    fireEvent.click(screen.getByRole('button', { name: 'Archive strategy' }));
+    expect(screen.getByRole('button', { name: 'Confirm archive' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Reason for archiving'), {
+      target: { value: 'Retire after research review' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm archive' }).closest('form')!);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Archive this strategy?');
+    expect(dialog).toHaveTextContent('Its versions and trade references remain available.');
+    expect(dialog).toHaveTextContent('Retire after research review');
+    expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(
+      0,
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByLabelText('Reason for archiving')).toHaveValue(
+      'Retire after research review',
+    );
   });
 
   it('gives viewers version access without create/edit/archive/link controls', async () => {

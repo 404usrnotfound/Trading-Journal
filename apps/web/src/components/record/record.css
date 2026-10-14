@@ -1,0 +1,115 @@
+.record-main {
+  max-width: 1250px;
+}
+.record-main .panel {
+  margin-bottom: 24px;
+  padding: 24px;
+  min-width: 0;
+}
+.record-main h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  margin: 0 0 12px;
+}
+.record-main p {
+  line-height: 1.65;
+}
+.record-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+.record-main fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.record-main fieldset:disabled {
+  opacity: 0.8;
+}
+.record-check {
+  display: flex;
+  gap: 8px;
+  align-items: start;
+  margin: 16px 0;
+  line-height: 1.5;
+}
+.record-check input {
+  accent-color: var(--accent);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.record-main summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 12px 0;
+  color: var(--accent);
+}
+.record-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin: 20px 0;
+}
+.record-summary div {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  min-width: 0;
+}
+.record-summary dt {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.record-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.record-main pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.record-main textarea {
+  min-height: 110px;
+}
+.record-progress {
+  line-height: 1.8;
+  padding-left: 24px;
+}
+.record-progress code {
+  overflow-wrap: anywhere;
+}
+.record-notice {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+@media (max-width: 1050px) {
+  .record-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .record-main .panel {
+    padding: 16px;
+  }
+  .record-fields,
+  .record-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .record-actions .button {
+    width: 100%;
+  }
+}

@@ -30,7 +30,7 @@ export function WorkspacePreferences({ workspace }: { workspace: WorkspaceRespon
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isReady },
   } = useForm<WorkspacePreferencesUpdateInput>({
     resolver: zodResolver(workspacePreferencesUpdateSchema),
     defaultValues: formValues(workspace),
@@ -90,7 +90,7 @@ export function WorkspacePreferences({ workspace }: { workspace: WorkspaceRespon
       <h2>Workspace preferences</h2>
       <p className="muted">Choose how dates and future reports appear in this workspace.</p>
       {workspace.role === 'owner' ? (
-        <form onSubmit={handleSubmit(save)} noValidate aria-busy={isSubmitting}>
+        <form onSubmit={handleSubmit(save)} noValidate aria-busy={!isReady || isSubmitting}>
           <input type="hidden" {...register('expectedRevision', { valueAsNumber: true })} />
           <div className="preferences-fields">
             <div className="field">
@@ -101,6 +101,7 @@ export function WorkspacePreferences({ workspace }: { workspace: WorkspaceRespon
                 autoComplete="off"
                 spellCheck={false}
                 list="timezone-suggestions"
+                disabled={!isReady || isSubmitting}
                 aria-invalid={Boolean(errors.timezone)}
                 aria-describedby={errors.timezone ? 'timezone-error' : 'timezone-help'}
               />
@@ -135,6 +136,7 @@ export function WorkspacePreferences({ workspace }: { workspace: WorkspaceRespon
                 autoCapitalize="characters"
                 spellCheck={false}
                 maxLength={16}
+                disabled={!isReady || isSubmitting}
                 aria-invalid={Boolean(errors.reportingCurrency)}
                 aria-describedby={
                   errors.reportingCurrency ? 'reporting-currency-error' : 'reporting-currency-help'
@@ -151,8 +153,8 @@ export function WorkspacePreferences({ workspace }: { workspace: WorkspaceRespon
             </div>
           </div>
           <div className="preferences-actions">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving…' : 'Save preferences'}
+            <Button type="submit" disabled={!isReady || isSubmitting}>
+              {!isReady ? 'Loading preferences…' : isSubmitting ? 'Saving…' : 'Save preferences'}
             </Button>
             {conflict && (
               <Button

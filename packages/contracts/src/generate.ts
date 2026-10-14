@@ -723,6 +723,7 @@ const financialReads = {
   'orders/{id}': financial.orderResponseSchema,
   'trades/{id}/legs': financial.tradeLegResponseSchema.array(),
   'trades/{id}': financial.tradeResponseSchema,
+  'executions/{id}/allocations': financial.executionAllocationResponseSchema,
   'campaign-inventory': financial.campaignInventoryResponseSchema,
   'account-valuations': financial.accountValuationObservationResponseSchema.array(),
 };

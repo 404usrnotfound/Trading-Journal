@@ -176,7 +176,7 @@ test('journal workflow keeps original risk, ledger actuals and private review hi
   await expect(page.getByRole('heading', { name: 'Trade journal', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Strategies', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole('button', { name: 'New trade', exact: true }).click();
+  await page.getByRole('button', { name: 'New trade idea', exact: true }).click();
   const title = `Journal campaign ${randomUUID().slice(0, 8)}`;
   await page.getByLabel('Trade title').fill(title);
   await page.getByLabel('Strategy', { exact: true }).selectOption(strategy.id);
@@ -212,6 +212,7 @@ test('journal workflow keeps original risk, ledger actuals and private review hi
   await expect(page.getByText('All journal changes saved')).toBeVisible();
   await page.getByLabel('Plan publication reason').fill('Commit original risk before trading');
   await page.getByRole('button', { name: 'Commit original plan' }).click();
+  await page.getByRole('button', { name: 'Confirm publication' }).click();
   await expect(page.getByText(/Plan v1 published/)).toBeVisible();
   const committed = await detail(tradeId);
   expect(committed.commitment?.timing).toBe('pre-trade');
@@ -224,6 +225,7 @@ test('journal workflow keeps original risk, ledger actuals and private review hi
   await expect(page.getByText('All journal changes saved')).toBeVisible();
   await page.getByLabel('Plan publication reason').fill('A revised plan retains the original risk');
   await page.getByRole('button', { name: 'Publish plan revision' }).click();
+  await page.getByRole('button', { name: 'Confirm publication' }).click();
   await expect(page.getByText(/Plan v2 published/)).toBeVisible();
   const planned = await detail(tradeId);
   expect(planned.originalPlan?.definition.initialRisk?.amount).toBe('1');
@@ -347,6 +349,7 @@ test('journal workflow keeps original risk, ledger actuals and private review hi
   await expect(
     financialMetric(ledgerActuals, 'Actual entry').getByText('10', { exact: true }),
   ).toBeVisible();
+  await page.getByText('Plans, reviews & immutable history', { exact: true }).click();
   await page.getByLabel('Published plan snapshot').selectOption(committed.originalPlan!.id);
   await expect(
     page
@@ -558,6 +561,7 @@ test('retrospective original plans remain reviewable without inventing historica
   await expect(page.getByText('All journal changes saved')).toBeVisible();
   await page.getByLabel('Plan publication reason').fill('An explicitly retrospective review');
   await page.getByRole('button', { name: 'Commit original plan' }).click();
+  await page.getByRole('button', { name: 'Confirm publication' }).click();
   await expect(page.getByText(/Plan v1 published/)).toBeVisible();
   const detail = contract.journalDetailResponseSchema.parse(
     await (await page.request.get(`${prefix}/journals/${trade.id}`)).json(),

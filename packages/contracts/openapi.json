@@ -2527,6 +2527,58 @@
         ],
         "additionalProperties": false
       },
+      "ExecutionAllocationResponse": {
+        "type": "object",
+        "properties": {
+          "executionId": {
+            "$ref": "#/components/schemas/FinancialId"
+          },
+          "version": {
+            "$ref": "#/components/schemas/FinancialRevision"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tradeLegId": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FinancialId"
+                    },
+                    {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  ]
+                },
+                "quantity": {
+                  "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+                }
+              },
+              "required": [
+                "tradeLegId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 1001
+          }
+        },
+        "required": [
+          "executionId",
+          "version",
+          "allocations"
+        ],
+        "additionalProperties": false
+      },
+      "NonnegativeFinancialDecimal": {
+        "type": "string",
+        "maxLength": 512,
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+      },
       "ExecutionAllocation": {
         "type": "object",
         "properties": {
@@ -2637,7 +2689,17 @@
             "$ref": "#/components/schemas/PositiveFinancialDecimal"
           },
           "price": {
-            "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
           },
           "bookedPrincipal": {
             "$ref": "#/components/schemas/PositiveFinancialDecimal"
@@ -2740,14 +2802,6 @@
           "price"
         ],
         "additionalProperties": false
-      },
-      "NonnegativeFinancialDecimal": {
-        "type": [
-          "string",
-          "null"
-        ],
-        "maxLength": 512,
-        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
       },
       "FeeComponent": {
         "type": "object",
@@ -2877,7 +2931,17 @@
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               "price": {
-                "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
+                  },
+                  {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                ]
               },
               "bookedPrincipal": {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
@@ -5601,6 +5665,10 @@
           "image/webp",
           "application/pdf"
         ]
+      },
+      "JournalActivityInstant": {
+        "type": "string",
+        "format": "date-time"
       },
       "JournalActualObservation": {
         "type": "object",
@@ -19494,6 +19562,30 @@
             },
             "required": false,
             "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/JournalActivityInstant"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/JournalActivityInstant"
+            },
+            "required": false,
+            "name": "to",
             "in": "query"
           }
         ],
@@ -49809,6 +49901,332 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StrategyTradeLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/financial/executions/{id}/allocations": {
+      "get": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAllocationResponse"
                 }
               }
             }

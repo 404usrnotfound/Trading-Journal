@@ -171,7 +171,10 @@ export function JournalAttachments({
                       metadata.data?.find((entry) => entry.id === attachment.attachmentId);
                     return (
                       <li key={attachment.attachmentId}>
-                        <a href={`${prefix}/${attachment.attachmentId}`}>
+                        <a
+                          href={`${prefix}/${attachment.attachmentId}`}
+                          download={file?.name ?? true}
+                        >
                           {file?.name ?? `Download evidence ${attachment.attachmentId}`}
                         </a>
                         {editable && (

@@ -56,3 +56,25 @@ export function todayInZone(timezone: string): string {
     .map((key) => parts.find((part) => part.type === key)!.value)
     .join('-');
 }
+
+/** Presets operate on local calendar dates; report boundaries still retain timezone/DST rules. */
+export function dashboardDatePreset(
+  preset: 'today' | 'this-week' | 'last-week' | 'last-30-days',
+  timezone: string,
+): { from: string; to: string } {
+  const today = todayInZone(timezone);
+  const localCalendarDate = new Date(`${today}T12:00:00Z`);
+  const offset = (days: number) =>
+    new Date(localCalendarDate.getTime() + days * 86_400_000).toISOString().slice(0, 10);
+  const daysSinceMonday = (localCalendarDate.getUTCDay() + 6) % 7;
+  switch (preset) {
+    case 'today':
+      return { from: today, to: today };
+    case 'this-week':
+      return { from: offset(-daysSinceMonday), to: today };
+    case 'last-week':
+      return { from: offset(-daysSinceMonday - 7), to: offset(-daysSinceMonday - 1) };
+    case 'last-30-days':
+      return { from: offset(-29), to: today };
+  }
+}

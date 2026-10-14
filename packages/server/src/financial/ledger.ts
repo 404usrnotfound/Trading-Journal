@@ -24,6 +24,7 @@ import {
   type InventoryCampaignAllocation,
 } from '@journal/domain';
 import type { AuthorizationContext } from '../services.js';
+import { inaccessible } from '../errors.js';
 import type { AccountReference, InstrumentVersionReference } from './catalog-types.js';
 import {
   requireAccount,
@@ -2164,6 +2165,55 @@ export function createFinancialLedger(platform: FinancialPlatform) {
     });
   }
 
+  async function executionAllocations(context: AuthorizationContext, executionId: string) {
+    return platform.withWorkspaceContext(
+      context,
+      async (tx) => {
+        const id = financialUuid.parse(executionId);
+        const [execution] = await queryRows<ExecutionRow>(
+          tx,
+          sql`SELECT * FROM app.executions
+        WHERE workspace_id=${context.workspaceId}::uuid AND id=${id}::uuid`,
+        );
+        if (!execution) throw inaccessible();
+        const [superseded] = await queryRows<{ id: string }>(
+          tx,
+          sql`SELECT id FROM app.execution_supersessions
+        WHERE workspace_id=${context.workspaceId}::uuid AND original_execution_id=${execution.id}::uuid LIMIT 1`,
+        );
+        if (superseded)
+          throw financialConflict(
+            'SOURCE_NOT_EFFECTIVE',
+            'This execution was corrected. Select its effective replacement.',
+          );
+        const [set] = await queryRows<{ id: string; version: number }>(
+          tx,
+          sql`SELECT id,version FROM app.allocation_sets
+        WHERE workspace_id=${context.workspaceId}::uuid AND execution_id=${execution.id}::uuid ORDER BY version DESC LIMIT 1`,
+        );
+        if (!set)
+          throw financialConflict(
+            'MISSING_ALLOCATION',
+            'The execution has no effective allocation record.',
+          );
+        const rows = await queryRows<{ trade_leg_id: string | null; quantity_raw: string }>(
+          tx,
+          sql`SELECT trade_leg_id,quantity_raw
+        FROM app.allocation_items WHERE workspace_id=${context.workspaceId}::uuid AND allocation_set_id=${set.id}::uuid ORDER BY id LIMIT 1002`,
+        );
+        return {
+          executionId: execution.id,
+          version: set.version,
+          allocations: rows.map((row) => ({
+            tradeLegId: row.trade_leg_id,
+            quantity: decimal(row.quantity_raw),
+          })),
+        };
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
+  }
+
   async function executions(
     context: AuthorizationContext,
     input: {
@@ -2271,6 +2321,7 @@ export function createFinancialLedger(platform: FinancialPlatform) {
     allocateExecution,
     cashBalances,
     executions,
+    executionAllocations,
     positions,
     fees,
     campaignInventory,

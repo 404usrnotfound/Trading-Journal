@@ -190,7 +190,11 @@ test('workspace preferences persist and concurrent edits require a reload', asyn
 
   const otherTab = await page.context().newPage();
   await otherTab.goto('/');
+  await expect(otherTab.getByLabel('Timezone', { exact: true })).toBeEnabled();
+  await expect(otherTab.getByLabel('Timezone', { exact: true })).toHaveValue('Europe/Madrid');
+  await expect(otherTab.getByLabel('Reporting currency', { exact: true })).toHaveValue('EUR');
   await otherTab.getByLabel('Timezone', { exact: true }).fill('America/New_York');
+  await expect(otherTab.getByLabel('Timezone', { exact: true })).toHaveValue('America/New_York');
   await otherTab.getByRole('button', { name: 'Save preferences', exact: true }).click();
   await expect(otherTab.getByRole('status')).toHaveText('Preferences saved.');
   await page.getByLabel('Timezone', { exact: true }).fill('Asia/Tokyo');

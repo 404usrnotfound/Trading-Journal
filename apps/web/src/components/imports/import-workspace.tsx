@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as c from '@journal/contracts';
 import { Button, Panel } from '@journal/ui';
+import { ConfirmDialog } from '@/components/ux/confirm-dialog';
 
 type Workspace = c.WorkspaceResponse;
 type Field = c.ImportMapping['fields'][number];
@@ -21,6 +22,36 @@ const names: Record<c.ImportKind, string> = {
   tax: 'Tax',
   expense: 'Financing expense',
   execution_cash: 'Fill cash reference',
+};
+const fieldNames: Record<string, string> = {
+  economicAt: 'Activity date',
+  observedAt: 'Observation date',
+  orderingKey: 'Sequence within date',
+  side: 'Buy / sell',
+  quantity: 'Quantity',
+  price: 'Price',
+  amount: 'Amount',
+  currencyId: 'Currency',
+  sourceCurrencyId: 'Source currency',
+  destinationCurrencyId: 'Destination currency',
+  instrumentVersionId: 'Instrument version',
+  costsComplete: 'Fees fully recorded',
+  kind: 'Cash movement type',
+  direction: 'Position direction',
+  reason: 'Reason',
+  source: 'Observation source',
+  definition: 'Valuation definition',
+};
+const statuses: Record<c.ImportRowResponse['status'], string> = {
+  ready: 'Awaiting validation',
+  invalid: 'Needs attention',
+  ambiguous: 'Identity needs review',
+  new: 'New activity',
+  duplicate: 'Duplicate — will be skipped',
+  correction: 'Correction reason required',
+  reconciled: 'Already reconciled',
+  committed: 'Posted',
+  reversed: 'Reversed',
 };
 class ImportRequestError extends Error {
   constructor(
@@ -168,7 +199,9 @@ export function ImportWorkspace({
     [review, setReview] = useState<c.ImportPreviewResponse | null>(null),
     [ack, setAck] = useState(false),
     [corrections, setCorrections] = useState<Record<string, string>>({}),
-    [reason, setReason] = useState('');
+    [reason, setReason] = useState(''),
+    [reviewNeedsValidation, setReviewNeedsValidation] = useState(false),
+    [confirmation, setConfirmation] = useState<'commit' | 'reverse' | 'archive' | null>(null);
   const detail = useQuery({
     queryKey: ['import-detail', workspace.id, batch?.id, cursor],
     enabled: !!batch,
@@ -178,6 +211,17 @@ export function ImportWorkspace({
   const current = detail.data?.batch ?? batch,
     rows = review?.rows ?? detail.data?.rows ?? [];
   const data = catalog.data;
+  const selectedRowCount =
+    detail.data?.groups
+      .filter((group) => selected.includes(group.key))
+      .reduce((sum, group) => sum + group.rows, 0) ?? 0;
+  const selectionTooLarge = selectedRowCount > c.IMPORT_LIMITS.commitRows;
+  const needsWarningAcknowledgement = review?.rows.some((row) => row.warnings.length > 0);
+  const canCommit =
+    !!review?.committable &&
+    !reviewNeedsValidation &&
+    (!needsWarningAcknowledgement || ack) &&
+    !busy;
   function draftMapping() {
     return {
       adapterId: adapter,
@@ -196,7 +240,15 @@ export function ImportWorkspace({
     };
   }
   function mapping() {
-    return c.importMappingSchema.parse(advanced ?? draftMapping());
+    const result = c.importMappingSchema.safeParse(advanced ?? draftMapping());
+    if (!result.success)
+      throw new Error(
+        `Check the mapping: ${result.error.issues
+          .slice(0, 3)
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join('; ')}`,
+      );
+    return result.data;
   }
   async function run(operation: () => Promise<void>) {
     setError(null);
@@ -253,10 +305,12 @@ export function ImportWorkspace({
   function open(value: c.ImportBatchResponse) {
     setBatch(value);
     setCursor(0);
-    setSelected([]);
+    setSelected(value.preview?.groups ?? []);
     setReview(value.preview);
-    setCorrections({});
+    setCorrections(value.preview?.corrections ?? {});
     setAck(false);
+    setReviewNeedsValidation(false);
+    setReason('');
   }
   function summary(row: c.ImportRowResponse) {
     const payload = row.payload;
@@ -277,15 +331,22 @@ export function ImportWorkspace({
           <p>Review broker activity before it changes your financial records.</p>
         </div>
       </div>
-      <nav className="journal-mobile-nav" aria-label="Mobile page navigation">
-        <a href={`/?workspace=${workspace.id}`}>Overview</a>
-        <a href={`/dashboard?workspace=${workspace.id}`}>Dashboard</a>
-        <a href={`/strategies?workspace=${workspace.id}`}>Strategies</a>
-        <a href={`/journal?workspace=${workspace.id}`}>Trade journal</a>
-        <a href={`/imports?workspace=${workspace.id}`} aria-current="page">
-          Imports
-        </a>
-      </nav>
+      <ol className="import-progress" aria-label="Import progress">
+        <li aria-current={!current ? 'step' : undefined}>
+          <span>1</span> Choose source and mapping
+        </li>
+        <li aria-current={current && !review ? 'step' : undefined}>
+          <span>2</span> Review and validate
+        </li>
+        <li aria-current={review ? 'step' : undefined}>
+          <span>3</span> Confirm posting
+        </li>
+      </ol>
+      {busy && (
+        <p className="import-working" aria-live="polite">
+          Processing import request…
+        </p>
+      )}
       {workspaces.length > 1 && (
         <div className="journal-field">
           <label htmlFor={`${id}-workspace`}>Workspace</label>
@@ -307,6 +368,24 @@ export function ImportWorkspace({
           <p>
             {error ?? (catalog.error ?? templates.error ?? history.error ?? detail.error)?.message}
           </p>
+          {error && !review && current && (
+            <p className="muted">Validate your selected groups again before posting.</p>
+          )}
+          {(catalog.error || templates.error || history.error || detail.error) && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void Promise.all([
+                  catalog.refetch(),
+                  templates.refetch(),
+                  history.refetch(),
+                  ...(batch ? [detail.refetch()] : []),
+                ]);
+              }}
+            >
+              Retry loading import data
+            </Button>
+          )}
         </Panel>
       )}
       {!canEdit && (
@@ -315,18 +394,40 @@ export function ImportWorkspace({
         </Panel>
       )}
       {canEdit && (
-        <Panel className="import-setup">
+        <Panel className="import-setup" aria-busy={busy || catalog.isPending}>
           <h2>1. Source and mapping</h2>
           <p className="muted">
             UTF-8 CSV · up to 2 MiB and 1,000 rows. Commit complete groups of at most 100 rows at a
             time.
           </p>
+          <details>
+            <summary>Correcting a previously imported statement</summary>
+            <p className="muted">
+              Upload the corrected CSV to the same account with the same broker source namespace and
+              stable source IDs. Validation flags changed records for review. Enter a reason,
+              validate again, then confirm posting. Unchanged records are skipped as duplicates.
+            </p>
+            <p className="muted">
+              Cash movements and fills support explicit corrections when their dependencies allow
+              them. Other record types need a domain correction; changing a source ID would create
+              new activity and must not be used to bypass review.
+            </p>
+          </details>
+          {catalog.isPending && <p className="muted">Loading accounts and mapping choices…</p>}
+          {data && data.accounts.length === 0 && (
+            <div className="import-guidance">
+              <strong>Create an account before importing.</strong>
+              <p>Each file belongs to one account. Add its currencies and instruments first.</p>
+              <a href={`/record?workspace=${workspace.id}#catalog-setup`}>Set up an account</a>
+            </div>
+          )}
           <div className="import-fields">
             <div className="journal-field">
               <label htmlFor={`${id}-account`}>Account</label>
               <select
                 id={`${id}-account`}
                 value={account}
+                disabled={busy || catalog.isPending}
                 onChange={(event) => {
                   setAccount(event.target.value);
                   setNamespace(
@@ -347,6 +448,7 @@ export function ImportWorkspace({
               <input
                 id={`${id}-namespace`}
                 value={namespace}
+                disabled={busy}
                 onChange={(event) => setNamespace(event.target.value)}
               />
               <small className="muted">Keep this stable across statement reimports.</small>
@@ -357,9 +459,11 @@ export function ImportWorkspace({
                 id={`${id}-file`}
                 type="file"
                 accept=".csv,text/csv"
+                disabled={busy}
                 onChange={(event) => {
                   const value = event.target.files?.[0];
                   if (!value) return;
+                  setFile(null);
                   void run(async () => {
                     if (value.size > c.IMPORT_LIMITS.fileBytes)
                       throw new Error('Choose a CSV up to 2 MiB.');
@@ -367,8 +471,6 @@ export function ImportWorkspace({
                       await value.arrayBuffer(),
                     );
                     setFile({ name: value.name, text });
-                    setTemplate(null);
-                    setAdvanced(null);
                   });
                 }}
               />
@@ -377,7 +479,8 @@ export function ImportWorkspace({
               <label htmlFor={`${id}-template`}>Saved mapping</label>
               <select
                 id={`${id}-template`}
-                value={editingTemplate?.id ?? ''}
+                value={template?.id ?? ''}
+                disabled={busy || templates.isPending}
                 onChange={(event) =>
                   loadTemplate(
                     templates.data?.items.find((value) => value.id === event.target.value) ?? null,
@@ -393,6 +496,12 @@ export function ImportWorkspace({
                     </option>
                   ))}
               </select>
+              {editingTemplate && !template && (
+                <small className="muted">
+                  Unsaved changes based on {editingTemplate.name} · v{editingTemplate.version}. Save
+                  a new version to reuse them.
+                </small>
+              )}
             </div>
           </div>
           <div className="import-fields">
@@ -444,91 +553,100 @@ export function ImportWorkspace({
                 ))}
               </select>
             </div>
-            <div className="journal-field">
-              <label htmlFor={`${id}-delimiter`}>Delimiter</label>
-              <select
-                id={`${id}-delimiter`}
-                value={delimiter}
-                onChange={(event) => {
-                  setDelimiter(event.target.value as typeof delimiter);
-                  setTemplate(null);
-                  setAdvanced(null);
-                }}
-              >
-                {[
-                  [',', 'Comma'],
-                  [';', 'Semicolon'],
-                  ['\t', 'Tab'],
-                  ['|', 'Pipe'],
-                ].map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="journal-field">
-              <label htmlFor={`${id}-decimal`}>Decimal separator</label>
-              <select
-                id={`${id}-decimal`}
-                value={decimal}
-                onChange={(event) => {
-                  setDecimal(event.target.value as typeof decimal);
-                  setTemplate(null);
-                  setAdvanced(null);
-                }}
-              >
-                <option value=".">Dot (1234.56)</option>
-                <option value=",">Comma (1234,56)</option>
-              </select>
-            </div>
-            <div className="journal-field">
-              <label htmlFor={`${id}-grouping`}>Thousands separator</label>
-              <select
-                id={`${id}-grouping`}
-                value={grouping}
-                onChange={(event) => {
-                  setGrouping(event.target.value as typeof grouping);
-                  setTemplate(null);
-                  setAdvanced(null);
-                }}
-              >
-                <option value="none">None</option>
-                <option value=",">Comma</option>
-                <option value=".">Dot</option>
-                <option value=" ">Space</option>
-              </select>
-            </div>
-            <div className="journal-field">
-              <label htmlFor={`${id}-date`}>Date format</label>
-              <select
-                id={`${id}-date`}
-                value={dateFormat}
-                onChange={(event) => {
-                  setDateFormat(event.target.value as typeof dateFormat);
-                  setTemplate(null);
-                  setAdvanced(null);
-                }}
-              >
-                <option value="iso">ISO with explicit offset</option>
-                <option value="ymd">Year-month-day</option>
-                <option value="dmy">Day/month/year</option>
-                <option value="mdy">Month/day/year</option>
-              </select>
-            </div>
-            <div className="journal-field">
-              <label htmlFor={`${id}-zone`}>Source timezone</label>
-              <input
-                id={`${id}-zone`}
-                value={timezone}
-                onChange={(event) => {
-                  setTimezone(event.target.value);
-                  setTemplate(null);
-                  setAdvanced(null);
-                }}
-              />
-            </div>
           </div>
+          <details className="import-settings">
+            <summary>File format and date conventions</summary>
+            <p className="muted">
+              Defaults: comma-separated, decimal point, ISO dates with an offset. Match your
+              statement before staging; local dates use the source timezone below.
+            </p>
+            <div className="import-fields">
+              <div className="journal-field">
+                <label htmlFor={`${id}-delimiter`}>Delimiter</label>
+                <select
+                  id={`${id}-delimiter`}
+                  value={delimiter}
+                  onChange={(event) => {
+                    setDelimiter(event.target.value as typeof delimiter);
+                    setTemplate(null);
+                    setAdvanced(null);
+                  }}
+                >
+                  {[
+                    [',', 'Comma'],
+                    [';', 'Semicolon'],
+                    ['\t', 'Tab'],
+                    ['|', 'Pipe'],
+                  ].map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="journal-field">
+                <label htmlFor={`${id}-decimal`}>Decimal separator</label>
+                <select
+                  id={`${id}-decimal`}
+                  value={decimal}
+                  onChange={(event) => {
+                    setDecimal(event.target.value as typeof decimal);
+                    setTemplate(null);
+                    setAdvanced(null);
+                  }}
+                >
+                  <option value=".">Dot (1234.56)</option>
+                  <option value=",">Comma (1234,56)</option>
+                </select>
+              </div>
+              <div className="journal-field">
+                <label htmlFor={`${id}-grouping`}>Thousands separator</label>
+                <select
+                  id={`${id}-grouping`}
+                  value={grouping}
+                  onChange={(event) => {
+                    setGrouping(event.target.value as typeof grouping);
+                    setTemplate(null);
+                    setAdvanced(null);
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value=",">Comma</option>
+                  <option value=".">Dot</option>
+                  <option value=" ">Space</option>
+                </select>
+              </div>
+              <div className="journal-field">
+                <label htmlFor={`${id}-date`}>Date format</label>
+                <select
+                  id={`${id}-date`}
+                  value={dateFormat}
+                  onChange={(event) => {
+                    setDateFormat(event.target.value as typeof dateFormat);
+                    setTemplate(null);
+                    setAdvanced(null);
+                  }}
+                >
+                  <option value="iso">ISO with explicit offset</option>
+                  <option value="ymd">Year-month-day</option>
+                  <option value="dmy">Day/month/year</option>
+                  <option value="mdy">Month/day/year</option>
+                </select>
+              </div>
+              <div className="journal-field">
+                <label htmlFor={`${id}-zone`}>Source timezone</label>
+                <input
+                  id={`${id}-zone`}
+                  value={timezone}
+                  onChange={(event) => {
+                    setTimezone(event.target.value);
+                    setTemplate(null);
+                    setAdvanced(null);
+                  }}
+                />
+              </div>
+            </div>
+          </details>
           {adapter === 'generic-csv' ? (
             <>
               <div className="import-fields">
@@ -561,7 +679,25 @@ export function ImportWorkspace({
                 Map currency and instrument identities explicitly. Unmapped columns are retained for
                 review. Without broker IDs, identical rows require an occurrence ID.
               </p>
-              <div className="import-table">
+              <p className="muted">
+                Use the exact CSV header for each column. Choose catalog entries for constants;
+                files containing multiple currencies or instruments need explicit value aliases in
+                advanced mapping.
+              </p>
+              {kind === 'execution' && (
+                <p className="import-guidance">
+                  Map actual fills using the correct instrument version. Mark fees fully recorded
+                  only when all source costs are supplied. Imported fills must be allocated to trade
+                  campaigns in the journal before trade analytics can include them; unsupported
+                  instruments retain their accounting limits.
+                </p>
+              )}
+              <div
+                className="import-table"
+                role="region"
+                aria-label="Scrollable financial field mapping"
+                tabIndex={0}
+              >
                 <table>
                   <caption>Financial field mapping</caption>
                   <thead>
@@ -577,8 +713,12 @@ export function ImportWorkspace({
                     {fields.map((field, index) => (
                       <tr key={index}>
                         <td>
+                          <strong className="import-field-name">
+                            {fieldNames[field.target] ?? 'Custom financial field'}
+                          </strong>
                           <input
                             aria-label={`Target field ${index + 1}`}
+                            list={`${id}-mapping-targets`}
                             value={field.target}
                             onChange={(event) => {
                               setFields(
@@ -628,7 +768,9 @@ export function ImportWorkspace({
                                 setAdvanced(null);
                               }}
                             />
-                          ) : field.target === 'currencyId' ? (
+                          ) : ['currencyId', 'sourceCurrencyId', 'destinationCurrencyId'].includes(
+                              field.target,
+                            ) ? (
                             <select
                               aria-label={`Currency field ${index + 1}`}
                               value={String(field.constant ?? '')}
@@ -670,9 +812,28 @@ export function ImportWorkspace({
                               <option value="">Choose instrument/version</option>
                               {data?.instruments.map((value) => (
                                 <option key={value.versionId} value={value.versionId}>
-                                  {value.name}
+                                  {value.name} · version {value.versionId.slice(-8)}
                                 </option>
                               ))}
+                            </select>
+                          ) : field.transform === 'boolean' ? (
+                            <select
+                              aria-label={`Constant value ${index + 1}`}
+                              value={String(field.constant ?? '')}
+                              onChange={(event) => {
+                                setFields(
+                                  fields.map((value, i) =>
+                                    i === index
+                                      ? { ...value, constant: event.target.value === 'true' }
+                                      : value,
+                                  ),
+                                );
+                                setTemplate(null);
+                                setAdvanced(null);
+                              }}
+                            >
+                              <option value="false">No</option>
+                              <option value="true">Yes</option>
                             </select>
                           ) : (
                             <input
@@ -756,6 +917,13 @@ export function ImportWorkspace({
                   </tbody>
                 </table>
               </div>
+              <datalist id={`${id}-mapping-targets`}>
+                {Object.entries(fieldNames).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </datalist>
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -846,24 +1014,7 @@ export function ImportWorkspace({
                 variant="secondary"
                 disabled={busy}
                 onClick={() => {
-                  void run(async () => {
-                    await read(
-                      `${prefix}/templates/${editingTemplate.templateId}/versions`,
-                      c.importTemplateResponseSchema,
-                      {
-                        name: editingTemplate.name,
-                        mapping: editingTemplate.mapping,
-                        expectedVersion: editingTemplate.version,
-                        archived: true,
-                      },
-                    );
-                    setTemplate(null);
-                    setAdvanced(null);
-                    setEditingTemplate(null);
-                    await client.invalidateQueries({
-                      queryKey: ['import-templates', workspace.id],
-                    });
-                  });
+                  setConfirmation('archive');
                 }}
               >
                 Archive mapping
@@ -891,10 +1042,15 @@ export function ImportWorkspace({
           {file && (
             <p className="muted">Selected: {file.name} · no financial activity has been posted.</p>
           )}
+          {!file && (
+            <p className="muted">
+              Choose a CSV and account to begin. Staging creates a review copy only.
+            </p>
+          )}
         </Panel>
       )}
       {current && (
-        <Panel className="import-review">
+        <Panel className="import-review" aria-busy={busy || detail.isPending}>
           <h2>2. Review {current.filename}</h2>
           <p className="muted">
             Account:{' '}
@@ -910,8 +1066,54 @@ export function ImportWorkspace({
             Source SHA-256: <code>{current.fileHash}</code>
           </p>
           <a href={`${prefix}/batches/${current.id}/source`}>Download original source</a>
+          {detail.isPending && <p className="muted">Loading source rows and dependency groups…</p>}
+          {current.state === 'reversed' && (
+            <p className="import-guidance">
+              This batch was reversed. Its original source and audit history remain available.
+            </p>
+          )}
+          {['committed', 'partial'].includes(current.state) &&
+            rows.some((row) => row.kind === 'execution') && (
+              <p className="import-guidance">
+                Fills are recorded.{' '}
+                <a href={`/record?workspace=${workspace.id}&mode=existing`}>
+                  Create a journal trade from an existing fill
+                </a>{' '}
+                to allocate it to a campaign without posting it again.
+              </p>
+            )}
           {canEdit && current.state !== 'reversed' && (
             <>
+              <p className="muted">
+                Select complete groups, then validate to identify new activity, duplicates and
+                corrections. Validation leaves financial records unchanged.
+              </p>
+              <div className="import-actions">
+                <Button
+                  variant="secondary"
+                  disabled={busy || !detail.data?.groups.length}
+                  onClick={() => {
+                    setSelected(detail.data?.groups.map((group) => group.key) ?? []);
+                    setReview(null);
+                    setAck(false);
+                    setReviewNeedsValidation(false);
+                  }}
+                >
+                  Select all groups
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={busy || !selected.length}
+                  onClick={() => {
+                    setSelected([]);
+                    setReview(null);
+                    setAck(false);
+                    setReviewNeedsValidation(false);
+                  }}
+                >
+                  Clear selection
+                </Button>
+              </div>
               <fieldset className="import-groups">
                 <legend>Include complete dependency groups</legend>
                 {detail.data?.groups.map((group) => (
@@ -928,6 +1130,7 @@ export function ImportWorkspace({
                         );
                         setReview(null);
                         setAck(false);
+                        setReviewNeedsValidation(false);
                       }}
                     />
                     {group.key} · {group.rows} rows{group.invalid ? ' · errors' : ''}
@@ -936,14 +1139,16 @@ export function ImportWorkspace({
                 ))}
               </fieldset>
               <p className="muted">
-                Selected:{' '}
-                {detail.data?.groups
-                  .filter((group) => selected.includes(group.key))
-                  .reduce((sum, group) => sum + group.rows, 0) ?? 0}{' '}
-                rows. Excluded groups stay unposted.
+                Selected: {selectedRowCount} rows. Excluded groups stay unposted.
               </p>
+              {selectionTooLarge && (
+                <p className="import-guidance">
+                  Choose fewer groups: each review can include at most 100 rows. Remaining groups
+                  can be posted in a later review.
+                </p>
+              )}
               <Button
-                disabled={busy || !selected.length}
+                disabled={busy || detail.isPending || !selected.length || selectionTooLarge}
                 onClick={() => {
                   void run(async () => {
                     const result = await read(
@@ -953,6 +1158,7 @@ export function ImportWorkspace({
                     );
                     setReview(result);
                     setAck(false);
+                    setReviewNeedsValidation(false);
                     setBatch({ ...current, revision: result.batchRevision, preview: result });
                     await refresh();
                   });
@@ -964,13 +1170,51 @@ export function ImportWorkspace({
           )}
           {review && (
             <p role="status">
-              {review.committable
-                ? 'Preview valid. Ready for your explicit commit.'
-                : 'Preview has blocking errors. Resolve them or select complete valid groups.'}{' '}
+              {reviewNeedsValidation
+                ? 'Correction reasons changed. Validate selected groups again before posting.'
+                : review.committable
+                  ? 'Preview valid. Ready for your explicit commit.'
+                  : 'Preview has blocking errors. Resolve them or select complete valid groups.'}{' '}
               Financial records are unchanged by preview.
             </p>
           )}
-          <div className="import-table">
+          {review && (
+            <div className="import-preview-summary" aria-label="Preview summary">
+              <span>
+                <strong>
+                  {
+                    review.rows.filter((row) => row.status === 'new' && !review.corrections[row.id])
+                      .length
+                  }
+                </strong>{' '}
+                new records
+              </span>
+              <span>
+                <strong>{review.rows.filter((row) => row.status === 'duplicate').length}</strong>{' '}
+                duplicates skipped
+              </span>
+              <span>
+                <strong>
+                  {
+                    review.rows.filter(
+                      (row) => row.status === 'correction' || review.corrections[row.id],
+                    ).length
+                  }
+                </strong>{' '}
+                corrections
+              </span>
+              <span>
+                <strong>{review.rows.filter((row) => row.errors.length > 0).length}</strong> rows
+                needing attention
+              </span>
+            </div>
+          )}
+          <div
+            className="import-table"
+            role="region"
+            aria-label="Scrollable source row review"
+            tabIndex={0}
+          >
             <table>
               <caption>
                 {review ? 'Validated selection' : 'Source rows'} · {rows.length} displayed
@@ -994,7 +1238,13 @@ export function ImportWorkspace({
                     <td>{row.kind ? names[row.kind] : 'Invalid record'}</td>
                     <td>{summary(row)}</td>
                     <td>
-                      <strong>{row.status}</strong>
+                      <strong>{statuses[row.status]}</strong>
+                      {row.status === 'duplicate' && (
+                        <p>
+                          This source record is already posted. Committing the review will not post
+                          it again.
+                        </p>
+                      )}
                       {row.errors.map((value, index) => (
                         <p key={index}>
                           {value.field && `${value.field}: `}
@@ -1004,18 +1254,28 @@ export function ImportWorkspace({
                       {row.warnings.map((warning, index) => (
                         <p key={index}>{warning}</p>
                       ))}
-                      {canEdit && row.status === 'correction' && (
-                        <label>
-                          Correction reason
-                          <input
-                            aria-label={`Correction reason row ${row.rowNumber}`}
-                            value={corrections[row.id] ?? ''}
-                            onChange={(event) =>
-                              setCorrections({ ...corrections, [row.id]: event.target.value })
-                            }
-                          />
-                        </label>
-                      )}
+                      {canEdit &&
+                        (row.status === 'correction' ||
+                          corrections[row.id] !== undefined ||
+                          review?.corrections[row.id] !== undefined) && (
+                          <label>
+                            Correction reason
+                            <input
+                              aria-label={`Correction reason row ${row.rowNumber}`}
+                              value={corrections[row.id] ?? ''}
+                              disabled={busy}
+                              onChange={(event) => {
+                                setCorrections({ ...corrections, [row.id]: event.target.value });
+                                setReviewNeedsValidation(true);
+                                setAck(false);
+                              }}
+                            />
+                            <small>
+                              Explain the changed broker record, then validate again. The original
+                              source remains in the audit history.
+                            </small>
+                          </label>
+                        )}
                     </td>
                     <td>
                       <details>
@@ -1028,6 +1288,9 @@ export function ImportWorkspace({
                 ))}
               </tbody>
             </table>
+            {!detail.isPending && rows.length === 0 && (
+              <p className="muted">No source rows are available for this batch.</p>
+            )}
           </div>
           {!review && (
             <div className="import-actions">
@@ -1055,30 +1318,15 @@ export function ImportWorkspace({
                 <input
                   type="checkbox"
                   checked={ack}
+                  disabled={busy || reviewNeedsValidation}
                   onChange={(event) => setAck(event.target.checked)}
                 />{' '}
                 I reviewed retained unmapped columns and warnings.
               </label>
               <Button
-                disabled={
-                  busy ||
-                  !review.committable ||
-                  (!ack && review.rows.some((row) => row.warnings.length > 0))
-                }
+                disabled={!canCommit}
                 onClick={() => {
-                  void run(async () => {
-                    const result = await read(
-                      `${prefix}/batches/${current.id}/commit`,
-                      c.importBatchResponseSchema,
-                      {
-                        expectedRevision: review.batchRevision,
-                        previewId: review.id,
-                        acceptWarnings: ack,
-                      },
-                    );
-                    open(result);
-                    await refresh();
-                  });
+                  setConfirmation('commit');
                 }}
               >
                 Commit reviewed import
@@ -1102,17 +1350,9 @@ export function ImportWorkspace({
               </div>
               <Button
                 variant="secondary"
-                disabled={busy || !reason}
+                disabled={busy || !reason.trim()}
                 onClick={() => {
-                  void run(async () => {
-                    const result = await read(
-                      `${prefix}/batches/${current.id}/reverse`,
-                      c.importBatchResponseSchema,
-                      { expectedRevision: current.revision, reason },
-                    );
-                    open(result);
-                    await refresh();
-                  });
+                  setConfirmation('reverse');
                 }}
               >
                 Review and reverse cash batch
@@ -1121,6 +1361,7 @@ export function ImportWorkspace({
           )}
           <details>
             <summary>Batch audit history</summary>
+            {detail.data?.history.length === 0 && <p className="muted">No recorded actions yet.</p>}
             {detail.data?.history.map((item) => (
               <p key={item.id}>
                 {item.action} · {item.createdAt}
@@ -1137,11 +1378,27 @@ export function ImportWorkspace({
           </Button>
         )}
         {history.isPending ? (
-          <p>Loading import history…</p>
+          <p aria-live="polite">Loading import history…</p>
+        ) : history.error ? (
+          <p className="muted">
+            Import history is unavailable. Retry loading to see your previous statements.
+          </p>
         ) : !history.data?.items.length ? (
-          <p>No imported statements yet.</p>
+          <div className="import-guidance">
+            <strong>No imported statements yet.</strong>
+            <p>
+              {canEdit
+                ? 'Choose an account and CSV above. You can review every change before posting it.'
+                : 'Uploaded source files and their review history will appear here.'}
+            </p>
+          </div>
         ) : (
-          <div className="import-table">
+          <div
+            className="import-table"
+            role="region"
+            aria-label="Scrollable import history"
+            tabIndex={0}
+          >
             <table>
               <caption>Recent statement batches</caption>
               <thead>
@@ -1180,6 +1437,110 @@ export function ImportWorkspace({
           </Button>
         )}
       </Panel>
+      <ConfirmDialog
+        open={confirmation !== null}
+        busy={busy}
+        title={
+          confirmation === 'reverse'
+            ? 'Reverse this cash batch?'
+            : confirmation === 'archive'
+              ? 'Archive this mapping?'
+              : 'Post this reviewed import?'
+        }
+        confirmLabel={
+          confirmation === 'reverse'
+            ? 'Confirm reversal'
+            : confirmation === 'archive'
+              ? 'Archive mapping'
+              : 'Confirm posting'
+        }
+        description={
+          confirmation === 'reverse' ? (
+            <>
+              <p>
+                {current?.filename} will receive exact offsetting cash entries if it remains
+                eligible. Source files and audit history are preserved.
+              </p>
+              <p>
+                <strong>Reason:</strong> {reason}
+              </p>
+              <p>
+                Fills, fees, FX, holdings and later financial activity require explicit corrections
+                instead.
+              </p>
+            </>
+          ) : confirmation === 'archive' ? (
+            <p>
+              {editingTemplate?.name} will be hidden from saved mapping choices. Existing imports
+              retain the version they used.
+            </p>
+          ) : (
+            <>
+              <p>
+                Post {review?.rows.length ?? 0} reviewed rows from{' '}
+                <strong>{current?.filename}</strong> to{' '}
+                <strong>
+                  {data?.accounts.find((value) => value.id === current?.accountId)?.name ??
+                    'this account'}
+                </strong>
+                .
+              </p>
+              <p>
+                Duplicates are skipped. Reviewed corrections preserve prior source history. This
+                updates the financial ledger; reversal is available only for eligible cash batches.
+              </p>
+            </>
+          )
+        }
+        onCancel={() => {
+          if (!busy) setConfirmation(null);
+        }}
+        onConfirm={() => {
+          if (busy) return;
+          if (confirmation === 'commit' && current && review && canCommit) {
+            void run(async () => {
+              const result = await read(
+                `${prefix}/batches/${current.id}/commit`,
+                c.importBatchResponseSchema,
+                {
+                  expectedRevision: review.batchRevision,
+                  previewId: review.id,
+                  acceptWarnings: ack,
+                },
+              );
+              open(result);
+              await refresh();
+            }).finally(() => setConfirmation(null));
+          } else if (confirmation === 'reverse' && current && reason.trim()) {
+            void run(async () => {
+              const result = await read(
+                `${prefix}/batches/${current.id}/reverse`,
+                c.importBatchResponseSchema,
+                { expectedRevision: current.revision, reason },
+              );
+              open(result);
+              await refresh();
+            }).finally(() => setConfirmation(null));
+          } else if (confirmation === 'archive' && editingTemplate) {
+            void run(async () => {
+              await read(
+                `${prefix}/templates/${editingTemplate.templateId}/versions`,
+                c.importTemplateResponseSchema,
+                {
+                  name: editingTemplate.name,
+                  mapping: editingTemplate.mapping,
+                  expectedVersion: editingTemplate.version,
+                  archived: true,
+                },
+              );
+              setTemplate(null);
+              setAdvanced(null);
+              setEditingTemplate(null);
+              await client.invalidateQueries({ queryKey: ['import-templates', workspace.id] });
+            }).finally(() => setConfirmation(null));
+          }
+        }}
+      />
     </>
   );
 }

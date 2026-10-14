@@ -1,6 +1,6 @@
 # ADR-0011: Canonical import adapters and reviewed ledger commits
 
-- **Status:** Proposed in the authorized Phase 10 implementation; pending user review
+- **Status:** Accepted following user approval and merge of Phase 10
 - **Date:** 2026-10-13
 - **Requirements:** Specification §4, §11 and §14; F-IM-01–06, F-IM-09, N-IM-01–02; INV-07; AC-09 and AC-11.
 

@@ -190,6 +190,72 @@ beforeEach(() => {
 });
 
 describe('trade journal editor', () => {
+  it('keeps an unsaved draft when a page link is activated and saves with the keyboard shortcut', async () => {
+    const writes: JournalDocument[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, options?: RequestInit) => {
+        if (options?.method === 'PUT') {
+          const document = JSON.parse(String(options.body)).document;
+          writes.push(document);
+          return response({
+            tradeId,
+            revision: 1,
+            document,
+            updatedAt: instant,
+            updatedBy: 'owner',
+          });
+        }
+        return response([]);
+      }),
+    );
+    editor();
+    fireEvent.change(screen.getByLabelText('Thesis'), {
+      target: { value: 'Review before leaving' },
+    });
+    expect(fireEvent.click(screen.getByRole('link', { name: 'Open strategy playbook' }))).toBe(
+      false,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Save your journal draft before leaving');
+    expect(screen.getByLabelText('Thesis')).toHaveValue('Review before leaving');
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    await screen.findByText('All journal changes saved');
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.plan.thesis).toBe('Review before leaving');
+    const unloading = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unloading);
+    expect(unloading.defaultPrevented).toBe(false);
+  });
+
+  it('requires explicit confirmation before publishing an original plan without risk', async () => {
+    const publications: RequestInit[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, options?: RequestInit) => {
+        if (url.endsWith('/plans') && options?.method === 'POST') publications.push(options);
+        return response([]);
+      }),
+    );
+    editor();
+    fireEvent.change(screen.getByLabelText('Plan publication reason'), {
+      target: { value: 'Commit this plan' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+    expect(publications).toHaveLength(0);
+    expect(screen.getByText(/No initial risk is recorded/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Confirm publication' })).toBeVisible();
+  });
+
+  it('associates field help with the exact decimal input for assistive technology', () => {
+    editor();
+    expect(screen.getByLabelText('Planned targets · Fractional share')).toHaveAccessibleDescription(
+      'Separate multiple targets with commas.',
+    );
+    expect(screen.getByLabelText('Custom tags')).toHaveAccessibleDescription(
+      'Separate entries with commas.',
+    );
+  });
+
   it('keeps a typed trailing comma so a user can enter the next tag or target normally', async () => {
     let document: ReturnType<typeof journalDocumentSchema.parse> | undefined;
     vi.stubGlobal(
@@ -353,6 +419,8 @@ describe('trade journal editor', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Replace draft with latest saved version' }),
     );
+    expect(screen.getByLabelText('Thesis')).toHaveValue('My local draft');
+    fireEvent.click(screen.getByRole('button', { name: 'Replace draft' }));
     expect(screen.getByLabelText('Thesis')).toHaveValue('Saved by another tab');
     expect(screen.getByLabelText('Custom tags')).toHaveValue('');
   });
@@ -520,6 +588,7 @@ describe('trade journal editor', () => {
       }
       expect(screen.getByRole('button', { name: 'Commit original plan' })).not.toBeDisabled();
       fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm publication' }));
       await screen.findByText(/Plan v1 published/);
       expect(publications).toEqual([
         {
@@ -630,8 +699,10 @@ describe('trade journal editor', () => {
       target: { value: 'Commit initial thesis' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm publication' }));
     await screen.findByText('Lost publication response');
     fireEvent.click(screen.getByRole('button', { name: 'Commit original plan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm publication' }));
     await screen.findByText(/Plan v1 published/);
     expect(requests).toHaveLength(2);
     expect(requests[0]?.body).toBe(requests[1]?.body);
@@ -650,7 +721,8 @@ describe('trade journal editor', () => {
       target: { value: 'Stop distance' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save now' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('initialRisk.amount');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Initial risk amount');
+    expect(screen.getByLabelText('Initial risk amount')).toHaveAttribute('aria-invalid', 'true');
     expect(fetcher.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(false);
   });
 
@@ -830,6 +902,105 @@ describe('calculated journal financial facts', () => {
 });
 
 describe('journal workspace selection and creation', () => {
+  function workspace(initialFilters?: { period?: string; from?: string; to?: string }) {
+    return wrap(
+      <JournalWorkspace
+        workspace={{
+          id: workspaceId,
+          name: 'Private journal',
+          role: 'owner',
+          isDemo: false,
+          timezone: 'Europe/Madrid',
+          reportingCurrency: null,
+          revision: 1,
+        }}
+        workspaces={[]}
+        initialTradeId={null}
+        {...(initialFilters ? { initialFilters } : {})}
+      />,
+    );
+  }
+  function emptyWorkspaceResponses(requests?: URL[]) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.includes('/journals?')) {
+          requests?.push(new URL(url, 'http://localhost'));
+          return response({ trades: [], nextCursor: null });
+        }
+        if (url.includes('/strategies?')) return response({ strategies: [], nextCursor: null });
+        return response([]);
+      }),
+    );
+  }
+
+  it('focuses a new idea and protects it from reload, navigation and accidental dismissal', async () => {
+    emptyWorkspaceResponses();
+    workspace();
+    fireEvent.click(screen.getByRole('button', { name: 'New trade idea' }));
+    expect(screen.getByLabelText('Trade title')).toHaveFocus();
+    fireEvent.change(screen.getByLabelText('Trade title'), { target: { value: 'Uncreated idea' } });
+    const unloading = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unloading);
+    expect(unloading.defaultPrevented).toBe(true);
+    expect(fireEvent.click(screen.getByRole('link', { name: 'Record manual trade' }))).toBe(false);
+    expect(screen.getByRole('alert')).toHaveTextContent('Create your trade journal or use Back');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByLabelText('Trade title')).toHaveValue('Uncreated idea');
+    expect(screen.getByRole('button', { name: 'Discard draft' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
+    expect(screen.queryByLabelText('Trade title')).not.toBeInTheDocument();
+    const safeUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(safeUnload);
+    expect(safeUnload.defaultPrevented).toBe(false);
+  });
+
+  it('requests a complete server-filtered local day across a DST change and preserves the filter in its URL', async () => {
+    const requests: URL[] = [];
+    emptyWorkspaceResponses(requests);
+    workspace({ period: 'custom', from: '2026-10-25', to: '2026-10-25' });
+    await waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0]?.searchParams.get('from')).toBe('2026-10-24T21:59:59.999999Z');
+    expect(requests[0]?.searchParams.get('to')).toBe('2026-10-25T22:59:59.999999Z');
+    expect(screen.getByText(/Unfilled ideas use creation date/)).toBeVisible();
+    expect(replace).toHaveBeenCalledWith(
+      expect.stringContaining('period=custom&from=2026-10-25&to=2026-10-25'),
+      { scroll: false },
+    );
+    await screen.findByText('No trades match these filters.');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear journal filters' }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1]?.searchParams.has('from')).toBe(false);
+    expect(screen.getByLabelText('Review period')).toHaveValue('all');
+  });
+
+  it('does not request a misleading journal result for an invalid historical range', async () => {
+    const requests: URL[] = [];
+    emptyWorkspaceResponses(requests);
+    workspace({ period: 'custom', from: '2026-10-26', to: '2026-10-25' });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'From date must be on or before to date.',
+    );
+    expect(requests).toHaveLength(0);
+    expect(screen.queryByText('No trades match these filters.')).not.toBeInTheDocument();
+  });
+
+  it('offers an explicit weekly review checklist and the same period in account performance', async () => {
+    emptyWorkspaceResponses();
+    workspace({ period: 'week' });
+    expect(screen.getByText('Weekly review checklist')).toBeVisible();
+    fireEvent.click(screen.getByText('Weekly review checklist'));
+    expect(screen.getByText(/Reviews save to each trade/)).toBeVisible();
+    expect(screen.getByRole('link', { name: "Open this week's performance" })).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/dashboard?workspace=${workspaceId}&from=`),
+    );
+    expect(screen.getByRole('link', { name: 'Record manual trade' })).toHaveAttribute(
+      'href',
+      `/record?workspace=${workspaceId}`,
+    );
+  });
+
   it('creates an idea without inventing instrument units or financial results', async () => {
     let created: unknown;
     vi.stubGlobal(
@@ -865,7 +1036,7 @@ describe('journal workspace selection and creation', () => {
         initialTradeId={null}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'New trade' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New trade idea' }));
     fireEvent.change(screen.getByLabelText('Trade title'), { target: { value: 'A new thesis' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create trade journal' }));
     await waitFor(() =>

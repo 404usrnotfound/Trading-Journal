@@ -22,6 +22,9 @@ import { strategyVersionListResponseSchema } from '@journal/contracts';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { JournalApiError, journalErrorMessage, journalRead, journalWrite } from './journal-api';
 import { JournalAttachments } from './journal-attachments';
+import { ConfirmDialog } from '../ux/confirm-dialog';
+import { useJournalNavigationGuard } from './journal-navigation';
+import { journalValidationMessage } from './journal-validation';
 
 function labels(value: string): string[] {
   return [
@@ -46,6 +49,8 @@ export function JournalField({
   multiline = false,
   help,
   decimal = false,
+  error,
+  required = false,
 }: {
   label: string;
   value: string;
@@ -54,6 +59,8 @@ export function JournalField({
   multiline?: boolean;
   help?: string;
   decimal?: boolean;
+  error?: string | undefined;
+  required?: boolean;
 }) {
   const id = useId();
   return (
@@ -66,6 +73,12 @@ export function JournalField({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           maxLength={20_000}
+          aria-describedby={
+            [help ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') ||
+            undefined
+          }
+          aria-invalid={error ? true : undefined}
+          required={required}
         />
       ) : (
         <input
@@ -75,9 +88,20 @@ export function JournalField({
           onChange={(event) => onChange(event.target.value)}
           inputMode={decimal ? 'decimal' : undefined}
           maxLength={decimal ? 512 : undefined}
+          aria-describedby={
+            [help ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') ||
+            undefined
+          }
+          aria-invalid={error ? true : undefined}
+          required={required}
         />
       )}{' '}
       {help && <small id={`${id}-help`}>{help}</small>}
+      {error && (
+        <small className="form-error" id={`${id}-error`}>
+          {error}
+        </small>
+      )}
     </div>
   );
 }
@@ -117,6 +141,8 @@ export function JournalEditor({
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [latest, setLatest] = useState<JournalEntryResponse | null>(null);
+  const [confirmation, setConfirmation] = useState<'publish' | 'replace' | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [supplement, setSupplement] = useState({
     amount: '',
     currencyId: currencies[0]?.id ?? '',
@@ -173,10 +199,18 @@ export function JournalEditor({
       document: current.current,
     });
     if (!parsed.success) {
-      setIssues(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
+      setIssues(
+        parsed.error.issues.map((issue) => journalValidationMessage(issue.path, issue.message)),
+      );
+      setFieldErrors(
+        Object.fromEntries(
+          parsed.error.issues.map((issue) => [issue.path.join('.'), issue.message]),
+        ),
+      );
       return false;
     }
     setIssues([]);
+    setFieldErrors({});
     if (JSON.stringify(parsed.data.document) === saved.current && !command.current) {
       setSaveState('saved');
       onDirtyChange(uploadBusy.current);
@@ -223,18 +257,27 @@ export function JournalEditor({
     }, 800);
     return () => clearTimeout(timer);
   }, [document, canEdit, uploading, save, saveState]);
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (
-        serializedDocument(current.current) !== saved.current ||
+  useJournalNavigationGuard(
+    () =>
+      canEdit &&
+      (serializedDocument(current.current) !== saved.current ||
         saving.current ||
-        uploadBusy.current
-      )
+        uploadBusy.current),
+    () =>
+      setFailure(
+        'Save your journal draft before leaving this page. Your edits remain in the form.',
+      ),
+  );
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && canEdit) {
         event.preventDefault();
+        if (!busy && !uploading && !blocked.current) void save();
+      }
     };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  }, [canEdit, busy, uploading, save]);
 
   function change(next: JournalDocument) {
     current.current = next;
@@ -303,6 +346,7 @@ export function JournalEditor({
     blocked.current = false;
     setFailure(null);
     setIssues([]);
+    setFieldErrors({});
     setListInputs({});
     setSaveState('saved');
     setLatest(null);
@@ -425,10 +469,52 @@ export function JournalEditor({
 
   return (
     <Panel className="journal-editor">
+      <ConfirmDialog
+        open={confirmation !== null}
+        title={
+          confirmation === 'replace'
+            ? 'Replace your unsaved draft?'
+            : detail.originalPlan
+              ? 'Publish this plan revision?'
+              : 'Commit the original plan?'
+        }
+        description={
+          confirmation === 'replace' ? (
+            'Your current local edits will be replaced by the latest saved revision. Copy any notes you want to keep before continuing.'
+          ) : (
+            <>
+              <p>
+                Publication creates an immutable plan snapshot. The strategy version and original
+                risk commitment remain historical facts.
+              </p>
+              {!detail.originalPlan && document.plan.initialRisk === null && (
+                <p>
+                  No initial risk is recorded. A later plan cannot establish the original R
+                  denominator.
+                </p>
+              )}
+            </>
+          )
+        }
+        confirmLabel={confirmation === 'replace' ? 'Replace draft' : 'Confirm publication'}
+        busy={busy || saveState === 'saving' || uploading}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => {
+          const action = confirmation;
+          setConfirmation(null);
+          if (action === 'replace') replaceDraft();
+          else if (action === 'publish') void publish();
+        }}
+      />
       <div className="journal-section-heading">
         <h3>{historyDocument ? 'Historical journal snapshot' : 'Plan & trade review'}</h3>
         <span className="journal-source">Manual journal information</span>
       </div>
+      <nav className="journal-section-links" aria-label="Trade review sections">
+        <a href={`#${id}-plan`}>Plan</a>
+        <a href={`#${id}-review`}>Review &amp; lessons</a>
+        <a href={`#${id}-evidence`}>Screenshots</a>
+      </nav>
       <div className="journal-save-bar">
         <p role="status" aria-live="polite">
           {!canEdit
@@ -455,6 +541,9 @@ export function JournalEditor({
           </Button>
         )}
       </div>
+      {canEdit && (
+        <p className="journal-help">Changes autosave. Press Ctrl+S or ⌘+S to save immediately.</p>
+      )}
       {issues.length > 0 && (
         <div role="alert" className="strategy-errors">
           <strong>Complete or correct these fields to save</strong>
@@ -487,14 +576,19 @@ export function JournalEditor({
           {latest && (
             <>
               <pre>{JSON.stringify(latest.document, null, 2)}</pre>
-              <Button variant="secondary" onClick={replaceDraft}>
+              <Button variant="secondary" onClick={() => setConfirmation('replace')}>
                 Replace draft with latest saved version
               </Button>
             </>
           )}
         </div>
       )}
-      <fieldset className="journal-fieldset" disabled={!canEdit || busy}>
+      <fieldset
+        id={`${id}-plan`}
+        tabIndex={-1}
+        className="journal-fieldset"
+        disabled={!canEdit || busy}
+      >
         <legend>Plan · manual</legend>
         <div className="journal-pinned">
           <strong>
@@ -537,6 +631,14 @@ export function JournalEditor({
                     </option>
                   ))}
               </select>
+              {strategyVersions.isFetching && strategyId && (
+                <small role="status">Loading strategy versions…</small>
+              )}
+              {!strategies.length && (
+                <small>
+                  Create a strategy playbook first, then select an immutable version here.
+                </small>
+              )}
             </div>
             <div className="journal-field">
               <label htmlFor={`${id}-strategy-version`}>Strategy version</label>
@@ -633,6 +735,11 @@ export function JournalEditor({
                       )
                     }
                     decimal
+                    error={
+                      fieldErrors[
+                        `document.plan.legs.${document.plan.legs.findIndex((entry) => entry.legId === leg.legId)}.${key}`
+                      ]
+                    }
                   />
                 ))}
                 <JournalField
@@ -646,6 +753,11 @@ export function JournalEditor({
                   }}
                   help="Separate multiple targets with commas."
                   decimal
+                  error={
+                    fieldErrors[
+                      `document.plan.legs.${document.plan.legs.findIndex((entry) => entry.legId === leg.legId)}.plannedTargets`
+                    ]
+                  }
                 />
               </div>
             </div>
@@ -675,12 +787,16 @@ export function JournalEditor({
                 plan('initialRisk', { ...document.plan.initialRisk!, amount: value })
               }
               decimal
+              error={fieldErrors['document.plan.initialRisk.amount']}
             />
             <div className="journal-field">
               <label htmlFor={`${id}-risk-currency`}>Initial risk currency</label>
               <select
                 id={`${id}-risk-currency`}
                 value={document.plan.initialRisk.currencyId}
+                aria-invalid={
+                  fieldErrors['document.plan.initialRisk.currencyId'] ? true : undefined
+                }
                 onChange={(event) =>
                   plan('initialRisk', {
                     ...document.plan.initialRisk!,
@@ -702,6 +818,7 @@ export function JournalEditor({
               onChange={(value) =>
                 plan('initialRisk', { ...document.plan.initialRisk!, method: value })
               }
+              error={fieldErrors['document.plan.initialRisk.method']}
             />
             <JournalField
               label="Risk methodology notes"
@@ -733,7 +850,7 @@ export function JournalEditor({
             </div>
             <JournalField label="Plan publication reason" value={reason} onChange={setReason} />
             <Button
-              onClick={() => void publish()}
+              onClick={() => setConfirmation('publish')}
               disabled={
                 !reason.trim() ||
                 busy ||
@@ -746,7 +863,12 @@ export function JournalEditor({
             </Button>
           </div>
         )}
-      <fieldset className="journal-fieldset" disabled={!canEdit || busy}>
+      <fieldset
+        id={`${id}-review`}
+        tabIndex={-1}
+        className="journal-fieldset"
+        disabled={!canEdit || busy}
+      >
         <legend>Review · manual observations</legend>
         <div className="journal-fields">
           <JournalField
@@ -767,6 +889,7 @@ export function JournalEditor({
                 review(key, labels(value));
               }}
               help="Separate entries with commas."
+              error={fieldErrors[`document.review.${key}`]}
             />
           ))}
           <div className="journal-field">
@@ -858,6 +981,11 @@ export function JournalEditor({
                     value={actual?.[key] ?? ''}
                     onChange={(value) => observation(leg.legId, key, value || null)}
                     decimal
+                    error={
+                      fieldErrors[
+                        `document.review.actualObservations.${document.review.actualObservations.findIndex((entry) => entry.legId === leg.legId)}.${key}`
+                      ]
+                    }
                   />
                 ))}
                 <JournalField
@@ -918,24 +1046,26 @@ export function JournalEditor({
           </p>
         )}
       </fieldset>
-      <JournalAttachments
-        workspaceId={workspaceId}
-        attachments={document.review.attachments}
-        editable={canEdit && !busy}
-        onUploadingChange={uploadState}
-        onChange={(attachments) =>
-          change({
-            ...current.current,
-            plan: {
-              ...current.current.plan,
-              attachmentIds: attachments
-                .filter((attachment) => attachment.phase === 'before')
-                .map((attachment) => attachment.attachmentId),
-            },
-            review: { ...current.current.review, attachments },
-          })
-        }
-      />
+      <div id={`${id}-evidence`} tabIndex={-1}>
+        <JournalAttachments
+          workspaceId={workspaceId}
+          attachments={document.review.attachments}
+          editable={canEdit && !busy}
+          onUploadingChange={uploadState}
+          onChange={(attachments) =>
+            change({
+              ...current.current,
+              plan: {
+                ...current.current.plan,
+                attachmentIds: attachments
+                  .filter((attachment) => attachment.phase === 'before')
+                  .map((attachment) => attachment.attachmentId),
+              },
+              review: { ...current.current.review, attachments },
+            })
+          }
+        />
+      </div>
       {canEdit &&
         detail.commitment &&
         detail.trade.archivedAt === null &&

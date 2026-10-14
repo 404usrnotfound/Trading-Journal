@@ -33,6 +33,18 @@ test('dashboard real-data filters, all views, drill-down and responsive themed a
     return schema.parse(value);
   }
   const effectiveAt = '2025-01-01T00:00:00Z';
+  const strategy = await post(
+    '/strategies',
+    {
+      definition: {
+        name: 'Dashboard historical playbook',
+        status: 'active',
+        entryRules: 'Original rules remain attached to this version.',
+      },
+      effectiveAt,
+    },
+    contract.strategyResponseSchema,
+  );
   const currency = await post(
     '/financial/currencies',
     {
@@ -103,6 +115,7 @@ test('dashboard real-data filters, all views, drill-down and responsive themed a
     {
       title: 'Dashboard known winner',
       classification: 'active-trading',
+      strategyVersionId: strategy.currentVersionId,
       legs: [
         {
           accountId: account.id,
@@ -189,12 +202,31 @@ test('dashboard real-data filters, all views, drill-down and responsive themed a
     to: '2030-01-05',
     accountIds: account.id,
     currency: currency.id,
+    strategy: strategy.id,
+    strategyVersionId: strategy.currentVersionId,
   });
   await page.goto(`/dashboard?${params}`);
   await expect(page.getByRole('heading', { name: 'Analytics dashboard' })).toBeVisible();
   const net = page.getByRole('button', { name: /Closed net P&L/ });
   await expect(net).toContainText('18 EUR');
   await expect(page.getByRole('button', { name: /Average R/ })).toContainText('1.8 R');
+  await expect(
+    page.getByRole('button', { name: /Strategy: Dashboard historical playbook/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Strategy version: Dashboard historical playbook/ }),
+  ).toBeVisible();
+  await page.getByText('About Average R', { exact: true }).click();
+  await expect(page.getByText(/Missing or retrospective risk is excluded/)).toBeVisible();
+  await page.getByText('About Average R', { exact: true }).click();
+  const performanceTab = page.getByRole('tab', { name: 'Performance' });
+  await performanceTab.focus();
+  await performanceTab.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Distributions' })).toBeFocused();
+  await expect(page).toHaveURL(/view=distributions/);
+  await expect(page).toHaveURL(new RegExp(`strategyVersionId=${strategy.currentVersionId}`));
+  await page.getByRole('tab', { name: 'Distributions' }).press('Home');
+  await expect(performanceTab).toBeFocused();
   await expect(page.getByRole('heading', { name: 'Equity curve', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Capital-adjusted performance', exact: true }).click();
   await expect(
@@ -264,6 +296,20 @@ test('dashboard real-data filters, all views, drill-down and responsive themed a
       });
     }
   }
+  await page.getByText('Weekly review guide', { exact: true }).click();
+  await expect(page.getByText(/Record lessons in the trade journal/)).toBeVisible();
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'No completed trades in this period' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: /Win rate/ })).toContainText('Unavailable');
+  await expect(page).toHaveURL(new RegExp(`strategyVersionIds=${strategy.currentVersionId}`));
+  await expect(page.getByRole('link', { name: 'Review account performance' })).toHaveAttribute(
+    'href',
+    new RegExp(`accountIds=${account.id}`),
+  );
+  await page.goto(`/dashboard?${params}`);
+  await expect(net).toContainText('18 EUR');
   await page.getByRole('link', { name: 'Dashboard known winner' }).click();
   await expect(page.getByRole('heading', { name: 'Trade journal', exact: true })).toBeVisible();
 });

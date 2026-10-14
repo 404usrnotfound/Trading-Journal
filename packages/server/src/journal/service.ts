@@ -15,6 +15,7 @@ import {
   requireAccount,
   requireCurrency,
   requireInstrumentVersion,
+  financialInstantMicros,
 } from '../financial/reference-data.js';
 import {
   insertTradeStrategyLink,
@@ -36,11 +37,35 @@ const pageSchema = z.strictObject({
   cursor: contract.financialIdSchema.optional(),
   limit: z.number().int().min(1).max(100).default(25),
 });
-const listSchema = pageSchema.extend({
-  includeArchived: z.boolean().default(false),
-  status: z.enum(['planned', 'open', 'partially_closed', 'closed', 'canceled']).optional(),
-  search: z.string().trim().min(1).max(160).optional(),
-});
+const listSchema = pageSchema
+  .extend({
+    includeArchived: z.boolean().default(false),
+    status: z.enum(['planned', 'open', 'partially_closed', 'closed', 'canceled']).optional(),
+    search: z.string().trim().min(1).max(160).optional(),
+    accountId: contract.financialIdSchema.optional(),
+    from: contract.journalActivityInstantSchema.optional(),
+    to: contract.journalActivityInstantSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if ((value.from === undefined) !== (value.to === undefined))
+      context.addIssue({
+        code: 'custom',
+        path: ['from'],
+        message: 'Choose both activity date boundaries.',
+      });
+    if (
+      value.from &&
+      value.to &&
+      contract.journalActivityInstantSchema.safeParse(value.from).success &&
+      contract.journalActivityInstantSchema.safeParse(value.to).success &&
+      financialInstantMicros(value.from) >= financialInstantMicros(value.to)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['to'],
+        message: 'The activity end must follow its start.',
+      });
+  });
 type Page = z.input<typeof pageSchema>;
 
 type EntryRow = {
@@ -504,10 +529,22 @@ export function createJournalServices(platform: JournalPlatform) {
       async (tx) => {
         const rows = await queryRows<{ id: string }>(
           tx,
-          sql`SELECT id FROM app.trades WHERE workspace_id=${context.workspaceId}
-        AND (${filter.includeArchived} OR archived_at IS NULL) AND (${filter.status ?? null}::text IS NULL OR status=${filter.status ?? null})
-        AND (${filter.search ?? null}::text IS NULL OR strpos(lower(title),lower(${filter.search ?? null}))>0)
-        AND (${filter.cursor ?? null}::uuid IS NULL OR id>${filter.cursor ?? null}::uuid) ORDER BY id LIMIT ${filter.limit + 1}`,
+          sql`WITH activity AS (
+            SELECT l.trade_id,e.economic_at FROM app.executions e
+            JOIN LATERAL (SELECT id FROM app.allocation_sets WHERE workspace_id=e.workspace_id AND execution_id=e.id ORDER BY version DESC LIMIT 1) s ON true
+            JOIN app.allocation_items i ON i.workspace_id=e.workspace_id AND i.allocation_set_id=s.id AND i.quantity_raw::numeric>0
+            JOIN app.trade_legs l ON l.workspace_id=i.workspace_id AND l.id=i.trade_leg_id
+            WHERE e.workspace_id=${context.workspaceId}::uuid
+              AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions x WHERE x.workspace_id=e.workspace_id AND x.original_execution_id=e.id)
+          ) SELECT t.id FROM app.trades t WHERE t.workspace_id=${context.workspaceId}::uuid
+        AND (${filter.includeArchived} OR t.archived_at IS NULL) AND (${filter.status ?? null}::text IS NULL OR t.status=${filter.status ?? null})
+        AND (${filter.search ?? null}::text IS NULL OR strpos(lower(t.title),lower(${filter.search ?? null}))>0)
+        AND (${filter.accountId ?? null}::uuid IS NULL OR EXISTS (SELECT 1 FROM app.trade_legs l WHERE l.workspace_id=t.workspace_id AND l.trade_id=t.id AND l.account_id=${filter.accountId ?? null}::uuid))
+        AND (${filter.from ?? null}::timestamptz IS NULL OR (
+          EXISTS (SELECT 1 FROM activity a WHERE a.trade_id=t.id AND a.economic_at>${filter.from ?? null}::timestamptz AND a.economic_at<=${filter.to ?? null}::timestamptz)
+          OR (NOT EXISTS (SELECT 1 FROM activity a WHERE a.trade_id=t.id) AND t.created_at>${filter.from ?? null}::timestamptz AND t.created_at<=${filter.to ?? null}::timestamptz)
+        ))
+        AND (${filter.cursor ?? null}::uuid IS NULL OR t.id>${filter.cursor ?? null}::uuid) ORDER BY t.id LIMIT ${filter.limit + 1}`,
         );
         const page = rows.slice(0, filter.limit),
           trades = [];

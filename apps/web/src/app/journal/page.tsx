@@ -1,12 +1,7 @@
-import { getSafeSession, getWorkspace, getWorkspaces } from '@journal/server';
-import { Badge, Brand } from '@journal/ui';
-import { BookOpen, ChevronRight, Layers, LayoutDashboard } from 'lucide-react';
-import { notFound, redirect } from 'next/navigation';
-import { SignOutButton } from '@/components/sign-out-button';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ApplicationShell, WorkspaceAccessNotice } from '@/components/application-shell';
 import { JournalWorkspace } from '@/components/journal/journal-workspace';
-import { serverRequest } from '@/lib/server-request';
-import { safeServerQuery } from '@/lib/server-query';
+import { loadWorkspacePage } from '@/lib/workspace-page';
+import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,125 +9,51 @@ export const runtime = 'nodejs';
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ workspace?: string | string[]; trade?: string | string[] }>;
+  searchParams: Promise<{
+    workspace?: string | string[];
+    trade?: string | string[];
+    period?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    accountId?: string | string[];
+    search?: string | string[];
+    status?: string | string[];
+    includeArchived?: string | string[];
+    [key: string]: string | string[] | undefined;
+  }>;
 }) {
-  const request = await serverRequest();
-  const session = await safeServerQuery('session.read', () => getSafeSession(request));
-  if (!session) redirect('/sign-in');
-  const workspaces = await safeServerQuery('workspace.list', () => getWorkspaces(request));
   const parameters = await searchParams;
-  if (Array.isArray(parameters.workspace) || Array.isArray(parameters.trade)) notFound();
-  const selected = parameters.workspace
-    ? workspaces.find((workspace) => workspace.id === parameters.workspace)
-    : (workspaces.find((workspace) => !workspace.isDemo) ?? workspaces[0]);
-  if (parameters.workspace && !selected) notFound();
-  const workspace = selected
-    ? await safeServerQuery('workspace.read', () => getWorkspace(request, selected.id))
-    : null;
-  const displayName = session.user.name.trim() || session.user.email;
-
+  const { workspace, workspaces, displayName } = await loadWorkspacePage(parameters.workspace);
+  if (Array.isArray(parameters.trade)) notFound();
+  if (Array.isArray(parameters.period)) notFound();
+  if (Array.isArray(parameters.from)) notFound();
+  if (Array.isArray(parameters.to)) notFound();
+  if (Array.isArray(parameters.accountId)) notFound();
+  if (Array.isArray(parameters.search)) notFound();
+  if (Array.isArray(parameters.status)) notFound();
+  if (Array.isArray(parameters.includeArchived)) notFound();
   return (
-    <div className="app-layout">
-      <aside className="sidebar" aria-label="Application sidebar">
-        <div className="sidebar-brand">
-          <Brand />
-        </div>
-        <div className="sidebar-workspace">
-          <div>
-            <strong>{workspace?.name ?? 'No workspace assigned'}</strong>
-            <span>{workspace?.isDemo ? 'Demo workspace' : 'Private workspace'}</span>
-          </div>
-        </div>
-        <nav aria-label="Main navigation" className="main-navigation">
-          <a
-            className="nav-item"
-            href={
-              workspace ? `/dashboard?workspace=${encodeURIComponent(workspace.id)}` : '/dashboard'
-            }
-          >
-            <LayoutDashboard size={18} aria-hidden="true" />
-            <span>Dashboard</span>
-          </a>
-          <a
-            className="nav-item"
-            href={workspace ? `/?workspace=${encodeURIComponent(workspace.id)}` : '/'}
-          >
-            <LayoutDashboard size={18} aria-hidden="true" />
-            <span>Overview</span>
-          </a>
-          <a
-            className="nav-item"
-            href={
-              workspace
-                ? `/strategies?workspace=${encodeURIComponent(workspace.id)}`
-                : '/strategies'
-            }
-          >
-            <Layers size={18} aria-hidden="true" />
-            <span>Strategies</span>
-          </a>
-          <a
-            className="nav-item active"
-            aria-current="page"
-            href={workspace ? `/journal?workspace=${encodeURIComponent(workspace.id)}` : '/journal'}
-          >
-            <BookOpen size={18} aria-hidden="true" />
-            <span>Trade journal</span>
-          </a>
-          <a
-            className="nav-item"
-            href={workspace ? `/imports?workspace=${encodeURIComponent(workspace.id)}` : '/imports'}
-          >
-            <span>Imports</span>
-          </a>
-        </nav>
-        <div className="sidebar-bottom">
-          <Badge>Trade journal</Badge>
-          <p>
-            Record your decisions.
-            <br />
-            Learn from every trade.
-          </p>
-        </div>
-      </aside>
-      <div className="workspace-layout">
-        <header className="workspace-header">
-          <div className="breadcrumb">
-            <span>Workspace</span>
-            <ChevronRight size={15} aria-hidden="true" />
-            <strong>Trade journal</strong>
-          </div>
-          <div className="header-actions">
-            <ThemeToggle />
-            <span className="header-divider" />
-            <span className="user-avatar" aria-hidden="true">
-              {displayName.slice(0, 1).toUpperCase()}
-            </span>
-            <span className="user-name">{displayName}</span>
-            <SignOutButton />
-          </div>
-        </header>
-        <main id="main-content" className="overview-main journal-main" tabIndex={-1}>
-          {workspace ? (
-            <JournalWorkspace
-              key={workspace.id}
-              workspace={workspace}
-              workspaces={workspaces}
-              initialTradeId={parameters.trade ?? null}
-            />
-          ) : (
-            <div className="page-heading">
-              <div>
-                <h1>Trade journal</h1>
-                <p>
-                  No workspace has been assigned. Contact your workspace administrator to request
-                  access.
-                </p>
-              </div>
-            </div>
+    <ApplicationShell
+      workspace={workspace}
+      displayName={displayName}
+      active="journal"
+      className="journal-main"
+    >
+      {workspace ? (
+        <JournalWorkspace
+          key={workspace.id}
+          workspace={workspace}
+          workspaces={workspaces}
+          initialTradeId={parameters.trade ?? null}
+          initialFilters={Object.fromEntries(
+            ['period', 'from', 'to', 'accountId', 'search', 'status', 'includeArchived'].flatMap(
+              (key) => (typeof parameters[key] === 'string' ? [[key, parameters[key]]] : []),
+            ),
           )}
-        </main>
-      </div>
-    </div>
+        />
+      ) : (
+        <WorkspaceAccessNotice title="Trade journal" />
+      )}
+    </ApplicationShell>
   );
 }

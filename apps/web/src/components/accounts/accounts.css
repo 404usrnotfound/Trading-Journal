@@ -1,0 +1,175 @@
+.account-filters,
+.account-notice {
+  margin: 22px 0;
+  padding: 22px;
+}
+.account-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.account-help,
+.account-context,
+.account-policy p,
+.account-evidence p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.account-shortcuts,
+.account-scope-choices,
+.account-apply,
+.account-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.account-shortcuts {
+  margin: 14px 0;
+}
+.account-scope {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 0;
+}
+.account-scope legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.account-scope-choices {
+  margin-bottom: 16px;
+}
+.account-scope-choices label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-scope .field {
+  max-width: 650px;
+}
+.account-scope select[multiple] {
+  min-height: 94px;
+}
+.account-policy summary,
+.account-metric summary,
+.account-native-cash summary,
+.account-evidence summary,
+.account-reconciliation-details summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+.account-policy-grid,
+.account-metric-grid,
+.account-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.account-policy-grid {
+  margin-top: 16px;
+}
+.account-policy-grid textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--surface);
+  resize: vertical;
+  font: inherit;
+}
+.account-apply {
+  margin-top: 22px;
+}
+.account-apply span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.account-validation {
+  color: var(--error);
+  line-height: 1.6;
+}
+.account-metric {
+  padding: 20px;
+  min-width: 0;
+}
+.account-metric h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.account-metric-value {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.account-metric details,
+.account-incomplete {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.account-incomplete {
+  padding: 10px;
+  background: var(--surface-soft);
+  border-radius: 6px;
+}
+.account-metric details p {
+  color: var(--muted);
+}
+.account-reference {
+  overflow-wrap: anywhere;
+}
+.account-results section {
+  margin: 30px 0;
+}
+.account-native-cash,
+.account-evidence,
+.account-reconciliation-details {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.account-native-cash li {
+  margin: 8px 0;
+}
+.account-reconciliation-details .account-metric-grid {
+  margin-top: 16px;
+}
+.account-links {
+  margin: 24px 0;
+}
+@media (max-width: 1050px) {
+  .account-filter-grid,
+  .account-policy-grid,
+  .account-metric-grid,
+  .account-breakdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .account-filters,
+  .account-notice {
+    padding: 16px;
+  }
+  .account-filter-grid,
+  .account-policy-grid,
+  .account-metric-grid,
+  .account-breakdown-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-apply {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .account-metric-value {
+    font-size: 20px;
+  }
+}

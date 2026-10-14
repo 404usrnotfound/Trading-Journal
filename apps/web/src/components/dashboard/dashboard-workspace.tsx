@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   dashboardCatalogSchema,
+  dashboardRequestSchema,
   dashboardResponseSchema,
   type WorkspaceResponse,
 } from '@journal/contracts';
@@ -12,7 +13,7 @@ import { Button, Panel } from '@journal/ui';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { DashboardChart } from './dashboard-chart';
 import { DashboardCalendar } from './dashboard-calendar';
-import { inclusiveDateRange, todayInZone } from './dashboard-time';
+import { dashboardDatePreset, inclusiveDateRange } from './dashboard-time';
 
 async function read<T>(
   url: string,
@@ -67,6 +68,21 @@ type Form = {
   age: string;
 } & Record<(typeof filterKeys)[number], string>;
 
+const dashboardViews = ['performance', 'distributions', 'breakdowns'] as const;
+type DashboardView = (typeof dashboardViews)[number];
+const viewFromQuery = (value: string | null): DashboardView =>
+  dashboardViews.includes(value as DashboardView) ? (value as DashboardView) : 'performance';
+const metricDefinitions = {
+  netPnl:
+    'Sum of complete fee-net outcomes for completed trade campaigns. Actual attributed fees are deducted once. Deposits, withdrawals, income and taxes are outside this trade metric.',
+  winRate:
+    'Profitable completed campaigns divided by all eligible completed campaigns with a known net outcome. Breakevens stay in the denominator; open trades are excluded.',
+  profitFactor:
+    'Sum of positive completed net outcomes divided by the absolute sum of negative completed net outcomes. Gains with no losses produce infinity; no gains and no losses are unavailable.',
+  averageR:
+    'Mean of the R multiples of eligible completed campaigns. Each R multiple divides the complete net outcome by that campaign’s original, positive, pre-trade committed risk in the same currency. Missing or retrospective risk is excluded. R is not a portfolio percentage return.',
+} as const;
+
 function DashboardContent({
   workspace,
   workspaces,
@@ -78,10 +94,8 @@ function DashboardContent({
     params = useSearchParams(),
     id = useId(),
     prefix = `/api/v1/workspaces/${workspace.id}/dashboard`;
-  const today = todayInZone(workspace.timezone);
   const defaults: Form = {
-    from: new Date(Date.parse(`${today}T12:00:00Z`) - 29 * 86_400_000).toISOString().slice(0, 10),
-    to: today,
+    ...dashboardDatePreset('last-30-days', workspace.timezone),
     currency: '',
     environment: 'live',
     age: '86400000',
@@ -96,6 +110,8 @@ function DashboardContent({
   };
   const initial = {
     ...defaults,
+    strategyIds: params.get('strategy') ?? params.get('strategyId') ?? '',
+    strategyVersionIds: params.get('strategyVersion') ?? params.get('strategyVersionId') ?? '',
     ...Object.fromEntries(
       Object.keys(defaults).flatMap((key) => (params.get(key) ? [[key, params.get(key)!]] : [])),
     ),
@@ -103,15 +119,19 @@ function DashboardContent({
   const [form, setForm] = useState(initial),
     [applied, setApplied] = useState(initial),
     [failure, setFailure] = useState<string | null>(null),
-    [tab, setTab] = useState(
-      ['performance', 'distributions', 'breakdowns'].includes(params.get('view') ?? '')
-        ? params.get('view')!
-        : 'performance',
-    ),
+    [viewSelection, setViewSelection] = useState({
+      query: params.get('view'),
+      value: viewFromQuery(params.get('view')),
+    }),
     [drill, setDrill] = useState<string[] | null>(null),
     [page, setPage] = useState(0),
     [search, setSearch] = useState(''),
     [curve, setCurve] = useState('equity');
+  const queryView = params.get('view');
+  // A view-only URL change preserves draft filters, while external navigation restores its view.
+  if (viewSelection.query !== queryView)
+    setViewSelection({ query: queryView, value: viewFromQuery(queryView) });
+  const tab = viewSelection.query === queryView ? viewSelection.value : viewFromQuery(queryView);
   const catalog = useQuery({
     queryKey: ['dashboard-catalog', workspace.id],
     queryFn: ({ signal }) => read(`${prefix}/catalog`, dashboardCatalogSchema, undefined, signal),
@@ -137,7 +157,9 @@ function DashboardContent({
           key === 'portfolioVersionId'
             ? applied[key] || undefined
             : applied[key]
-              ? [applied[key]]
+              ? key === 'accountIds'
+                ? applied[key].split(',').map((value) => value.trim())
+                : [applied[key]]
               : [],
         ]),
       ),
@@ -152,6 +174,10 @@ function DashboardContent({
   } catch (error) {
     invalid = error instanceof Error ? error.message : 'Choose valid dates.';
   }
+  if (!invalid && currency) {
+    const parsed = dashboardRequestSchema.safeParse(request);
+    if (!parsed.success) invalid = parsed.error.issues[0]?.message ?? 'Check your filters.';
+  }
   const report = useQuery({
     queryKey: ['dashboard-report', workspace.id, request],
     enabled:
@@ -163,6 +189,15 @@ function DashboardContent({
     retry: false,
   });
   function apply(next: Form) {
+    try {
+      const range = inclusiveDateRange(next.from, next.to, workspace.timezone);
+      if (next.from > next.to) throw new Error('From must be on or before Through.');
+      if (Date.parse(range.to) - Date.parse(range.from) > 367 * 86_400_000)
+        throw new Error('Choose a period of at most one year.');
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : 'Choose valid dates.');
+      return;
+    }
     setForm(next);
     setApplied(next);
     setDrill(null);
@@ -170,6 +205,13 @@ function DashboardContent({
     setFailure(null);
     const url = new URLSearchParams({ workspace: workspace.id, view: tab });
     for (const [key, value] of Object.entries(next)) if (value) url.set(key, value);
+    router.replace(`/dashboard?${url}`, { scroll: false });
+  }
+  function selectView(next: DashboardView) {
+    setViewSelection({ query: queryView, value: next });
+    const url = new URLSearchParams(params.toString());
+    url.set('workspace', workspace.id);
+    url.set('view', next);
     router.replace(`/dashboard?${url}`, { scroll: false });
   }
   function drillInto(ids: string[]) {
@@ -205,6 +247,32 @@ function DashboardContent({
   );
   const metricKeys = ['netPnl', 'winRate', 'profitFactor', 'averageR'] as const;
   const metricNames = ['Closed net P&L', 'Win rate', 'Profit factor', 'Average R'];
+  const hasPendingFilters = Object.keys(form).some(
+    (key) => form[key as keyof Form] !== applied[key as keyof Form],
+  );
+  const portfolio = data?.portfolios.find((row) => row.id === applied.portfolioVersionId);
+  const selectedAccounts = data?.accounts.filter(
+    (row) =>
+      row.environment === applied.environment &&
+      (!applied.accountIds ||
+        applied.accountIds
+          .split(',')
+          .map((value) => value.trim())
+          .includes(row.id)) &&
+      (!applied.brokerIds || row.parentId === applied.brokerIds) &&
+      (!portfolio || portfolio.accountIds.includes(row.id)),
+  );
+  const accountReportParams = new URLSearchParams({
+    workspace: workspace.id,
+    from: applied.from,
+    to: applied.to,
+    currency,
+    age: applied.age,
+    environment: applied.environment,
+    ...(applied.portfolioVersionId && !applied.accountIds && !applied.brokerIds
+      ? { portfolioVersionId: applied.portfolioVersionId }
+      : { accountIds: selectedAccounts?.map((row) => row.id).join(',') ?? '' }),
+  });
   const groupRows = (dimension: 'strategy' | 'asset') =>
     analytics?.groups
       .filter((group) => group.dimension === dimension)
@@ -235,10 +303,11 @@ function DashboardContent({
         <div>
           <div className="eyebrow">PERFORMANCE WORKSPACE</div>
           <h1>Analytics dashboard</h1>
-          <p>Understand your results. Review the decisions behind them.</p>
+          <p>Review trading outcomes and the decisions behind them.</p>
         </div>
         <Button
           variant="secondary"
+          disabled={catalog.isFetching || report.isFetching}
           onClick={() => {
             if (
               currency &&
@@ -249,13 +318,41 @@ function DashboardContent({
             void catalog.refetch();
           }}
         >
-          Refresh data
+          {catalog.isFetching || report.isFetching ? 'Refreshing data…' : 'Refresh data'}
         </Button>
       </div>
       {workspaces.length > 1 && (
         <WorkspaceSwitcher selected={workspace.id} workspaces={workspaces} />
       )}
       <Panel className="dashboard-filters">
+        <div className="dashboard-review-shortcuts" aria-label="Review period shortcuts">
+          <span>Review period</span>
+          {[
+            ['today', 'Today'],
+            ['this-week', 'This week'],
+            ['last-week', 'Last week'],
+            ['last-30-days', 'Last 30 days'],
+          ].map(([preset, label]) => {
+            const range = dashboardDatePreset(
+              preset as Parameters<typeof dashboardDatePreset>[0],
+              workspace.timezone,
+            );
+            return (
+              <Button
+                key={preset}
+                variant="quiet"
+                aria-pressed={applied.from === range.from && applied.to === range.to}
+                onClick={() => apply({ ...form, ...range })}
+              >
+                {label}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="dashboard-period-help muted">
+          Calendar dates use {workspace.timezone}; weeks start on Monday. Closed outcomes are
+          selected by close date. Open P&L remains lifetime attribution at the ending date.
+        </p>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -268,8 +365,14 @@ function DashboardContent({
               <input
                 id={`${id}-from`}
                 type="date"
+                required
+                aria-invalid={!!failure}
+                aria-describedby={failure ? `${id}-filter-error` : undefined}
                 value={form.from}
-                onChange={(e) => setForm({ ...form, from: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, from: e.target.value });
+                  setFailure(null);
+                }}
               />
             </div>
             <div className="field">
@@ -277,8 +380,14 @@ function DashboardContent({
               <input
                 id={`${id}-to`}
                 type="date"
+                required
+                aria-invalid={!!failure}
+                aria-describedby={failure ? `${id}-filter-error` : undefined}
                 value={form.to}
-                onChange={(e) => setForm({ ...form, to: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, to: e.target.value });
+                  setFailure(null);
+                }}
               />
             </div>
             <div className="field">
@@ -315,9 +424,14 @@ function DashboardContent({
             </div>
             <Button type="submit">Apply filters</Button>
             <Button variant="quiet" onClick={() => apply(defaults)}>
-              Reset
+              Reset filters
             </Button>
           </div>
+          {failure && (
+            <p id={`${id}-filter-error`} role="alert" className="dashboard-validation">
+              {failure} The displayed report still uses the active filters below.
+            </p>
+          )}
           <details>
             <summary>Portfolio, trade and pricing filters</summary>
             <div className="dashboard-filter-grid">
@@ -350,6 +464,11 @@ function DashboardContent({
                         ][index]
                       }
                     </option>
+                    {key === 'accountIds' && form.accountIds.includes(',') && (
+                      <option value={form.accountIds}>
+                        Selected accounts ({form.accountIds.split(',').length})
+                      </option>
+                    )}
                     {options[index]?.map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.label}
@@ -358,6 +477,9 @@ function DashboardContent({
                   </select>
                 </div>
               ))}
+            </div>
+            <details className="dashboard-pricing-policy">
+              <summary>Price and FX coverage policy</summary>
               <div className="field">
                 <label htmlFor={`${id}-age`}>Maximum price / FX age</label>
                 <select
@@ -370,14 +492,25 @@ function DashboardContent({
                   <option value="604800000">7 days</option>
                 </select>
               </div>
-            </div>
-            <p className="muted">
-              Source priority: {data?.priceSources.join(' → ') || 'manual'} for prices;{' '}
-              {data?.fxSources.join(' → ') || 'manual'} for FX. All observations are historical;
-              future prices are excluded.
-            </p>
+              <p className="muted">
+                Source priority: {data?.priceSources.join(' → ') || 'manual'} for prices;{' '}
+                {data?.fxSources.join(' → ') || 'manual'} for FX. All observations are historical;
+                future prices are excluded.
+              </p>
+              <p className="muted">
+                This limit controls valuation coverage. A missing or stale observation makes a value
+                unavailable; it never supplies a zero or a live market quote.
+              </p>
+            </details>
           </details>
         </form>
+        <p role="status" className="dashboard-filter-status">
+          {hasPendingFilters
+            ? 'Filters changed. Apply filters to update every metric and chart together.'
+            : report.isFetching
+              ? 'Updating all metrics and charts for the active filters…'
+              : 'Metrics and charts use the active filters below.'}
+        </p>
         <div className="dashboard-active-filters" aria-label="Active filters">
           <span>
             {applied.from} — {applied.to} · {workspace.timezone} · {applied.environment} · {money}
@@ -387,22 +520,39 @@ function DashboardContent({
             .map((key) => (
               <button key={key} onClick={() => apply({ ...applied, [key]: '' })}>
                 {labels[filterKeys.indexOf(key)]}:{' '}
-                {options[filterKeys.indexOf(key)]?.find((row) => row.id === applied[key])?.label ??
-                  applied[key]}{' '}
+                {key === 'accountIds'
+                  ? applied[key]
+                      .split(',')
+                      .map(
+                        (value) =>
+                          options[filterKeys.indexOf(key)]?.find((row) => row.id === value.trim())
+                            ?.label ?? value,
+                      )
+                      .join(', ')
+                  : (options[filterKeys.indexOf(key)]?.find((row) => row.id === applied[key])
+                      ?.label ?? applied[key])}{' '}
                 ×
               </button>
             ))}
         </div>
       </Panel>
-      {(failure || invalid || catalog.error || report.error) && (
+      {(invalid || catalog.error || report.error) && (
         <Panel className="dashboard-message" role="alert">
           <p>
-            {failure ||
-              invalid ||
+            {invalid ||
               (catalog.error as Error | null)?.message ||
               (report.error as Error | null)?.message}
           </p>
-          <Button onClick={() => void report.refetch()}>Try again</Button>
+          {!invalid && (
+            <Button
+              onClick={() => {
+                if (catalog.error) void catalog.refetch();
+                else void report.refetch();
+              }}
+            >
+              Try again
+            </Button>
+          )}
         </Panel>
       )}
       {(catalog.isPending || report.isFetching) && (
@@ -416,51 +566,78 @@ function DashboardContent({
           <Panel className="dashboard-message">
             <h2>Your performance starts with financial records</h2>
             <p>
-              No {applied.environment} accounts or reporting currencies are available. Create
-              financial records through the ledger API, then return to review your results.
+              No {applied.environment} accounts or reporting currencies are available. Set up an
+              account and instrument, then record a trade or import a CSV to begin.
             </p>
-            <a href={`/journal?workspace=${workspace.id}`}>Open trade journal</a>
+            <div className="dashboard-inline-controls">
+              <a href={`/record?workspace=${workspace.id}`}>Set up and record a trade</a>
+              <a href={`/imports?workspace=${workspace.id}`}>Import a CSV</a>
+            </div>
           </Panel>
         )}
       {response && !analytics && (
         <Panel className="dashboard-message">
           <h2>No accounts match these filters</h2>
           <p>Adjust the account, broker or portfolio selection.</p>
+          <Button variant="secondary" onClick={() => apply(defaults)}>
+            Reset filters
+          </Button>
         </Panel>
       )}
       {analytics && !report.isFetching && !report.error && (
         <>
+          {!analytics.summary.counts.completed && (
+            <Panel className="dashboard-message">
+              <h2>No completed trades in this period</h2>
+              <p>
+                Closed-trade statistics need completed, evidenced outcomes. Choose a wider period or
+                review open trades in the journal; a missing sample is not a loss.
+              </p>
+              <a href={`/journal?workspace=${workspace.id}`}>Review open trades</a>
+            </Panel>
+          )}
           <div className="dashboard-metrics">
             {metricKeys.map((key, index) => {
               const metric = analytics.completedOnly.metrics[key];
               return (
-                <button
-                  className="panel dashboard-metric"
-                  key={key}
-                  onClick={() => drillInto(metric.eligibleIds)}
-                >
-                  <span>{metricNames[index]}</span>
-                  <strong>
-                    {metric.state === 'infinite'
-                      ? '∞'
-                      : metric.state === 'available'
-                        ? key === 'winRate'
-                          ? `${new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 }).format(Number(metric.value))}`
-                          : format(
-                              metric.value,
-                              key === 'netPnl' ? money : key === 'averageR' ? 'R' : 'ratio',
-                            )
-                        : 'Unavailable'}
-                  </strong>
-                  <small>
-                    {metric.sampleSize} eligible · {metric.excludedIds.length} excluded
-                  </small>
-                  <span className="dashboard-metric-help">
-                    {metric.reasons.length
-                      ? metric.reasons.map((reason) => reason.replaceAll('_', ' ')).join('; ')
-                      : 'Review supporting trades'}
-                  </span>
-                </button>
+                <div className="panel dashboard-metric-card" key={key}>
+                  <button
+                    type="button"
+                    className="dashboard-metric"
+                    onClick={() => drillInto(metric.eligibleIds)}
+                    aria-describedby={`${id}-definition-${key}`}
+                  >
+                    <span>{metricNames[index]}</span>
+                    <strong>
+                      {metric.state === 'infinite'
+                        ? '∞'
+                        : metric.state === 'available'
+                          ? key === 'winRate'
+                            ? `${new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 }).format(Number(metric.value))}`
+                            : format(
+                                metric.value,
+                                key === 'netPnl' ? money : key === 'averageR' ? 'R' : 'ratio',
+                              )
+                          : 'Unavailable'}
+                    </strong>
+                    <small>
+                      {metric.sampleSize} eligible · {metric.excludedIds.length} excluded
+                    </small>
+                    <span className="dashboard-metric-help">
+                      {metric.reasons.length
+                        ? metric.reasons.map((reason) => reason.replaceAll('_', ' ')).join('; ')
+                        : 'Review supporting trades'}
+                    </span>
+                  </button>
+                  <details className="dashboard-metric-definition">
+                    <summary>About {metricNames[index]}</summary>
+                    <p id={`${id}-definition-${key}`}>{metricDefinitions[key]}</p>
+                    <p>
+                      Eligible and excluded counts describe this metric’s own sample. Unavailable
+                      values are never replaced with zero.
+                    </p>
+                  </details>
+                </div>
               );
             })}
           </div>
@@ -472,6 +649,15 @@ function DashboardContent({
             <p>
               Open net P&L: {format(analytics.openOnly.metrics.netPnl.value, money)} · Attributed
               fees: {format(analytics.summary.metrics.fees.value, money)}
+            </p>
+            <p>
+              <a href={`/accounts?${accountReportParams}`}>Review account performance</a>
+              {' · '}
+              <a href={`/journal?workspace=${workspace.id}`}>Review trade notes</a>
+            </p>
+            <p>
+              Account reports retain account scope; strategy, asset and tag filters apply to trade
+              outcomes.
             </p>
             <details>
               <summary>Definitions and coverage</summary>
@@ -490,16 +676,50 @@ function DashboardContent({
                 Sample exclusions are retained in each metric.
               </p>
             </details>
+            <details>
+              <summary>Weekly review guide</summary>
+              <ol>
+                <li>Choose Last week and check sample exclusions before interpreting results.</li>
+                <li>
+                  Review drawdown and supporting trades; inspect missing risk or cost evidence.
+                </li>
+                <li>
+                  Open Breakdowns to compare strategies. Select a strategy and its historical
+                  version to review the rules actually used.
+                </li>
+                <li>
+                  Record lessons in the trade journal and review funding separately in accounts.
+                </li>
+              </ol>
+            </details>
           </div>
           <div className="dashboard-tabs" role="tablist" aria-label="Dashboard views">
-            {['performance', 'distributions', 'breakdowns'].map((value) => (
+            {dashboardViews.map((value, index) => (
               <button
                 role="tab"
                 aria-selected={tab === value}
                 aria-controls={`${id}-${value}`}
                 id={`${id}-tab-${value}`}
+                tabIndex={tab === value ? 0 : -1}
                 key={value}
-                onClick={() => setTab(value)}
+                onClick={() => selectView(value)}
+                onKeyDown={(event) => {
+                  const nextIndex =
+                    event.key === 'ArrowRight'
+                      ? (index + 1) % dashboardViews.length
+                      : event.key === 'ArrowLeft'
+                        ? (index + dashboardViews.length - 1) % dashboardViews.length
+                        : event.key === 'Home'
+                          ? 0
+                          : event.key === 'End'
+                            ? dashboardViews.length - 1
+                            : null;
+                  if (nextIndex === null) return;
+                  event.preventDefault();
+                  const next = dashboardViews[nextIndex]!;
+                  selectView(next);
+                  document.getElementById(`${id}-tab-${next}`)?.focus();
+                }}
               >
                 {value[0]!.toUpperCase() + value.slice(1)}
               </button>
@@ -509,6 +729,7 @@ function DashboardContent({
             role="tabpanel"
             id={`${id}-${tab}`}
             aria-labelledby={`${id}-tab-${tab}`}
+            tabIndex={0}
             className="dashboard-chart-grid"
           >
             {tab === 'performance' && (
@@ -517,12 +738,14 @@ function DashboardContent({
                   <div className="dashboard-inline-controls">
                     <Button
                       variant={curve === 'equity' ? 'primary' : 'quiet'}
+                      aria-pressed={curve === 'equity'}
                       onClick={() => setCurve('equity')}
                     >
                       Account equity
                     </Button>
                     <Button
                       variant={curve === 'performance' ? 'primary' : 'quiet'}
+                      aria-pressed={curve === 'performance'}
                       onClick={() => setCurve('performance')}
                     >
                       Capital-adjusted performance
@@ -741,6 +964,17 @@ function DashboardContent({
                   </tr>
                 </thead>
                 <tbody>
+                  {!rows.length && (
+                    <tr>
+                      <td colSpan={5}>
+                        {search
+                          ? 'No supporting trades match this search. Try another title or clear the search.'
+                          : drill
+                            ? 'This metric has no eligible supporting trades in the current scope. Check its sample coverage or show all filtered trades.'
+                            : 'No trades match the active filters. Adjust the period or account scope, or record a trade in the journal.'}
+                      </td>
+                    </tr>
+                  )}
                   {rows.slice(page * 25, (page + 1) * 25).map((row) => (
                     <tr key={row.id}>
                       <th scope="row">
@@ -790,5 +1024,7 @@ export function DashboardWorkspace(props: {
   workspaces: WorkspaceResponse[];
 }) {
   const params = useSearchParams();
-  return <DashboardContent key={`${props.workspace.id}:${params.toString()}`} {...props} />;
+  const scope = new URLSearchParams(params.toString());
+  scope.delete('view');
+  return <DashboardContent key={`${props.workspace.id}:${scope.toString()}`} {...props} />;
 }

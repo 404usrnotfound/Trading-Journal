@@ -367,15 +367,53 @@ const pageQuery = {
     .default('25')
     .transform(Number),
 };
-export const journalListQuerySchema = z.strictObject({
-  ...pageQuery,
-  includeArchived: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((value) => value === 'true'),
-  status: tradeResponseSchema.shape.status.optional(),
-  search: z.string().trim().min(1).max(160).optional(),
-});
+export const journalActivityInstantSchema = financialInstantSchema.refine(
+  (value) => !value.startsWith('0000-'),
+  'Choose an activity date in year 1 or later.',
+);
+export const journalListQuerySchema = z
+  .strictObject({
+    ...pageQuery,
+    includeArchived: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
+    status: tradeResponseSchema.shape.status.optional(),
+    search: z.string().trim().min(1).max(160).optional(),
+    accountId: id.optional(),
+    from: journalActivityInstantSchema.optional(),
+    to: journalActivityInstantSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if ((value.from === undefined) !== (value.to === undefined))
+      context.addIssue({
+        code: 'custom',
+        path: ['from'],
+        message: 'Choose both activity date boundaries.',
+      });
+    if (
+      value.from &&
+      value.to &&
+      journalActivityInstantSchema.safeParse(value.from).success &&
+      journalActivityInstantSchema.safeParse(value.to).success &&
+      journalQueryInstant(value.from) >= journalQueryInstant(value.to)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['to'],
+        message: 'The activity end must follow its start.',
+      });
+  });
+
+function journalQueryInstant(value: string): bigint {
+  const [whole, fraction = ''] = value.split('.');
+  const offset = value.match(/(?:Z|[+-]\d{2}:\d{2})$/u)?.[0] ?? 'Z';
+  const seconds = fraction ? `${whole}${offset}` : value;
+  return (
+    BigInt(Date.parse(seconds)) * 1000n +
+    BigInt((fraction.replace(/(?:Z|[+-]\d{2}:\d{2})$/u, '') || '0').padEnd(6, '0'))
+  );
+}
 export const journalPlansQuerySchema = z.strictObject(pageQuery);
 export const journalRevisionsQuerySchema = z.strictObject(pageQuery);
 export const journalRiskAdditionsQuerySchema = z.strictObject(pageQuery);

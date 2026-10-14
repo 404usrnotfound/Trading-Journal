@@ -99,6 +99,14 @@ test('reviewed CSV imports preserve exact cash, private sources, duplicates and 
     resource: string,
     schema: { parse(value: unknown): Value },
   ) {
+    if (resource.endsWith('/commit') || resource.endsWith('/reverse')) {
+      await button.click();
+      button = page.getByRole('dialog').getByRole('button', {
+        name: resource.endsWith('/reverse') ? 'Confirm reversal' : 'Confirm posting',
+        exact: true,
+      });
+      await expect(button).toBeVisible();
+    }
     const [response] = await Promise.all([
       page.waitForResponse(
         (value) =>
@@ -226,13 +234,21 @@ test('reviewed CSV imports preserve exact cash, private sources, duplicates and 
     { accountId: account.id, currencyId: currency.id, kind: 'settled' },
     contract.cashBucketResponseSchema,
   );
+  await page.getByRole('button', { name: 'Commit reviewed import' }).click();
+  await expect(page.getByRole('dialog', { name: 'Post this reviewed import?' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Commit reviewed import' })).toBeFocused();
+  expect((await balances())[0]?.amount).toBe('0');
+  await page.getByRole('button', { name: 'Commit reviewed import' }).click();
   const [stale] = await Promise.all([
     page.waitForResponse(
       (value) =>
         value.request().method() === 'POST' &&
         new URL(value.url()).pathname === `${prefix}/imports/batches/${batch.id}/commit`,
     ),
-    page.getByRole('button', { name: 'Commit reviewed import' }).click(),
+    page.getByRole('dialog').getByRole('button', { name: 'Confirm posting', exact: true }).click(),
   ]);
   expect(stale.status()).toBe(409);
   expect(contract.problemResponseSchema.parse(await stale.json()).code).toBe(

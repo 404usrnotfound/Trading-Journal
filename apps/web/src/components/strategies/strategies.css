@@ -1,0 +1,90 @@
+.strategy-optional {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.strategy-optional > summary {
+  padding: 16px 20px;
+  font-weight: 650;
+  cursor: pointer;
+  min-height: 48px;
+}
+.strategy-optional > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.strategy-optional[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+.strategy-optional .strategy-fieldset {
+  border: 0;
+}
+.strategy-optional .strategy-fieldset > legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.strategy-field-error {
+  margin: 6px 0 0;
+  color: var(--error);
+  font-size: 0.875rem;
+}
+.strategy-error-link {
+  color: inherit;
+  border: 0;
+  padding: 4px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.strategy-save-bar {
+  position: sticky;
+  bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 8%);
+  z-index: 2;
+}
+.strategy-action-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+.strategy-action-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.strategy-review-actions {
+  margin-block: 18px;
+}
+@media (max-width: 700px) {
+  .strategy-save-bar {
+    bottom: 8px;
+  }
+  .strategy-review-actions .strategy-action-link {
+    flex: 1 1 100%;
+  }
+  .strategy-comparison {
+    display: block;
+    overflow-x: auto;
+  }
+}
+.strategy-trade-list a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

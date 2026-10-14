@@ -1,0 +1,144 @@
+.workflow-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ux-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 28px;
+  overflow: auto;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 24px 80px #0004;
+}
+.ux-dialog::backdrop {
+  background: #0b1423a8;
+}
+.ux-dialog h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+.ux-dialog-description {
+  margin-bottom: 24px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ux-dialog-description p {
+  margin: 0 0 12px;
+}
+.ux-dialog .workflow-actions {
+  justify-content: flex-end;
+}
+.ux-welcome {
+  padding: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.ux-welcome > div {
+  flex: 1 1 360px;
+}
+.ux-welcome h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.ux-welcome p,
+.ux-workflow-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.ux-routine {
+  margin: 30px 0;
+}
+.ux-routine > h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+.ux-workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.ux-workflow-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ux-workflow-card > svg {
+  color: var(--accent-text);
+}
+.ux-workflow-card h3 {
+  font-size: 17px;
+  margin: 0;
+}
+.ux-workflow-card > .button,
+.ux-workflow-card > .workflow-actions {
+  margin-top: auto;
+}
+.ux-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.ux-text-link:hover {
+  text-decoration: underline;
+}
+.ux-help-disclosure {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  line-height: 1.6;
+}
+.ux-help-disclosure summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.ux-help-disclosure p {
+  color: var(--muted);
+}
+.ux-status {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .app-mobile-navigation {
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .app-mobile-navigation .nav-item {
+    padding: 9px 12px;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 12px;
+  }
+  .app-mobile-navigation .nav-item svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .ux-welcome,
+  .ux-workflow-card,
+  .ux-dialog {
+    padding: 20px;
+  }
+  .ux-workflow-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ux-dialog .workflow-actions > button {
+    flex: 1;
+  }
+}

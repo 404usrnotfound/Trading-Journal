@@ -285,6 +285,18 @@ export const executionAllocationSchema = z.strictObject({
     .array()
     .max(1000),
 });
+/** Read-only effective attribution; used to review existing/imported fills before commands. */
+export const executionAllocationResponseSchema = z.strictObject({
+  executionId: financialIdSchema,
+  version: financialRevisionSchema,
+  allocations: z
+    .strictObject({
+      tradeLegId: financialIdSchema.nullable(),
+      quantity: nonnegativeFinancialDecimalSchema,
+    })
+    .array()
+    .max(1001),
+});
 
 const archiveFields = {
   id: financialIdSchema,

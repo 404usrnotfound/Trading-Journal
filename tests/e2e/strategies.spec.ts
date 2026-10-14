@@ -112,6 +112,15 @@ test('strategy playbook versions retain historical rules, attachments and trade 
     'Review schedule': 'Review after twenty qualified trades.',
     Notes: '<img src=x onerror=alert(1)> is a literal research note.',
   };
+  for (const section of [
+    'Additional eligibility & context',
+    'Detailed rules & reference notes',
+    'Required checklist',
+    'Named setups',
+    'Typed parameters',
+    'Screenshots & attachments',
+  ])
+    await page.locator('summary').filter({ hasText: section }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
   await page.getByLabel('Status', { exact: true }).selectOption('active');
   await page.getByLabel('Direction', { exact: true }).selectOption('long');
@@ -232,6 +241,8 @@ test('strategy playbook versions retain historical rules, attachments and trade 
 
   await page.reload();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await expect(page.getByLabel('View strategy version')).toHaveValue(first.currentVersionId);
+  await page.getByLabel('View strategy version').selectOption(second.currentVersionId);
   await expect(
     page.getByText('RSI below 25 and a confirmed trigger.', { exact: true }),
   ).toBeVisible();
@@ -240,6 +251,11 @@ test('strategy playbook versions retain historical rules, attachments and trade 
   await page.getByRole('button', { name: 'Archive strategy', exact: true }).click();
   await page.getByLabel('Reason for archiving').fill('Retire after research review');
   await page.getByRole('button', { name: 'Confirm archive', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveAccessibleName('Archive this strategy?');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Archive strategy', exact: true })
+    .click();
   await expect(page.getByRole('status')).toHaveText(
     'Strategy archived. Its versions and linked trades have been preserved.',
   );
