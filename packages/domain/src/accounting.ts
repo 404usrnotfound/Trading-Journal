@@ -559,6 +559,15 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
     if (!selected.has(opening.accountId) || !within(opening.economicAt))
       fail('Holding openings must belong to the selected interval and accounts.');
     sourceIds.add(opening.id);
+    if (!opening.nativeValuation) {
+      // Contract notional is neither contributed capital nor an owned asset.
+      // Actual quantities and cash remain recorded without fabricating a value.
+      const unsupported = missing('unsupported_inventory_module', opening.id);
+      openingAdjustments.push(unsupported);
+      scopeTradingAdjustments.push(unsupported);
+      scopeHoldingFxAdjustments.push(unsupported);
+      continue;
+    }
     const chosen = mark(opening.mark, opening.economicAt, `holding-opening:${opening.id}`);
     const sign = opening.direction === 'long' ? '1' : '-1';
     const signedValue =

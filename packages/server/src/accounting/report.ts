@@ -28,6 +28,7 @@ import {
   requireAccount,
   requireCurrency,
   requireInstrumentVersion,
+  supportsNativeShortInventory,
 } from '../financial/reference-data.js';
 
 type ReportInput = AccountingReportRequest;
@@ -466,6 +467,13 @@ export function createAccountingReports(platform: FinancialPlatform) {
             opening.instrument_version_id,
             false,
           );
+          const account = await requireAccount(
+            tx,
+            context.workspaceId,
+            opening.account_id,
+            false,
+            opening.economic_at,
+          );
           holdingOpenings.push({
             id: opening.id,
             accountId: opening.account_id,
@@ -475,6 +483,11 @@ export function createAccountingReports(platform: FinancialPlatform) {
             direction: opening.direction,
             quantity: opening.quantity_raw,
             multiplier: instrument.multiplier,
+            nativeValuation:
+              instrument.capability === 'native-linear' &&
+              account.holdingMode === 'netted' &&
+              (opening.direction === 'long' ||
+                supportsNativeShortInventory(instrument.family, instrument.metadata)),
             bookedPrincipal: opening.principal_raw,
             ...(opening.payload.basisReportingFx
               ? { basisReportingFx: opening.payload.basisReportingFx }

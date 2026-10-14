@@ -41,7 +41,9 @@ type LegRow = {
   quantity_unit: string;
   quote_currency_id: string | null;
   settlement_currency_id: string | null;
-  multiplier_raw: string;
+  multiplier_raw: string | null;
+  capability: string;
+  version_metadata: Record<string, unknown>;
   direction: 'long' | 'short';
 };
 type FillRow = {
@@ -58,7 +60,10 @@ type FillRow = {
   allocated_principal: string | null;
   quantity_unit: string;
   quote_currency_id: string | null;
-  multiplier_raw: string;
+  settlement_currency_id: string | null;
+  multiplier_raw: string | null;
+  capability: string;
+  version_metadata: Record<string, unknown>;
   all_allocations: { id: string; weight: string }[];
 };
 type FeeRow = {
@@ -69,6 +74,36 @@ type FeeRow = {
   amount_raw: string;
   economic_at: string;
 };
+
+function knownQuoteConvention(metadata: Record<string, unknown>): string | null {
+  const convention = metadata.priceConvention;
+  // Calculated metric units are bounded to 200 characters, including "quote/".
+  return typeof convention === 'string' && convention.trim().length > 0 && convention.length <= 194
+    ? convention
+    : null;
+}
+
+/** A raw quote average requires explicit matching units, even for record-only instruments. */
+function compatibleExecutionUnits(fill: FillRow, leg: LegRow): boolean {
+  const priceConvention = knownQuoteConvention(leg.version_metadata);
+  const settlementStyle = leg.version_metadata.settlementStyle;
+  return (
+    priceConvention !== null &&
+    typeof settlementStyle === 'string' &&
+    settlementStyle.length > 0 &&
+    (priceConvention !== 'unit-price' || leg.quote_currency_id !== null) &&
+    fill.quantity_unit === leg.quantity_unit &&
+    fill.quote_currency_id === leg.quote_currency_id &&
+    fill.settlement_currency_id === leg.settlement_currency_id &&
+    fill.capability === leg.capability &&
+    (fill.multiplier_raw === null || leg.multiplier_raw === null
+      ? fill.multiplier_raw === leg.multiplier_raw
+      : decimalValue(fill.multiplier_raw).eq(leg.multiplier_raw)) &&
+    ['priceConvention', 'settlementStyle', 'shortConvention', 'carryCostPolicy'].every(
+      (key) => fill.version_metadata[key] === leg.version_metadata[key],
+    )
+  );
+}
 
 function inventoryMetric(
   metric: InventoryMetric | undefined,
@@ -144,7 +179,7 @@ export async function readJournalFinancialSnapshot(
     sql`
     SELECT l.id,l.account_id,a.name AS account_name,l.instrument_version_id,
       v.instrument_id,i.name AS instrument_name,v.quantity_unit,v.quote_currency_id,
-      v.settlement_currency_id,v.multiplier_raw,l.direction
+      v.settlement_currency_id,v.multiplier_raw,v.capability,v.payload AS version_metadata,l.direction
     FROM app.trade_legs l JOIN app.accounts a ON a.workspace_id=l.workspace_id AND a.id=l.account_id
     JOIN app.instrument_versions v ON v.workspace_id=l.workspace_id AND v.id=l.instrument_version_id
     JOIN app.instruments i ON i.workspace_id=v.workspace_id AND i.id=v.instrument_id
@@ -156,7 +191,8 @@ export async function readJournalFinancialSnapshot(
     SELECT l.id AS leg_id,e.id AS execution_id,i.id AS allocation_id,e.source_revision,
       to_char(e.economic_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS economic_at,
       e.side,i.quantity_raw,e.price_raw,e.principal_raw,e.principal_currency_id,
-      i.payload->>'principal' AS allocated_principal,v.quantity_unit,v.quote_currency_id,v.multiplier_raw,
+      i.payload->>'principal' AS allocated_principal,v.quantity_unit,v.quote_currency_id,
+      v.settlement_currency_id,v.multiplier_raw,v.capability,v.payload AS version_metadata,
       (SELECT jsonb_agg(jsonb_build_object('id',coalesce(p.trade_leg_id::text,'unassigned'),'weight',p.quantity_raw))
         FROM app.allocation_items p WHERE p.workspace_id=s.workspace_id AND p.allocation_set_id=s.id) AS all_allocations
     FROM app.executions e
@@ -272,31 +308,24 @@ export async function readJournalFinancialSnapshot(
     const related = fills.filter((fill) => fill.leg_id === leg.id);
     const population = populations.find((candidate) => candidate.tradeLegId === leg.id);
     const inventory = population?.inventory;
-    if (
-      related.some(
-        (fill) =>
-          fill.quantity_unit !== leg.quantity_unit ||
-          fill.quote_currency_id !== leg.quote_currency_id ||
-          !decimalValue(fill.multiplier_raw).eq(leg.multiplier_raw),
-      )
-    )
+    if (related.some((fill) => !compatibleExecutionUnits(fill, leg)))
       coverageReasons.push('incompatible_execution_units');
     const standaloneReasons = standalone.some((fee) => fee.leg_id === leg.id)
       ? ['standalone_costs_require_campaign_attribution']
       : [];
     const entry = (fill: FillRow) => (leg.direction === 'long') === (fill.side === 'buy');
+    const priceConvention = knownQuoteConvention(leg.version_metadata);
     const weightedPrice = (selected: FillRow[]) =>
       journalWeightedPrice(
         selected.map((fill) => ({
           quantity: fill.quantity_raw,
           price: fill.price_raw,
-          compatible:
-            fill.quantity_unit === leg.quantity_unit &&
-            fill.quote_currency_id === leg.quote_currency_id &&
-            decimalValue(fill.multiplier_raw).eq(leg.multiplier_raw),
+          compatible: compatibleExecutionUnits(fill, leg),
         })),
-        `price/${leg.quantity_unit}`,
-        leg.quote_currency_id,
+        priceConvention === 'unit-price'
+          ? `price/${leg.quantity_unit}`
+          : `quote/${priceConvention ?? 'unknown'}`,
+        priceConvention === 'unit-price' ? leg.quote_currency_id : null,
       );
     const quantity = (selected: FillRow[]) => {
       if (!related.length)

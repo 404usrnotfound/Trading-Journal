@@ -768,6 +768,7 @@ describe('ordinary inventory, interval attribution and capital opening', () => {
             direction: 'long',
             quantity: '5',
             multiplier: '1',
+            nativeValuation: true,
             bookedPrincipal: '50',
             mark: { id: 'opening-capital-mark', price: '12', observedAt: at(20) },
           },
@@ -779,6 +780,100 @@ describe('ordinary inventory, interval attribution and capital opening', () => {
     expect(amount(report.breakdown.tradingPnl)).toBe('10');
     expect(amount(report.reconciliation.performance)).toBe('10');
     expect(amount(report.reconciliation.variance)).toBe('0');
+  });
+  it('keeps a manual future opening out of capital instead of manufacturing full notional', () => {
+    const scope = {
+      workspaceId: 'workspace',
+      accountId: 'A',
+      instrumentId: 'future',
+      instrumentVersionId: 'future/v1',
+      unitVersionId: 'contract',
+      settlementCurrencyId: 'EUR',
+    };
+    const opening: InventoryOpening = {
+      kind: 'opening',
+      id: 'future-opening',
+      effectId: 'future-opening',
+      sourceRevision: '1',
+      economicOrder: { instant: at(20), sequence: '1' },
+      direction: 'long',
+      quantity: '2',
+      multiplier: '50',
+      entryPrice: '5000',
+      bookedPrincipal: null,
+      costs: [],
+      costsComplete: true,
+    };
+    const replay = (sources: readonly InventorySource[]) =>
+      replayInventory({
+        scope,
+        manifest: INVENTORY_CALCULATION_MANIFEST,
+        sourceRevision: '999',
+        policy: 'fifo',
+        capability: {
+          subtype: 'linear-future',
+          nativeInventory: false,
+          shortSupported: false,
+          averageCostSupported: false,
+        },
+        sources,
+      });
+    const mark = { id: 'future-points', price: '5000', observedAt: at(20) };
+    const report = calculateAccounting(
+      base({
+        openingCash: [balance('A', 'EUR', '10000')],
+        closingCash: [balance('A', 'EUR', '10000')],
+        books: [
+          {
+            id: 'future-book',
+            accountId: 'A',
+            instrumentId: 'future',
+            instrumentVersionId: 'future/v1',
+            currencyId: 'EUR',
+            multiplier: '50',
+            openingInventory: replay([]),
+            closingInventory: replay([opening]),
+            openingMark: null,
+            closingMark: mark,
+          },
+        ],
+        holdingOpenings: [
+          {
+            id: opening.id,
+            accountId: 'A',
+            instrumentId: 'future',
+            currencyId: 'EUR',
+            economicAt: at(20),
+            direction: 'long',
+            quantity: '2',
+            multiplier: '50',
+            nativeValuation: false,
+            bookedPrincipal: null,
+            mark,
+          },
+        ],
+      }),
+    );
+    // 2 × 5,000 points × EUR 50/point is EUR 500,000 of exposure.
+    // It cannot be used as the derivative's contributed capital or asset value.
+    expect(report.breakdown.openingAdjustments).toMatchObject({
+      state: 'unavailable',
+      value: null,
+      knownSubtotal: '0',
+      reasons: ['unsupported_inventory_module'],
+      missingReferences: [opening.id],
+    });
+    expect(amount(report.closing.cash)).toBe('10000');
+    expect(report.closing.equity).toMatchObject({
+      state: 'partial',
+      value: null,
+      knownSubtotal: '10000',
+      reasons: ['unsupported_inventory_module'],
+    });
+    expect(report.reconciliation.netCapitalFlows.value).toBeNull();
+    expect(report.reconciliation.netCapitalFlows.knownSubtotal).toBe('0');
+    expect(report.reconciliation.performance.value).toBeNull();
+    expect(report.breakdown.tradingPnl.knownSubtotal).toBe('0');
   });
   it('keeps observed marked account change available while unknown basis blocks attribution', () => {
     const opening: InventoryOpening = {

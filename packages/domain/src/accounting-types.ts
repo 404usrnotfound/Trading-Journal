@@ -83,6 +83,8 @@ export type AccountingHoldingOpening = Readonly<{
   direction: 'long' | 'short';
   quantity: string;
   multiplier: string | null;
+  /** Only a validated delivered holding may be valued with quantity × multiplier × price. */
+  nativeValuation: boolean;
   bookedPrincipal: string | null;
   basisReportingFx?: PinnedInventoryRate;
   mark: AccountingMark | null;

@@ -611,8 +611,8 @@ export function JournalEditor({
                 {leg.instrumentName} · {leg.accountName}
               </h4>
               <p className="journal-help">
-                Prices in the instrument quote currency; quantities in {leg.quantityUnit}. Exact
-                decimal input is retained.
+                Prices follow the instrument's recorded quote convention; quantities in{' '}
+                {leg.quantityUnit}. Exact decimal input is retained.
               </p>
               <div className="journal-fields">
                 {[

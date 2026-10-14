@@ -1,6 +1,6 @@
 # Instrument identities, conventions, and capability contracts
 
-Phase 2 financial-domain design, 2026-10-07. This is a design contract, not an implemented support claim. No instrument module or automatic result has been validated by application tests in this repository.
+Phase 2 financial-domain design, 2026-10-07, with a current implementation summary from Phase 11. The design matrix below remains a delivery contract; its native candidates are not blanket implemented support claims. The ordinary-linear baseline now has application-test evidence recorded in the phase validation reports. The [asset-class audit](asset-class-audit.md) distinguishes those implemented operations from manual recording and deferred native accounting.
 
 This document specializes the [domain model](domain-model.md), [financial calculations](financial-calculations.md), and [ADR 0005](decisions/0005-versioned-domain-and-multicurrency.md). The [product specification](../Trading_Journal_Codex_Prompt.md), especially §§3–5 and 14, requires every listed asset family to be recordable and allows staged automatic calculations. A missing derivative formula is a reason to use a visible manual workflow, not a reason to omit that asset family or reuse an equity formula.
 
@@ -67,7 +67,28 @@ Capabilities are published per subtype, operation, metadata/module version, and 
 
 The implementation also needs `pending_validation` to describe a planned native module. It is not a fourth advertised support level and cannot be displayed as Level 1. An operation falls back to Level 2 only when its supplied inputs establish a compatible result; otherwise it remains Level 3. The distinction is about the specific result, not whether the user can save an instrument record.
 
-The following matrix describes delivery design. `N` means a **native implementation candidate, pending validation**, not currently validated software; `M` means a required explicit broker/manual workflow; `U` means automatic calculation remains unavailable until a separate validated module exists. `R` means required record/import/review support for every row. Generic decimal addition of explicitly recorded cash postings is native ledger arithmetic; it does not validate the instrument-specific amount or settlement rule that supplied them.
+### Current implemented operations
+
+This table describes the application, separately from the full delivery design below. Existing baseline evidence is recorded in the [core ledger guide](core-ledger.md) and prior phase validation reports; Phase 11 representative examples and regressions are recorded in [Phase 11 validation](phase-11-validation.md) after execution.
+
+| Class / subtype | Recording and cash | Inventory / monetary calculations | Valuation and limits |
+| --- | --- | --- | --- |
+| Stock / `ordinary-share` | Actual delivered share fills, verified principal and separate actual charges. | Native netted long FIFO/eligible average/specific lots; native short additionally requires pinned borrow/carry conventions. | Compatible unit-price share mark. Corporate actions, margin and nonstandard terms remain separate gates. |
+| ETF / `ordinary-etf` | Actual delivered ETF shares and cash. | The same gated native share methods; underlying fund holdings are not separately owned. | Compatible traded-share mark; no implied look-through or complex ETP support. |
+| Crypto / `non-rebasing-spot` | Known-unit delivered spot fills and cash. | Native long spot quantity/basis/P&L. Native crypto short, reward/rebase/wrapper and derivative methods are unavailable. | Compatible spot mark; no automatic custody-representation conversion or double-count permission. |
+| Delivered spot FX | Actual source/destination currency legs and fees. | Cash history/FX reporting, not a purchased share lot. | Translate owned balances once; no additional held-pair notional NAV. |
+| Rolling/margin FX | Manual quantity, stated conventions and explicit actual cash effects. | Quantity remains recordable; automatic contract/pip basis and P&L are unsupported. | No automatic marked value, leverage or carry formula. |
+| Options | Manual contracts/premium evidence and explicit actual cash. | Known quantity; automatic option basis/P&L/R unavailable. | No native mark, exercise/assignment or deliverable/basis handler. |
+| Futures | Manual contracts/tick/multiplier evidence and explicit actual cash; no full-notional debit. | Known quantity; automatic settlement/basis/P&L/R unavailable. | No native residual value, VM/delivery/roll/funding handler. Negative prices are rejected. |
+| Bonds | Manual face quantity/price conventions and explicit actual dirty consideration/cash. | Known quantity; automatic accrued-interest/basis/P&L/R unavailable. | No native clean/dirty valuation, yield, coupon schedule or redemption handler. |
+
+Native eligibility is restricted to the exact stock/ETF/crypto subtype pairs, multiplier 1, known increments, equal quote/settlement currency and delivered unit-price metadata; a family label does not select a formula. Other listed families may use the generic manual catalog and actual-cash path subject to the stated input limits. This does not complete every specialized event/UI workflow.
+
+Manual account valuation observations are currently comparison evidence only. They do not replace calculated NAV, resolve an unsupported holding or become another additive asset. The designed Level 2 basis/P&L/holding-value selection is broader than this implemented fallback. See the [audit](asset-class-audit.md) for source files, representative examples, subtype extension gates and remaining limits.
+
+### Full-product delivery design
+
+The following matrix describes delivery design. `N` means a **native implementation candidate, pending operation-specific validation**; consult the current matrix above and validation evidence to determine implemented status. `M` means a required explicit broker/manual workflow; `U` means automatic calculation remains unavailable until a separate validated module exists. `R` means required record/import/review support for every row. Generic decimal addition of explicitly recorded cash postings is native ledger arithmetic; it does not validate the instrument-specific amount or settlement rule that supplied them.
 
 | Family / subtype | Record | Fill/event cash behavior | Lot / basis / realized result | Mark / account valuation | Exposure / planned risk | Mandatory subtype gate |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -171,7 +192,7 @@ Every supplied value must state its metric definition, units/currency, observati
 | Collateral/restricted cash | Include owned monetary collateral once within the appropriate cash buckets; do not also add it as derivative market value. Noncash pledged assets remain the same assets with restricted status. |
 | Broker P&L | Compare or select for its declared scope and definition. It is not a cash posting or another NAV asset, and cannot be merged with incompatible internally calculated gross/net results. |
 
-Selections are explicit, provenance-preserving and reversible through another calculation context. A stale or incompatible observation remains visible but does not silently fill a missing compatible operand. Unexplained reconciliation residual is variance, not automatically "FX", "fees" or "profit".
+These are design-level selection contracts. The current application stores whole-account valuation observations for comparison; it does not yet select supplied account totals, advanced holding basis/P&L or package values as replacement calculation components. Selections, when implemented, must be explicit, provenance-preserving and reversible through another calculation context. A stale or incompatible observation remains visible but does not silently fill a missing compatible operand. Unexplained reconciliation residual is variance, not automatically "FX", "fees" or "profit".
 
 ## 7. Independent fixtures and promotion gates
 
@@ -207,4 +228,4 @@ Phase 2 selects explicit economic identities, immutable conventions, per-operati
 
 Before enabling an advanced native module, resolve and independently test its named contract's price/quantity/settlement/collateral conventions, calendars and actual event sequence. Defaulting unknown inverse, option, accrued-interest, barrier or leverage behavior to a linear stock calculation is prohibited. The unresolved advanced convention affects that automatic operation; it does not block required recording and explicit manual settlement.
 
-Before implementing the initial native modules, validate the financial calculation document's ordinary-equity/ETF and crypto-spot fixtures, short and average-cost eligibility, fee allocations, cash history/FX bridge, precision bounds and unit conversion rules. All native-capability statuses remain pending until those checks run against the implementation.
+For the initial native modules, the financial calculation document's ordinary-equity/ETF and crypto-spot fixtures, short and average-cost eligibility, fee allocations, cash history/FX bridge, precision bounds and unit conventions remain required regression gates. Existing validated operations are identified in the current matrix and phase evidence; planned advanced operations remain pending until their specific checks run against an implementation.
