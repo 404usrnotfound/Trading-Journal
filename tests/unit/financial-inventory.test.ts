@@ -838,7 +838,7 @@ describe('inventory conservation properties', () => {
       { numRuns: 150, seed: 20261010 },
     );
   });
-  it('arbitrary fractional partials preserve every original cost and end with no residual basis', () => {
+  it('integer partial closes conserve fractional source fees and finish with no residual basis', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 2, max: 1000 }),

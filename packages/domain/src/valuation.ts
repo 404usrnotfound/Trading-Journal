@@ -373,7 +373,24 @@ export function calculateNav(input: NavInput): NavResult {
       reasons.push('incompatible_currency');
       continue;
     }
+    const amount = decimalValue(component.amount);
+    if (component.kind === 'liability' && amount.isNegative())
+      throw new FinancialArithmeticError(
+        'invalid_decimal',
+        'Explicit liabilities use a positive magnitude.',
+      );
     if (component.rate.state === 'unavailable') {
+      // An evidenced zero in a known currency has zero reporting value. Keep
+      // unavailable amounts/currencies and nonzero exposure incomplete, and
+      // still validate every supplied available FX context below.
+      if (amount.isZero() && component.currencyId.length > 0) {
+        components.push({
+          id: component.id,
+          currencyId: input.reportingCurrencyId,
+          amount: decimal('0'),
+        });
+        continue;
+      }
       missingReferences.push(component.id, ...component.rate.missingReferences);
       reasons.push(...component.rate.reasons);
       continue;
@@ -382,12 +399,6 @@ export function calculateNav(input: NavInput): NavResult {
       throw new FinancialArithmeticError('invalid_decimal', 'NAV cannot mix valuation instants.');
     const rate = rateValue(component.rate, component.currencyId, input.reportingCurrencyId);
     if (!rate) throw new FinancialArithmeticError('invalid_decimal', 'Invalid NAV FX context.');
-    const amount = decimalValue(component.amount);
-    if (component.kind === 'liability' && amount.isNegative())
-      throw new FinancialArithmeticError(
-        'invalid_decimal',
-        'Explicit liabilities use a positive magnitude.',
-      );
     const signed = component.kind === 'liability' ? amount.negated() : amount;
     const working = signed.times(rate);
     try {
