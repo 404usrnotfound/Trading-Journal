@@ -35,7 +35,11 @@
     "api:generate": "tsx packages/contracts/src/generate.ts",
     "api:check": "tsx packages/contracts/src/generate.ts --check",
     "verify": "corepack pnpm api:check && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
-    "security:audit": "corepack pnpm audit --audit-level=low"
+    "security:audit": "corepack pnpm audit --audit-level=low",
+    "release:check": "tsx scripts/release-check.ts",
+    "ops:preflight": "tsx scripts/operations/production-preflight.ts",
+    "ops:https-smoke": "tsx scripts/operations/https-smoke.ts",
+    "ops:recovery-drill": "tsx scripts/operations/recovery-drill.ts"
   },
   "dependencies": {
     "@journal/contracts": "workspace:*",

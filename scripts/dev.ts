@@ -21,7 +21,7 @@ async function stop(code: number): Promise<void> {
   stopping = true;
   process.exitCode = code;
   try {
-    await stopProcessGroups(children, 10_000);
+    await stopProcessGroups(children, 15_000);
   } catch {
     console.error('Unable to stop every development service cleanly.');
     process.exitCode = 1;

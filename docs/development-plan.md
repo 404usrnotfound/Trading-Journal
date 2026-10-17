@@ -4,7 +4,7 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current authorized increment is Phase 15: performance.** Phases 0–14 are approved and merged. This increment profiles realistically large persisted datasets and the browser, optimizes only measured bottlenecks, and preserves exact financial results and security boundaries. The [performance report](performance.md) records reproducible fixture/benchmark commands, before/after measurements, financial hashes, verification and explicit capacity limits. The [Phase 14 correctness campaign](testing-campaign.md) remains the financial baseline, including its complete EUR-funded lifecycle and zero-exposure NAV regression guards. No unrelated product features, relaxed report budgets, stale caching, publication, push or merge are authorized. Advanced native accounting, return solvers, full statement reconciliation, bulk jobs, exports/restore and deployment work remain deferred.
+**The current authorized increment is Phase 16: production readiness.** Phases 0–15 are approved and merged. This increment reviews configuration, release artifacts, migrations, database connections, HTTPS/session assumptions, operational health and recovery, with executed local evidence and explicit deployment gates. The [deployment guide](deployment.md), [operations runbook](operations.md), [backup/recovery procedure](backup-and-recovery.md) and [readiness checklist](production-readiness-checklist.md) distinguish verified checks from pending production requirements. The [performance report](performance.md) and [Phase 14 correctness campaign](testing-campaign.md) remain the performance and financial baselines. A production deployment, live-provider connection, or Phase 16 commit/push/merge requires separate authorization. Advanced native accounting, return solvers, full statement reconciliation, bulk jobs and portable workspace export/restore remain deferred.
 
 The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine and Phase 9 dashboard add campaign statistics, historical breakdowns and visualizations. Delivered Phase 10 implements the bounded import foundation within original-roadmap Phase 6. Phase 11 audits and hardens existing all-asset boundaries. Phase 12 improves common user journeys; it does not complete every asset's specialized lifecycle, native calculations or full-product workflows.
 
@@ -287,7 +287,7 @@ Use ten concurrent authenticated read sessions for warm list/summary runs; recor
 
 ## Check commands and future workflow checks
 
-Phase 3 supplies install/dev/migration/format/lint/type/unit/integration/browser/build commands, documented in [README](../README.md). `test:a11y` is integrated into `test:e2e` with axe rather than a separate script. Performance and restore commands below remain future workflow obligations, not currently available checks.
+Phase 3 supplies install/dev/migration/format/lint/type/unit/integration/browser/build commands, documented in [README](../README.md). `test:a11y` is integrated into `test:e2e` with axe rather than a separate script. The roadmap command names below are proposed workflow obligations. Phase 15 provides scripts under `scripts/performance`; Phase 16 adds `release:check`, `ops:preflight`, `ops:https-smoke` and `ops:recovery-drill` for the narrower operational checks documented in their guides.
 
 | Command / future obligation      | Purpose and first relevant stage                                                                           |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -317,7 +317,7 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is Phase 15 performance profiling and measured optimization, preserving the merged Phase 14 correctness baseline. Publication requires subsequent user approval. The performance increment adds reusable isolated fixtures and backend/browser/domain instrumentation, exact financial comparisons, focused regression coverage and an honest report of successful bounded reads, explicit limit rejections and timeouts. Account return solvers, complete financial entry screens, standalone period-review storage/templates, bulk imports, full statement reconciliation, exports/restore, advanced native settlement and deployment remain outside this increment.
+The current authorized action is Phase 16 production preparation, preserving the merged Phase 15 performance and Phase 14 correctness baselines. This increment adds operational verification and runbooks without deploying the application. Full operational database/media recovery is distinct from the deferred portable workspace export/restore feature. Account return solvers, complete financial entry screens, standalone period-review storage/templates, bulk imports, full statement reconciliation and advanced native settlement remain outside this increment.
 
 ## Authorized Phase 7: portfolio/accounting engine
 
@@ -423,6 +423,16 @@ Weekly review uses the period's individual trade reviews and tested analytics. I
 - Query counts, SQL timing and restricted-role plans; complete service/API/browser payload, timing, DOM and sampled memory evidence.
 - Measured journal batching and fill/cash population narrowing, transfer-query gating, active-lot matching and dashboard rendering/disclosure changes, with exact financial hashes and focused regressions.
 - Complete relevant correctness, migration, contract, formatting, lint, type, production-build and browser validation.
-- No commit, push or merge without separate approval.
+- Phase 15 was separately approved, committed and merged as `ed901948463a9754f977d576160d8ebcc5eea918`.
 
 See [performance.md](performance.md) for executed outcomes and limitations. The original million-fill, ten-reader, import/rebuild and worker-contention targets above remain separate unverified roadmap obligations; the Phase 15 dataset matrix does not silently replace or certify them.
+
+## Authorized Phase 16: production readiness
+
+- Inventory production/runtime/operator bindings, secure origin/cookie assumptions, PostgreSQL TLS/roles, private storage and connection budgets.
+- Verify locked source-only installation and production builds, release artifact completeness, migration fingerprints and native dependency containment.
+- Exercise production standalone assets, strict local-CA HTTPS, session/CSRF/header behavior, readiness failures and worker/launcher shutdown.
+- Provide deployment and operations runbooks covering serialized migration phases, monitoring, graceful failures, rollout and recovery decisions.
+- Rehearse a quiesced logical database/private-media restore into a fresh PostgreSQL17 cluster, comparing exact data/security/financial state and restricted-role behavior.
+- Maintain a [production-readiness checklist](production-readiness-checklist.md) and [safe verification record](production-readiness-evidence.json); check only executed evidence. Actual-host TLS, capacity, alerts, offsite backups, production-size RPO/RTO and deployment approval remain gates.
+- Leave Phase 16 changes uncommitted for review; preparation does not authorize a production deployment.

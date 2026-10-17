@@ -44,14 +44,15 @@ jobs:
           corepack pnpm db:migrate:check
           corepack pnpm db:check
       - name: Check contracts, formatting, lint, types, unit/UI/integration tests and build
+        env:
+          APP_ORIGIN: https://localhost:3000
         run: corepack pnpm verify
-      - name: Verify web and worker startup
-        run: |
-          corepack pnpm dev > /tmp/journal-foundation-startup.log 2>&1 &
-          journal_foundation_pid=$!
-          trap 'kill -TERM "$journal_foundation_pid" 2>/dev/null || true; wait "$journal_foundation_pid" || true' EXIT
-          curl --fail --retry 30 --retry-connrefused --retry-all-errors --retry-delay 1 http://localhost:3000/api/v1/health/live
-          curl --fail --retry 30 --retry-connrefused --retry-all-errors --retry-delay 1 http://127.0.0.1:3101/health/ready
+      - name: Verify production release artifacts
+        run: corepack pnpm --silent release:check > /tmp/journal-release-manifest.json
+      - name: Verify production HTTPS, sessions and protected readiness
+        run: corepack pnpm ops:https-smoke
+      - name: Rehearse isolated database and private-media recovery
+        run: corepack pnpm ops:recovery-drill --output work/ci-recovery-evidence.json
       - name: Install the locked Chromium browser and system dependencies
         run: corepack pnpm exec playwright install --with-deps chromium
       - name: Verify browser workflows and accessibility

@@ -17,6 +17,7 @@ async function main(): Promise<void> {
   let ready = false;
   let stopping = false;
   let probing = false;
+  const probeController = new AbortController();
 
   const healthServer = createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -47,54 +48,72 @@ async function main(): Promise<void> {
   boss.on('warning', () => logger.warn({ event: 'worker.queue.warning' }));
 
   let heartbeat: ReturnType<typeof setInterval> | undefined;
-  async function shutdown(): Promise<void> {
-    if (stopping) return;
+  let shutdownPromise: Promise<void> | undefined;
+  function shutdown(): Promise<void> {
+    if (shutdownPromise) return shutdownPromise;
     stopping = true;
     ready = false;
+    probeController.abort();
     if (heartbeat) clearInterval(heartbeat);
     logger.info({ event: 'worker.stopping' });
-    await Promise.allSettled([
+    shutdownPromise = Promise.allSettled([
       new Promise<void>((resolve) => healthServer.close(() => resolve())),
       boss.stop({ graceful: true, timeout: 10_000 }),
-    ]);
+    ]).then((results) => {
+      if (results.some((result) => result.status === 'rejected')) {
+        process.exitCode = 1;
+        logger.error({ event: 'worker.shutdown.failed' });
+      } else {
+        logger.info({ event: 'worker.stopped' });
+      }
+    });
+    return shutdownPromise;
   }
 
+  // Handle termination while connecting/checking schema as well as after readiness.
+  process.once('SIGINT', () => void shutdown());
+  process.once('SIGTERM', () => void shutdown());
+  logger.info({ event: 'worker.starting' });
   try {
     await boss.start();
+    if (stopping) return void (await shutdown());
     await boss.work(HEALTH_PROBE_QUEUE, { pollingIntervalSeconds: 0.5 }, async (jobs) => {
       for (const job of jobs) healthProbePayloadSchema.parse(job.data);
       return { status: 'ok' };
     });
-    await verifyQueueRoundTrip(boss);
+    if (stopping) return void (await shutdown());
+    await verifyQueueRoundTrip(boss, probeController.signal);
+    if (stopping) return void (await shutdown());
     ready = true;
 
     await new Promise<void>((resolve, reject) => {
       healthServer.once('error', reject);
       healthServer.listen(config.WORKER_HEALTH_PORT, config.WORKER_HEALTH_HOST, resolve);
     });
+    if (stopping) return void (await shutdown());
 
     heartbeat = setInterval(() => {
       if (probing || stopping) return;
       probing = true;
-      void verifyQueueRoundTrip(boss)
+      void verifyQueueRoundTrip(boss, probeController.signal)
         .then(() => {
           if (!stopping) ready = true;
           logger.info({ event: 'worker.heartbeat' });
         })
         .catch(() => {
           ready = false;
-          logger.error({ event: 'worker.heartbeat.failed' });
+          if (!stopping) logger.error({ event: 'worker.heartbeat.failed' });
         })
         .finally(() => {
           probing = false;
         });
     }, 30_000);
 
-    process.once('SIGINT', () => void shutdown());
-    process.once('SIGTERM', () => void shutdown());
     logger.info({ event: 'worker.ready' });
   } catch (error) {
+    const interrupted = stopping;
     await shutdown();
+    if (interrupted) return;
     throw error;
   }
 }

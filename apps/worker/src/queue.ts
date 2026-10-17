@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { PgBoss } from 'pg-boss';
 import { z } from 'zod';
@@ -30,17 +31,21 @@ export function createRuntimeQueue(databaseUrl: string): PgBoss {
 }
 
 /** The probe is an infrastructure check, not an application job or financial event. */
-export async function verifyQueueRoundTrip(boss: PgBoss): Promise<void> {
+export async function verifyQueueRoundTrip(boss: PgBoss, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
   const jobId = await boss.send(HEALTH_PROBE_QUEUE, {
     probeId: randomUUID(),
   });
+  signal?.throwIfAborted();
   if (jobId === null) {
     throw new Error('QUEUE_PROBE_NOT_ENQUEUED');
   }
 
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
+    signal?.throwIfAborted();
     const jobs = await boss.findJobs(HEALTH_PROBE_QUEUE, { id: jobId });
+    signal?.throwIfAborted();
     const job = jobs[0];
     if (job?.state === 'completed') {
       return;
@@ -48,7 +53,7 @@ export async function verifyQueueRoundTrip(boss: PgBoss): Promise<void> {
     if (job?.state === 'failed' || job?.state === 'cancelled') {
       throw new Error('QUEUE_PROBE_FAILED');
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, 250));
+    await delay(250, undefined, { signal });
   }
   throw new Error('QUEUE_PROBE_TIMED_OUT');
 }

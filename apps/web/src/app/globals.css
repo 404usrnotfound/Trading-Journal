@@ -1,6 +1,7 @@
 @import '../components/imports/imports.css';
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 @import '../components/dashboard/dashboard.css';
+@source "../";
 @source "../../../../packages/ui/src";
 
 :root {

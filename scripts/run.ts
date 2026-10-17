@@ -7,9 +7,9 @@ import {
   spawnServiceProcess,
   stopProcessGroups,
 } from './processes.js';
-import { cp, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { repositoryRoot } from './environment.js';
+import { copyStandaloneAssets } from './standalone-assets.js';
 
 loadEnvironment();
 const commands: Record<string, string[]> = {
@@ -33,11 +33,7 @@ else readWorkerConfiguration(process.env);
 // HTTP smoke/test runner in its configured environment; deployments use HTTPS.
 const webStart = process.argv[2] === 'web-start' && process.env.NODE_ENV === 'production';
 if (webStart) {
-  const destination = resolve(repositoryRoot, 'apps/web/.next/standalone/apps/web/.next');
-  await mkdir(destination, { recursive: true });
-  await cp(resolve(repositoryRoot, 'apps/web/.next/static'), resolve(destination, 'static'), {
-    recursive: true,
-  });
+  await copyStandaloneAssets(repositoryRoot);
 }
 const child = webStart
   ? spawnServiceProcess(
@@ -52,7 +48,7 @@ async function stop(code: number): Promise<void> {
   stopping = true;
   process.exitCode = code;
   try {
-    await stopProcessGroups([child]);
+    await stopProcessGroups([child], 15_000);
   } catch {
     console.error('Unable to stop the managed service cleanly.');
     process.exitCode = 1;

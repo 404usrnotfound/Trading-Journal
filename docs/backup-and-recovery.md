@@ -1,0 +1,118 @@
+# Backup and recovery
+
+This is an operator procedure for the complete application database and private media. It is separate from a user-facing workspace export/import feature, which is not implemented. Read [deployment](deployment.md), [operations](operations.md), [ADR 0007](decisions/0007-private-storage-and-durable-jobs.md) and [ADR 0008](decisions/0008-testing-and-operations.md) before adapting it to a deployment.
+
+## Recovery set and consistency
+
+A usable recovery set contains all of these:
+
+- A complete PostgreSQL custom-format dump: `app`, `auth`, `queue`, `migrations`, their types/functions, ownership, grants, default privileges, sequences, constraints, policies and enabled triggers. Include immutable financial sources, revisions, audit/outbox records, original-risk plans, strategy/journal versions, imports and projections. An application-only dump loses authentication and queue state.
+- Cluster-global roles and grants, reviewed independently. `pg_dump` does not include roles. Keep `journal_migrator` as a non-login owner, the three separated restricted runtime roles, and the operator identity required by the archive. Runtime roles must remain non-owner, `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`, `NOBYPASSRLS`, `NOREPLICATION`, `NOINHERIT`, with no membership in another role. `NOINHERIT` alone does not prevent `SET ROLE`.
+- A coordinated copy of the entire configured `STORAGE_ROOT`, including private workspace/object paths and lifecycle staging objects. The current implementation is private local POSIX storage; an S3 adapter is not implemented. Preserve the relative layout, restrictive ownership/modes and ready-object hashes. Do not expose restored files through a public/static mount.
+- The exact release/lockfile/migration files and build identity; private environment/secrets from a separate protected secret-recovery system. The unchanged authentication secret allows valid restored sessions to remain usable. Database credentials, encryption keys and proxy/TLS configuration are not recovered by a database dump.
+- A private manifest recording UTC consistency cutoff, release, PostgreSQL/tool versions, archive/media sizes and SHA-256, migration/schema version, source/metadata context and verification outcomes. Treat dumps, role files, manifests and original media as sensitive.
+
+A database snapshot alone cannot atomically capture filesystem changes. The initial supported procedure uses a maintenance window: stop accepting requests at the ingress; drain/stop **all** web processes and worker processes and any external writers; wait for their transactions and uploads to finish; record the cutoff; then take the database and media copies while the deployment remains quiesced. Stop the worker gracefully before copying the queue. Inspect active transactions and storage staging/lifecycle records; do not delete pending/orphan objects during a backup. A filesystem copy taken while uploads/removals continue is not a verified coordinated backup. Keeping the ingress open for reads can still write authentication/rate-limit state, so the drill uses fully stopped application processes.
+
+Capture source-side exact financial/report fingerprints and ready attachment counts/hashes at the recorded context as part of the maintenance procedure. Domain rebuilds are not substitutes for preserving authoritative facts and provenance. Do not omit large tables or use empty projections to shorten recovery.
+
+## Backup procedure
+
+These are operator templates, not evidence that a production backup schedule exists. Install PostgreSQL 17 client tools. Configure libpq service entries and a `0600` password file through the deployment secret manager; values never belong in command arguments, shell history, source control or logs. The backup service must be authorized to read every included table/sequence despite forced tenant RLS; a web/auth/jobs runtime credential cannot serve this purpose. Test that privilege boundary separately on the selected production host. Remote connections require certificate-verified TLS (`sslmode=verify-full`, the correct CA and hostname).
+
+Use a new, operator-owned backup directory, reject unexpected symlinks, set `umask 077`, and select the reviewed source service explicitly. The example paths are deployment placeholders:
+
+```sh
+umask 077
+export PGSERVICEFILE=/run/secrets/journal-pg-services.conf
+export PGPASSFILE=/run/secrets/journal-pgpass
+backup_dir=/srv/journal-backups/2026-10-17T080000Z
+mkdir -m 0700 "$backup_dir"
+pg_dump --dbname='service=journal_backup' --format=custom \
+  --lock-wait-timeout=30s --file="$backup_dir/database.dump"
+pg_dumpall --dbname='service=journal_backup' --roles-only \
+  --no-role-passwords --file="$backup_dir/roles.sql"
+tar --create --file="$backup_dir/media.tar" --directory=/srv/journal/private-media .
+sha256sum "$backup_dir/database.dump" "$backup_dir/roles.sql" "$backup_dir/media.tar" \
+  > "$backup_dir/SHA256SUMS"
+pg_restore --list "$backup_dir/database.dump" > "$backup_dir/database-toc.txt"
+```
+
+Check each exit status and archive size; stop on any error. The role dump can contain other roles on a shared cluster: review it privately and restore only the authorized application/operator roles and memberships. The password-free role dump requires runtime credentials to be provisioned from the secret manager after restore. Preserve owners and ACLs: do not add `--no-owner`, `--no-acl`, `--enable-row-security`, selective schema/table exclusions or trigger-disabling flags to make errors disappear. Do not run a full roles file against an unrelated/shared existing cluster.
+
+Hash verification detects accidental corruption, not malicious replacement of both an archive and its checksum. Encrypt archives before off-host transfer, authenticate the manifest through the selected backup system, restrict access separately from the application host, verify the offsite copy and retain recoverable encryption keys in a separate recovery channel. Resume the original release only after both copies and the cutoff manifest are complete. Alert on incomplete/old backups; an unsuccessful run must not replace the last known good set.
+
+The ADR's daily backups, 30-day retention, RPO ≤24 hours and RTO ≤4 hours are **proposed policy**, not demonstrated production guarantees. No scheduler, offsite store, encryption/key rotation, retention job or alert recipient has been provisioned in this phase. Do not delete immutable sources/audit to implement backup retention. Verify capacity and expiry against actual successful, restorable recovery sets.
+
+## Restore procedure
+
+1. Declare the incident and preserve the original database/volumes, logs and failed release. Choose an authenticated recovery set and cutoff; record the potential data-loss interval. Check available space, PostgreSQL 17 compatibility and every archive hash before changing a target.
+2. Use an empty isolated PostgreSQL 17 cluster/database and an empty private media directory. Keep ingress and workers stopped, block outbound integration actions, and ensure no application process points to the target. Confirm its host/database explicitly. Never use `--clean` or volume deletion against an existing database as a rollback technique.
+3. Bootstrap the reviewed global roles and memberships on the new cluster under its operator credential. Preserve the archive's owner identities and `SECURITY DEFINER` owner/search-path rules. The migrator is non-login and has the reviewed `BYPASSRLS` owner capability; runtime roles never inherit it. All four application roles must remain `NOREPLICATION`. Provision each runtime login's password from recovered/rotated private secrets, using parameter-safe operator tooling. Password rotation must target the new cluster only until cutover.
+4. Create a new empty database owned by the reviewed operator. Restore the complete dump with ownership, ACLs and trigger definitions intact. Do **not** run application/queue migrations into an empty target before restoring: the archive already contains their schemas and migration ledgers.
+
+   ```sh
+   export PGSERVICEFILE=/run/secrets/journal-pg-services.conf
+   export PGPASSFILE=/run/secrets/journal-pgpass
+   psql --dbname='service=journal_restore_admin' --set=ON_ERROR_STOP=1 \
+     --file=/srv/journal-recovery/reviewed-roles.sql
+   createdb --maintenance-db='service=journal_restore_admin' journal_restored
+   pg_restore --dbname='service=journal_restore_target' --single-transaction \
+     --exit-on-error /srv/journal-recovery/database.dump
+   ```
+
+   `journal_restore_target` must identify the newly created `journal_restored` database. `reviewed-roles.sql` is the privately reviewed application subset, not an unfiltered shared-cluster dump. The production operator executes this template only after checking the target; this documentation does not execute it.
+
+5. Restore the trusted media archive into the empty private directory using the intended application UID/GID. Inspect archive entries and reject absolute/traversal paths, symlinks and unexpected devices before extraction; do not accept arbitrary user archives through this procedure. Keep directories `0700` and objects `0600`. Check every ready attachment against database size/SHA-256. Pending/removed/staging objects retain their lifecycle status for later reconciliation; a restore must not publish them. Backups may contain objects pending cleanup and must not silently turn them into ready files.
+6. At the **same release** and pinned financial/metadata context, verify complete table/sequence fingerprints, migration hashes, schema version, role restrictions, owners/ACL/default grants, forced RLS, policies, functions and constraints. Confirm zero unexpectedly disabled triggers. Compare exact financial DTOs and ledger/allocation reconciliation without stripping economic timestamps, revisions, provenance or availability states. Check no-context/wrong-tenant denial and authorized access using actual runtime credentials. Schema readiness alone is insufficient.
+7. Start the restored web process privately with the matching recovered auth secret; verify an allowed account login/session, journal/report reads and authorized attachment download with exact bytes. A recovered database can resurrect pre-cutoff sessions or memberships; assess revocations and incident response before opening ingress. Rotate/revoke sessions/secrets if required and document the resulting session invalidation. Do not reuse production restored cookies in a public test environment.
+8. Inspect persisted outbox and queue state before starting the worker. A restore can reintroduce pending/retry jobs or jobs active at the cutoff; expiry/retry and at-least-once handling must be accounted for. Do not truncate the queue or mark outbox delivered. Confirm runtime queue schema compatibility and complete an infrastructure probe; validate idempotency of any installed business handlers before redrive. Currently the worker handles only the health-probe queue; restoring this probe does not establish financial business-job recovery.
+9. Recheck runtime readiness, storage health, pool/queue behavior and application smoke scenarios. Record elapsed restore plus verification/cutover time and observed loss interval. Open ingress only after the deployment's checklist passes and an operator approves the actual recovery target. Keep the prior system isolated for investigation; avoid split-brain writes. Establish a fresh verified backup after cutover.
+
+Use forward reviewed migrations only when subsequently upgrading the restored release. A code rollback is safe only while the old release accepts the database schema; restoring an older database loses later writes and requires an explicit recovery decision. Never edit an applied migration or rely on a down migration to undo financial facts.
+
+## Reproducible local drill
+
+The repository provides `scripts/operations/recovery-drill.ts`. With the README's frozen install, healthy local Compose PostgreSQL/test services and private test bindings already configured, run:
+
+```sh
+corepack pnpm exec tsx scripts/operations/recovery-drill.ts \
+  --output work/phase16-recovery-evidence.json
+corepack pnpm exec vitest run --config vitest.config.ts tests/unit/recovery-safety.test.ts
+```
+
+Use a **new** output filename; existing output is refused. The tool selects the validated `COMPOSE_PROJECT_NAME` (default `trading-journal-foundation`, matching `env:init`), requires exactly one `postgres-test` service in that project, validates that test URLs identify its isolated loopback port, creates a uniquely owned tiny source database and a separate uniquely owned PostgreSQL 17 container with tmpfs data/dynamic loopback port, and does not accept an existing restore target. It uses the exact PostgreSQL image digest from `compose.yaml` with `--pull=never`; pull that reviewed image normally if absent. Docker accesses the local daemon explicitly and preserves the session's other proxy/trust configuration. The isolated CI project-name resolver has unit coverage; the local final drill uses the existing default project and is not evidence of an executed hosted CI run.
+
+Fixture preparation reuses the Phase 15 validated constructor for three closed fractional campaigns/six executions with fees, balanced postings, source revisions, real inventory projections and pinned USD/EUR observations. It then creates an actual validated ready PNG and a pending pg-boss probe. Normal constraints/triggers remain active; the constructor removes its temporary preparation indexes before readiness. This is fixture setup, not application write-throughput measurement. Original-risk plans, strategy publications, corrections, transfers, import files and ongoing business jobs are absent from this small fixture; those paths retain their existing correctness coverage and are not claimed as independently restored workflow drills.
+
+All owned app/queue connections stop before the SQL/media backup. The target starts without application schemas; the tool creates the four global application roles **on that new cluster**, restores the archive, and compares every table's database-rendered canonical JSON hash, sequence state and security/catalog fingerprints before any restored application write. Database numeric/timestamp JSON text is hashed directly, without parsing authoritative numbers through JavaScript `Number`. Financial journal DTO comparison excludes no fields. It also checks an existing session, a fresh password login, no-context/wrong-workspace RLS denial, private attachment bytes/hash and completion of the restored pending probe using restricted runtime roles. The role guard rejects replication privileges as well as owner inheritance and superuser/create privileges before restore. Readiness waits for the new container's final TCP listener rather than the image's temporary initialization Unix socket. On the fresh target only, the drill temporarily grants `journal_auth` membership to `journal_app`, proves `SET ROLE journal_auth` succeeds despite `NOINHERIT`, and verifies that production preflight rejects the membership as `RUNTIME_ROLE_UNSAFE`. A `finally` block revokes the grant; the complete snapshot must match again and positive runtime preflight must pass before proceeding. The source cluster's role memberships are never changed.
+
+On success it drops only the exact source database generated by that invocation, removes only its own restore container and retains sensitive archives/private bindings under ignored `work/`/`.private/` for operator review. Archives/env files are `0600` inside a `0700` directory. On failure it retains isolated artifacts for diagnosis and emits a sanitized failure; inspect only the uniquely owned resources before cleanup. No development/performance database, existing volume, shared container or private environment file is deleted. No production service is contacted.
+
+## Verified evidence and remaining gates
+
+The final fresh-cluster drill passed on **17 October 2026 at 15:52:40 UTC** using Node 24.19.0 and PostgreSQL 17.11. The sanitized report is retained at ignored `work/phase16/recovery/recovery-evidence-final-role-membership-tcp.json` (SHA-256 `a299083151a5cf0b074362f5226a533798496b121cc88663685114616209f00e`). Earlier attempts and reports remain private diagnostic artifacts; these timings describe the final run. The fixture contains three trades, six executions/fees, 13 balanced events/26 postings, three real lots/matches/closures, 365 FX observations, one price observation, one ready PNG and one pending probe. All **89 tables**, including empty workflow tables, were compared before restored application writes.
+
+| Measured stage                                   | Duration     |
+| ------------------------------------------------ | ------------ |
+| Fixture construction                             | 3,339.372 ms |
+| Coordinated SQL/media backup                     | 214.388 ms   |
+| SQL restore plus media extraction                | 459.172 ms   |
+| New-cluster bootstrap and verification           | 5,835.762 ms |
+| Through verification, including fixture creation | 9,740.366 ms |
+
+Bootstrap/verification includes starting the new cluster and the restore stage; these stage durations are not additive. The total ends after verification and excludes final report persistence and resource cleanup. The SQL archive was 783,095 bytes and the media archive 10,240 bytes. The final run overlapped an unrelated production build; these are observed drill timings, not an isolated performance benchmark or production recovery-time guarantee. Successful-run cleanup removed its exact generated source database and target tmpfs container. The two original PostgreSQL services/volumes and all preexisting performance fixtures were preserved; no recovery containers remain.
+
+| Check                                                                                   | Status/evidence                                                         |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Generated-target ownership guard rejects shared/existing targets                        | Verified: focused unit regression                                       |
+| Decimal-sensitive canonical hashes detect changes beyond JS safe-number precision       | Verified: focused unit regression                                       |
+| Coordinated SQL/media dump restored into a new PostgreSQL 17 cluster                    | Verified: final isolated drill                                          |
+| Complete data/sequence and security fingerprints match before restored writes           | Verified: 89 tables, sequence and catalog hashes                        |
+| Restricted runtime role/schema readiness, tenant denial, session/DTO/media/queue checks | Verified: final isolated drill, existing session and fresh login        |
+| Preflight rejects actual cross-runtime `SET ROLE` membership on the fresh target        | Verified: temporary grant, rejection, revoke and full snapshot equality |
+| Production schedule, offsite encryption, retention and recoverable keys                 | Unverified; deployment gate                                             |
+| Production-size restore/cutover and RPO/RTO                                             | Unverified; deployment gate                                             |
+| Physical base backup, WAL archive continuity, PITR and coordinated media versions       | Unverified; deployment gate                                             |
+
+PITR requires a separately selected and tested physical-backup/WAL retention design. Database WAL recovery does not rewind mutable local media; use a coordinated media version/snapshot strategy and verify the chosen recovery timestamp. No WAL archiving or PITR service is configured or certified by the local logical-dump drill.

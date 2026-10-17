@@ -1,0 +1,1835 @@
+{
+  "schemaVersion": 1,
+  "phase": 16,
+  "localVerification": "passed",
+  "productionDeploymentVerified": false,
+  "verifiedAt": "2026-10-17T15:59:41.929192+00:00",
+  "scope": "Executed local production-readiness verification; no production deployment, hosted CI run, commit or push is certified.",
+  "source": {
+    "branch": "chore/phase-16-production-readiness",
+    "baselineCommit": "ed901948463a9754f977d576160d8ebcc5eea918",
+    "originMainAtReview": "ed901948463a9754f977d576160d8ebcc5eea918",
+    "phase14BaselineIsAncestor": true,
+    "uncommitted": true,
+    "changedCodeAndConfigurationSha256": {
+      ".github/workflows/ci.yml": "e4cd2eb841c4ba8a9a47b28c167d02c7227bc510dc9c417baae99741a114c17b",
+      "apps/web/src/app/api/v1/health/ready/route.ts": "d3d6102254ab6a5cdb2b05316df295474f042242e134afd03e637fe81e2af628",
+      "apps/web/src/app/globals.css": "738e64982c20efc31671783150a78243d40425345441a9d9ab2bd3b897666896",
+      "apps/worker/src/index.ts": "265d517ff44841d4f1045dd32777b8e10592d64315387e16b8ee003a1b79d1c4",
+      "apps/worker/src/queue.ts": "1d737a0d9379f9734c427caf1c779ed5959af136be995f34dac40e9d4c4985f2",
+      "package.json": "3657c655c9a8b1931fb0d51124006cbf42a0a8ad22af9538310efc44396d90a8",
+      "scripts/dev.ts": "99c8cd1dea78ebd4a7a59c38ded3bb07fec3d0348b6cd96b1f81e5f5f4623cf6",
+      "scripts/operations/https-smoke.ts": "4131a57059121d58f0fe698f02718a30a39b62ea70a543960955987d9850f915",
+      "scripts/operations/production-preflight.ts": "26b6056223535c6f7062ca97beee6eb28f5c5730758c1f289e2e98e1dcd97f1a",
+      "scripts/operations/recovery-drill.ts": "f4f55b80ca980da407472b8ad3e757b23230fbd3858c428d6d8808625c1130e6",
+      "scripts/operations/recovery-safety.ts": "58b2e1eb51440afb50c992d45c4741288a398b93dfbe20adb4d0ca93ed2d63cd",
+      "scripts/release-check.ts": "5948ede0da423a82d9eb3f700ab013dbbed3a19df0096c4718b6809a67bb4734",
+      "scripts/run.ts": "634545ff0e6b387c90743126fe5e85fde29795e45e4365af3d4fc80d5cbd8547",
+      "scripts/standalone-assets.ts": "d205c1144c06cb1829ff7b1bde55305d8ee4d5244f3247a30a587c6e26aaf971",
+      "tests/integration/production-preflight.test.ts": "8a381ec2a7066c8169cf685444b3a3c291b581c19053dbcabeb3da929bb3e211",
+      "tests/integration/worker-lifecycle.test.ts": "08a64c3404ba6dc9361eb5f2c68e719bd38fb0a257516c1cb29e8803b387289b",
+      "tests/unit/production-build-sources.test.ts": "6df2041e15c0835657e49cc4c2c6c236117bc4689a73cc9356ada78c93756f2c",
+      "tests/unit/production-preflight.test.ts": "62fb173533578e9a0195d05203ed375a1dcb6afbc6885a505341f78279749034",
+      "tests/unit/production-readiness.test.ts": "50e26c813673b43abc200d05f44eae86975a54f90bac8eae2bacc33e55422fb2",
+      "tests/unit/readiness-route.test.ts": "7e2425ea7262d0a93b0346f3640addf748fb2acb8a4906b45a1ba56202a00605",
+      "tests/unit/recovery-safety.test.ts": "c0b5b5b73fd363320029c06b57237247e65dccdf91b3ec6c91f5bad7410726bc",
+      "tests/unit/release-check.test.ts": "a007236c706c10bf454ab22132f975ff5945e397c955bd2a3eab92c795c5db66"
+    }
+  },
+  "environment": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "node": "24.19.0",
+    "pnpm": "10.34.6",
+    "postgres": "17.11",
+    "cpuQuota": "200000 100000",
+    "memoryLimitBytes": 8589934592,
+    "browser": "System Chromium /usr/bin/chromium; see browser log hash",
+    "network": "Managed restricted network and ordinary TLS verification; loopback permission enabled for local services."
+  },
+  "validation": {
+    "checks": [
+      {
+        "name": "api",
+        "command": ["corepack", "pnpm", "api:check"],
+        "exitCode": 0,
+        "milliseconds": 2344.636917,
+        "startedAt": "2026-10-17T15:36:01.729Z",
+        "logSha256": "6b9e54602e71b38bb5820a86b61356324b7a51429deb18de1d65e975d22e5ec3"
+      },
+      {
+        "name": "integration",
+        "command": ["corepack", "pnpm", "test:integration"],
+        "exitCode": 0,
+        "milliseconds": 119598.540127,
+        "startedAt": "2026-10-17T15:37:50.281Z",
+        "logSha256": "68962f4ceac5558cd7a08a57d11cda6ec5750cfaa14f369e691c2b84ba0c3767"
+      },
+      {
+        "name": "migrations",
+        "command": ["corepack", "pnpm", "db:migrate:check"],
+        "exitCode": 0,
+        "milliseconds": 977.5398259999929,
+        "startedAt": "2026-10-17T15:39:49.880Z",
+        "logSha256": "37ecc792eec6e6d6b554a9b1bb94769dc2c7c4ab1a9fa8431927a76b6f417860"
+      },
+      {
+        "name": "readiness",
+        "command": ["corepack", "pnpm", "db:check"],
+        "exitCode": 0,
+        "milliseconds": 931.7220589999924,
+        "startedAt": "2026-10-17T15:39:50.859Z",
+        "logSha256": "8559152f6ad2fc6ac007e6406da05f6937c498ac1508f34313e9557ffd978500"
+      },
+      {
+        "name": "audit",
+        "command": ["corepack", "pnpm", "security:audit"],
+        "exitCode": 0,
+        "milliseconds": 1155.7795130000159,
+        "startedAt": "2026-10-17T15:39:51.794Z",
+        "logSha256": "99f3ace6eaf379ccb66b4910037e8b74f9cb6003f6ef25042cf6a98e48aa83da"
+      },
+      {
+        "name": "build",
+        "command": ["corepack", "pnpm", "build"],
+        "exitCode": 0,
+        "milliseconds": 38371.368095,
+        "startedAt": "2026-10-17T15:50:36.342Z",
+        "logSha256": "83df2ca950a078270226dbc26450bdc0227b8d6fa92f3db674b6458bb1bb2129"
+      },
+      {
+        "name": "lint",
+        "command": ["corepack", "pnpm", "lint"],
+        "exitCode": 0,
+        "milliseconds": 11061.177434,
+        "startedAt": "2026-10-17T15:55:19.574Z",
+        "logSha256": "52b79c40b755bc110619563fccf64cd1590f28779db22ae5da711f9c006a026c"
+      },
+      {
+        "name": "types",
+        "command": ["corepack", "pnpm", "typecheck"],
+        "exitCode": 0,
+        "milliseconds": 37950.755351,
+        "startedAt": "2026-10-17T15:55:30.637Z",
+        "logSha256": "b8720b820fa07cb2fc67bab00a51ca1310c1fb578d64c05c318eb206695e71c1"
+      },
+      {
+        "name": "unit",
+        "command": ["corepack", "pnpm", "test:unit"],
+        "exitCode": 0,
+        "milliseconds": 39028.626040999996,
+        "startedAt": "2026-10-17T15:56:08.589Z",
+        "logSha256": "8a899abd57aa9c3084bcaa709a088ee764ce18d0b5e68ac55635620c3289e846"
+      },
+      {
+        "name": "browser",
+        "command": ["corepack", "pnpm", "test:e2e"],
+        "exitCode": 0,
+        "milliseconds": 151004.313983,
+        "startedAt": "2026-10-17T15:52:38.413Z",
+        "logSha256": "04cbf9866b357c73eaefb21ba1929a276a10f15a3da05e3b1907d97d0fd6e9a5",
+        "evidenceNote": "Completed command output restored after another scratch validation process overwrote the aggregate results entry; retained log hash verified."
+      },
+      {
+        "name": "format",
+        "command": ["corepack", "pnpm", "format:check"],
+        "exitCode": 0,
+        "milliseconds": 11596.642898,
+        "startedAt": "2026-10-17T15:58:20.584Z",
+        "logSha256": "865081cb06d34fd2e65fa37ab9e8ad8b2914475a39b10480919845e701447d40"
+      }
+    ],
+    "counts": {
+      "unit": {
+        "tests": 817,
+        "files": 59
+      },
+      "integration": {
+        "tests": 512,
+        "files": 31
+      },
+      "browser": {
+        "scenarios": 14
+      }
+    },
+    "resolvedInitialFailure": {
+      "check": "types",
+      "errors": "Two HTTPS smoke helper header-union type errors fixed by requiring singular string headers; final global typecheck passed.",
+      "diagnosticLogSha256": "d39e6ecf16fd909bbe620d0148950b98231a081837e0dbd262d6e56931951fee"
+    },
+    "hostedCiExecuted": false
+  },
+  "sourceOnlyRelease": {
+    "schemaVersion": 1,
+    "status": "passed",
+    "snapshot": "work/phase16/release/clean-source-20261017-c",
+    "snapshotFileCount": 417,
+    "snapshotFilesSha256": "ce5316f11d1509992afc495002b1c9042f25a9b4f74e39438706983ece7d7a77",
+    "inputsChangedAfterInstallBuild": [],
+    "toolchain": {
+      "nodeVersion": "24.19.0",
+      "pnpmVersion": "10.34.6"
+    },
+    "lockfile": {
+      "path": "pnpm-lock.yaml",
+      "sha256": "3c0f2cc57b2ff17134882e0b3e09ea8a54705d61713a443945823d86375396c7",
+      "bytes": 204040
+    },
+    "sourceSha256": "f334fcbf82ee39dc2fee01d8a4b3bc353ee10bf2a45e85f98e64988ed09ff7f5",
+    "migrationCount": 9,
+    "migrationFingerprints": [
+      {
+        "path": "packages/database/migrations/0000_platform_foundation.sql",
+        "sha256": "980f352b2dc37073753d01ad9a1335166d88979fb8bbff0fb661e10813edff32",
+        "bytes": 14884
+      },
+      {
+        "path": "packages/database/migrations/0001_platform_identity_constraints.sql",
+        "sha256": "277809d2953855db973ca6cd6c4483a61e6a783b0dbb0b2eb34c9dc52b7a13dc",
+        "bytes": 4323
+      },
+      {
+        "path": "packages/database/migrations/0002_core_financial_ledger.sql",
+        "sha256": "a03c7bd4718390def58ce0eedd923e0c64f5b18cb172c4c7d50d8074b720d333",
+        "bytes": 115534
+      },
+      {
+        "path": "packages/database/migrations/0003_strategy_management.sql",
+        "sha256": "677fa385c957efc517e8160fd31e5fcd3e2dda630225b3a3b603d211bad1f808",
+        "bytes": 37819
+      },
+      {
+        "path": "packages/database/migrations/0004_strategy_definition_size.sql",
+        "sha256": "9dabc8b2db954a9b8148abafbc566d1f5511592f5ed655770ab096cb4353e409",
+        "bytes": 1744
+      },
+      {
+        "path": "packages/database/migrations/0005_trade_journal.sql",
+        "sha256": "60ef1dc51e85ef5abe7f38207631e489abcb67e767035d09f8ea09ceeefd264a",
+        "bytes": 48699
+      },
+      {
+        "path": "packages/database/migrations/0006_journal_label_integrity.sql",
+        "sha256": "bbba28aecf8027d5edf7953dcc54edcca0f196d828cd97419ed4082c5a37e543",
+        "bytes": 3984
+      },
+      {
+        "path": "packages/database/migrations/0007_portfolio_accounting.sql",
+        "sha256": "1e04faa07960114b46d96d52088c9924a4d855b5b572b2080e6001421d737778",
+        "bytes": 32813
+      },
+      {
+        "path": "packages/database/migrations/0008_broker_agnostic_imports.sql",
+        "sha256": "f238a8246de448eaed2843a32bf63177611200075c5ef41cd3142c7dcee6e1d0",
+        "bytes": 8599
+      }
+    ],
+    "buildId": "fTl2TH3hs8iH7OYYWpGkv",
+    "appRouteCount": 29,
+    "appRoutes": [
+      "/_global-error/page",
+      "/_not-found/page",
+      "/accounts/page",
+      "/api/auth/[...auth]/route",
+      "/api/v1/health/live/route",
+      "/api/v1/health/ready/route",
+      "/api/v1/session/route",
+      "/api/v1/workspaces/[workspaceId]/accounting/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/analytics/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/dashboard/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/financial/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/imports/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/journal-attachments/[attachmentId]/route",
+      "/api/v1/workspaces/[workspaceId]/journal-attachments/route",
+      "/api/v1/workspaces/[workspaceId]/journals/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/journals/route",
+      "/api/v1/workspaces/[workspaceId]/route",
+      "/api/v1/workspaces/[workspaceId]/strategies/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/strategies/route",
+      "/api/v1/workspaces/[workspaceId]/strategy-attachments/[attachmentId]/route",
+      "/api/v1/workspaces/[workspaceId]/strategy-attachments/route",
+      "/api/v1/workspaces/route",
+      "/dashboard/page",
+      "/imports/page",
+      "/journal/page",
+      "/page",
+      "/record/page",
+      "/sign-in/page",
+      "/strategies/page"
+    ],
+    "staticAssetFiles": 53,
+    "cssArtifacts": [
+      {
+        "path": "apps/web/.next/static/css/7222cacd0b6170d5.css",
+        "sha256": "7f7fb54e9ff5c0306bb0e9033c0493bdcb64963fecac7e0f11ce42b33abf9864",
+        "bytes": 1394
+      },
+      {
+        "path": "apps/web/.next/static/css/763a56c94efcf2c6.css",
+        "sha256": "a4adde277c83ce13d26eea4fedcad8a339947643f1ebceec8e353da0383f2acb",
+        "bytes": 1535
+      },
+      {
+        "path": "apps/web/.next/static/css/aee1682530449cb1.css",
+        "sha256": "9caef1760a464dd303e810b9879f8a49e2b738f0a804ca2334c5ff15949d5d76",
+        "bytes": 2737
+      },
+      {
+        "path": "apps/web/.next/static/css/ecd2ee30d68f1d82.css",
+        "sha256": "73cc9744a7e3f09eaf1cb06dbe1243c8ce2303d6380c3daf92e07603739d6902",
+        "bytes": 1648
+      },
+      {
+        "path": "apps/web/.next/static/css/ff64a7af3bc91d9c.css",
+        "sha256": "577547b5444f2d792eb1f6420d09a20067ed3c909e660151bcf1d5016a464e5f",
+        "bytes": 46891
+      }
+    ],
+    "nativeArgon2Loaded": true,
+    "nativeAddonFiles": [
+      "apps/web/.next/standalone/node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@2.2.2/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node"
+    ],
+    "releaseManifest": "work/phase16/release/clean-source-20261017-c-release-manifest.json",
+    "releaseManifestSha256": "cdf8e417bb9558064b7ece0e22de96df78e526ac602d8d0dc6998dbcaef6113d",
+    "releaseCheckDurationMs": 607.357,
+    "installAndBuild": {
+      "environmentKeys": [
+        "APP_ORIGIN",
+        "CI",
+        "COREPACK_HOME",
+        "NEXT_TELEMETRY_DISABLED",
+        "NODE_ENV",
+        "PATH",
+        "XDG_CACHE_HOME",
+        "XDG_DATA_HOME"
+      ],
+      "privateConfigurationPresent": false,
+      "installCache": "Existing pnpm store, frozen offline install; no dependencies copied; not a cold network installation.",
+      "checks": [
+        {
+          "name": "install",
+          "command": ["corepack", "pnpm", "install", "--frozen-lockfile", "--offline"],
+          "startedAt": "2026-10-17T15:46:51Z",
+          "durationMs": 2887.552,
+          "exitCode": 0,
+          "log": "work/phase16/release/clean-source-20261017-c-install.log",
+          "logSha256": "a1eb5e26a0588549414b7ccb6f990bbd07c0e7fe5803db8c32d87a9d9e14df24"
+        },
+        {
+          "name": "build",
+          "command": ["corepack", "pnpm", "build"],
+          "startedAt": "2026-10-17T15:46:54Z",
+          "durationMs": 90529.635,
+          "exitCode": 0,
+          "log": "work/phase16/release/clean-source-20261017-c-build.log",
+          "logSha256": "6762704ad55e31a8f7e85f69f8b1ba07ed3f59d184c3c1d3af6587354fe0be4e"
+        }
+      ]
+    },
+    "supersedes": "Immutable snapshot b exposed dependency/generated-file scanning by implicit Tailwind source discovery without Git metadata. Snapshot c uses explicit web/UI source boundaries and fingerprints .gitignore.",
+    "limitation": "Frozen installation reused the existing offline pnpm store; this is not a cold network installation. No dependencies or private configuration were copied. Distinct build IDs are expected; this does not prove byte-identical builds or deployment-host startup."
+  },
+  "currentRelease": {
+    "command": ["corepack", "pnpm", "--silent", "release:check"],
+    "exitCode": 0,
+    "buildId": "ElkWHxOWnRPcxlAKk1O60",
+    "manifestSha256": "d1817b8185d263b27c27e0a1dab1997215ac7b53bc8b6a1885f933b71a73907b",
+    "sourceSha256": "ee7c9f40f175add39e35db471553e397d5bd9a050571b3f764b34806d6b50975",
+    "lockfile": {
+      "path": "pnpm-lock.yaml",
+      "sha256": "3c0f2cc57b2ff17134882e0b3e09ea8a54705d61713a443945823d86375396c7",
+      "bytes": 204040
+    },
+    "migrationCount": 9,
+    "migrationFingerprints": [
+      {
+        "path": "packages/database/migrations/0000_platform_foundation.sql",
+        "sha256": "980f352b2dc37073753d01ad9a1335166d88979fb8bbff0fb661e10813edff32",
+        "bytes": 14884
+      },
+      {
+        "path": "packages/database/migrations/0001_platform_identity_constraints.sql",
+        "sha256": "277809d2953855db973ca6cd6c4483a61e6a783b0dbb0b2eb34c9dc52b7a13dc",
+        "bytes": 4323
+      },
+      {
+        "path": "packages/database/migrations/0002_core_financial_ledger.sql",
+        "sha256": "a03c7bd4718390def58ce0eedd923e0c64f5b18cb172c4c7d50d8074b720d333",
+        "bytes": 115534
+      },
+      {
+        "path": "packages/database/migrations/0003_strategy_management.sql",
+        "sha256": "677fa385c957efc517e8160fd31e5fcd3e2dda630225b3a3b603d211bad1f808",
+        "bytes": 37819
+      },
+      {
+        "path": "packages/database/migrations/0004_strategy_definition_size.sql",
+        "sha256": "9dabc8b2db954a9b8148abafbc566d1f5511592f5ed655770ab096cb4353e409",
+        "bytes": 1744
+      },
+      {
+        "path": "packages/database/migrations/0005_trade_journal.sql",
+        "sha256": "60ef1dc51e85ef5abe7f38207631e489abcb67e767035d09f8ea09ceeefd264a",
+        "bytes": 48699
+      },
+      {
+        "path": "packages/database/migrations/0006_journal_label_integrity.sql",
+        "sha256": "bbba28aecf8027d5edf7953dcc54edcca0f196d828cd97419ed4082c5a37e543",
+        "bytes": 3984
+      },
+      {
+        "path": "packages/database/migrations/0007_portfolio_accounting.sql",
+        "sha256": "1e04faa07960114b46d96d52088c9924a4d855b5b572b2080e6001421d737778",
+        "bytes": 32813
+      },
+      {
+        "path": "packages/database/migrations/0008_broker_agnostic_imports.sql",
+        "sha256": "f238a8246de448eaed2843a32bf63177611200075c5ef41cd3142c7dcee6e1d0",
+        "bytes": 8599
+      }
+    ],
+    "routes": [
+      "/_global-error/page",
+      "/_not-found/page",
+      "/accounts/page",
+      "/api/auth/[...auth]/route",
+      "/api/v1/health/live/route",
+      "/api/v1/health/ready/route",
+      "/api/v1/session/route",
+      "/api/v1/workspaces/[workspaceId]/accounting/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/analytics/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/dashboard/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/financial/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/imports/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/journal-attachments/[attachmentId]/route",
+      "/api/v1/workspaces/[workspaceId]/journal-attachments/route",
+      "/api/v1/workspaces/[workspaceId]/journals/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/journals/route",
+      "/api/v1/workspaces/[workspaceId]/route",
+      "/api/v1/workspaces/[workspaceId]/strategies/[...path]/route",
+      "/api/v1/workspaces/[workspaceId]/strategies/route",
+      "/api/v1/workspaces/[workspaceId]/strategy-attachments/[attachmentId]/route",
+      "/api/v1/workspaces/[workspaceId]/strategy-attachments/route",
+      "/api/v1/workspaces/route",
+      "/dashboard/page",
+      "/imports/page",
+      "/journal/page",
+      "/page",
+      "/record/page",
+      "/sign-in/page",
+      "/strategies/page"
+    ],
+    "staticAssetFiles": 53,
+    "nativeArgon2Loaded": true,
+    "artifacts": [
+      {
+        "path": "apps/web/.next/BUILD_ID",
+        "sha256": "bc38533ceab88725ef7b8266a0a67b1d30173b26d1a396b3a71f016ff7072fe3",
+        "bytes": 21
+      },
+      {
+        "path": "apps/web/.next/build-manifest.json",
+        "sha256": "96da1d81dff383547eb715183988f0e0c4d431f50ef8d9fe530a0768ec3ed97b",
+        "bytes": 511
+      },
+      {
+        "path": "apps/web/.next/routes-manifest.json",
+        "sha256": "9807a3fb5e29c90a73dcb1225da7149f8cf1979d36263dea28f43bc0892afc84",
+        "bytes": 8354
+      },
+      {
+        "path": "apps/web/.next/required-server-files.json",
+        "sha256": "de1d31abf364c42a0bf27b421da10c6cfeaffedc94c1b5c8e411a00cecb5e6ee",
+        "bytes": 10366
+      },
+      {
+        "path": "apps/web/.next/server/app-paths-manifest.json",
+        "sha256": "593832396254efb8e6ee7feadfdc610e0e7df377dd9488457c2eee3696cd6314",
+        "bytes": 2586
+      },
+      {
+        "path": "apps/web/.next/standalone/package.json",
+        "sha256": "3657c655c9a8b1931fb0d51124006cbf42a0a8ad22af9538310efc44396d90a8",
+        "bytes": 3086
+      },
+      {
+        "path": "apps/web/.next/standalone/apps/web/server.js",
+        "sha256": "adfd1653cb10655cc8227d6565da5dbdcdd909128d18455d4b2d93f7da2dde29",
+        "bytes": 7750
+      },
+      {
+        "path": "apps/web/.next/standalone/node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@2.2.2/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node",
+        "sha256": "0f4e6088e351149af677044c0570bdd8a1a10517069811744e48170366e714b2",
+        "bytes": 727752
+      },
+      {
+        "path": "apps/worker/dist/chunk-QMUO3IFW.js",
+        "sha256": "d682afffb27c7a1a05088090e311306ab79e898ca27af76f98898fcd910f5a48",
+        "bytes": 1760
+      },
+      {
+        "path": "apps/worker/dist/chunk-QMUO3IFW.js.map",
+        "sha256": "ba5101f157caae77a535c97ae6f1d7a6fdb2e1920c9e69dfae56ff3b23f5bddb",
+        "bytes": 3073
+      },
+      {
+        "path": "apps/worker/dist/index.js",
+        "sha256": "332814d84a8e3bcb2819bddfdff8c3c808bf1522eb2d5f934df6c7dc47f82667",
+        "bytes": 8134
+      },
+      {
+        "path": "apps/worker/dist/index.js.map",
+        "sha256": "0ab1c14618ca36c38a30f754d8d31fb05a8a12315f96e5b6d8f04975afdb24ad",
+        "bytes": 15894
+      },
+      {
+        "path": "apps/worker/dist/migrate.js",
+        "sha256": "559f3574d3d38e1db802631977168ade7a188ef4e98c782077e818d1167fb917",
+        "bytes": 873
+      },
+      {
+        "path": "apps/worker/dist/migrate.js.map",
+        "sha256": "c3d67233b456ddca8901c2a58e7d18d8a49860b2ad9450d228ad5391ed9ae149",
+        "bytes": 1710
+      },
+      {
+        "path": "packages/domain/dist/index.js",
+        "sha256": "e7ddad9fd2bbf5edae1be58dfe1a62eaead0670b4646437a16b45362aee0d210",
+        "bytes": 149661
+      },
+      {
+        "path": "packages/domain/dist/index.d.ts",
+        "sha256": "e9f7c184254fa48da2fc6ce87e4f5503f7463ee802815ebaab11174a9e3cdb9c",
+        "bytes": 40976
+      }
+    ]
+  },
+  "buildComparison": {
+    "schemaVersion": 1,
+    "status": "passed",
+    "cleanBuildId": "fTl2TH3hs8iH7OYYWpGkv",
+    "currentBuildId": "ElkWHxOWnRPcxlAKk1O60",
+    "sameBuildId": false,
+    "cleanManifestSha256": "cdf8e417bb9558064b7ece0e22de96df78e526ac602d8d0dc6998dbcaef6113d",
+    "currentManifestSha256": "d1817b8185d263b27c27e0a1dab1997215ac7b53bc8b6a1885f933b71a73907b",
+    "checks": [
+      {
+        "name": "exactToolchain",
+        "passed": true,
+        "clean": {
+          "nodeVersion": "24.19.0",
+          "pnpmVersion": "10.34.6"
+        },
+        "current": {
+          "nodeVersion": "24.19.0",
+          "pnpmVersion": "10.34.6"
+        }
+      },
+      {
+        "name": "lockfileFingerprint",
+        "passed": true,
+        "clean": {
+          "path": "pnpm-lock.yaml",
+          "sha256": "3c0f2cc57b2ff17134882e0b3e09ea8a54705d61713a443945823d86375396c7",
+          "bytes": 204040
+        },
+        "current": {
+          "path": "pnpm-lock.yaml",
+          "sha256": "3c0f2cc57b2ff17134882e0b3e09ea8a54705d61713a443945823d86375396c7",
+          "bytes": 204040
+        }
+      },
+      {
+        "name": "orderedMigrationFingerprints",
+        "passed": true,
+        "clean": [
+          {
+            "path": "packages/database/migrations/0000_platform_foundation.sql",
+            "sha256": "980f352b2dc37073753d01ad9a1335166d88979fb8bbff0fb661e10813edff32",
+            "bytes": 14884
+          },
+          {
+            "path": "packages/database/migrations/0001_platform_identity_constraints.sql",
+            "sha256": "277809d2953855db973ca6cd6c4483a61e6a783b0dbb0b2eb34c9dc52b7a13dc",
+            "bytes": 4323
+          },
+          {
+            "path": "packages/database/migrations/0002_core_financial_ledger.sql",
+            "sha256": "a03c7bd4718390def58ce0eedd923e0c64f5b18cb172c4c7d50d8074b720d333",
+            "bytes": 115534
+          },
+          {
+            "path": "packages/database/migrations/0003_strategy_management.sql",
+            "sha256": "677fa385c957efc517e8160fd31e5fcd3e2dda630225b3a3b603d211bad1f808",
+            "bytes": 37819
+          },
+          {
+            "path": "packages/database/migrations/0004_strategy_definition_size.sql",
+            "sha256": "9dabc8b2db954a9b8148abafbc566d1f5511592f5ed655770ab096cb4353e409",
+            "bytes": 1744
+          },
+          {
+            "path": "packages/database/migrations/0005_trade_journal.sql",
+            "sha256": "60ef1dc51e85ef5abe7f38207631e489abcb67e767035d09f8ea09ceeefd264a",
+            "bytes": 48699
+          },
+          {
+            "path": "packages/database/migrations/0006_journal_label_integrity.sql",
+            "sha256": "bbba28aecf8027d5edf7953dcc54edcca0f196d828cd97419ed4082c5a37e543",
+            "bytes": 3984
+          },
+          {
+            "path": "packages/database/migrations/0007_portfolio_accounting.sql",
+            "sha256": "1e04faa07960114b46d96d52088c9924a4d855b5b572b2080e6001421d737778",
+            "bytes": 32813
+          },
+          {
+            "path": "packages/database/migrations/0008_broker_agnostic_imports.sql",
+            "sha256": "f238a8246de448eaed2843a32bf63177611200075c5ef41cd3142c7dcee6e1d0",
+            "bytes": 8599
+          }
+        ],
+        "current": [
+          {
+            "path": "packages/database/migrations/0000_platform_foundation.sql",
+            "sha256": "980f352b2dc37073753d01ad9a1335166d88979fb8bbff0fb661e10813edff32",
+            "bytes": 14884
+          },
+          {
+            "path": "packages/database/migrations/0001_platform_identity_constraints.sql",
+            "sha256": "277809d2953855db973ca6cd6c4483a61e6a783b0dbb0b2eb34c9dc52b7a13dc",
+            "bytes": 4323
+          },
+          {
+            "path": "packages/database/migrations/0002_core_financial_ledger.sql",
+            "sha256": "a03c7bd4718390def58ce0eedd923e0c64f5b18cb172c4c7d50d8074b720d333",
+            "bytes": 115534
+          },
+          {
+            "path": "packages/database/migrations/0003_strategy_management.sql",
+            "sha256": "677fa385c957efc517e8160fd31e5fcd3e2dda630225b3a3b603d211bad1f808",
+            "bytes": 37819
+          },
+          {
+            "path": "packages/database/migrations/0004_strategy_definition_size.sql",
+            "sha256": "9dabc8b2db954a9b8148abafbc566d1f5511592f5ed655770ab096cb4353e409",
+            "bytes": 1744
+          },
+          {
+            "path": "packages/database/migrations/0005_trade_journal.sql",
+            "sha256": "60ef1dc51e85ef5abe7f38207631e489abcb67e767035d09f8ea09ceeefd264a",
+            "bytes": 48699
+          },
+          {
+            "path": "packages/database/migrations/0006_journal_label_integrity.sql",
+            "sha256": "bbba28aecf8027d5edf7953dcc54edcca0f196d828cd97419ed4082c5a37e543",
+            "bytes": 3984
+          },
+          {
+            "path": "packages/database/migrations/0007_portfolio_accounting.sql",
+            "sha256": "1e04faa07960114b46d96d52088c9924a4d855b5b572b2080e6001421d737778",
+            "bytes": 32813
+          },
+          {
+            "path": "packages/database/migrations/0008_broker_agnostic_imports.sql",
+            "sha256": "f238a8246de448eaed2843a32bf63177611200075c5ef41cd3142c7dcee6e1d0",
+            "bytes": 8599
+          }
+        ]
+      },
+      {
+        "name": "buildSourceFingerprints",
+        "passed": true,
+        "clean": "f89478210fde8233a59dbb7273954f8c6bd50564057a94dc931c1de8a3469dd9",
+        "current": "f89478210fde8233a59dbb7273954f8c6bd50564057a94dc931c1de8a3469dd9"
+      },
+      {
+        "name": "appRouteTopology",
+        "passed": true,
+        "clean": [
+          "/_global-error/page",
+          "/_not-found/page",
+          "/accounts/page",
+          "/api/auth/[...auth]/route",
+          "/api/v1/health/live/route",
+          "/api/v1/health/ready/route",
+          "/api/v1/session/route",
+          "/api/v1/workspaces/[workspaceId]/accounting/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/analytics/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/dashboard/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/financial/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/imports/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/journal-attachments/[attachmentId]/route",
+          "/api/v1/workspaces/[workspaceId]/journal-attachments/route",
+          "/api/v1/workspaces/[workspaceId]/journals/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/journals/route",
+          "/api/v1/workspaces/[workspaceId]/route",
+          "/api/v1/workspaces/[workspaceId]/strategies/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/strategies/route",
+          "/api/v1/workspaces/[workspaceId]/strategy-attachments/[attachmentId]/route",
+          "/api/v1/workspaces/[workspaceId]/strategy-attachments/route",
+          "/api/v1/workspaces/route",
+          "/dashboard/page",
+          "/imports/page",
+          "/journal/page",
+          "/page",
+          "/record/page",
+          "/sign-in/page",
+          "/strategies/page"
+        ],
+        "current": [
+          "/_global-error/page",
+          "/_not-found/page",
+          "/accounts/page",
+          "/api/auth/[...auth]/route",
+          "/api/v1/health/live/route",
+          "/api/v1/health/ready/route",
+          "/api/v1/session/route",
+          "/api/v1/workspaces/[workspaceId]/accounting/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/analytics/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/dashboard/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/financial/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/imports/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/journal-attachments/[attachmentId]/route",
+          "/api/v1/workspaces/[workspaceId]/journal-attachments/route",
+          "/api/v1/workspaces/[workspaceId]/journals/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/journals/route",
+          "/api/v1/workspaces/[workspaceId]/route",
+          "/api/v1/workspaces/[workspaceId]/strategies/[...path]/route",
+          "/api/v1/workspaces/[workspaceId]/strategies/route",
+          "/api/v1/workspaces/[workspaceId]/strategy-attachments/[attachmentId]/route",
+          "/api/v1/workspaces/[workspaceId]/strategy-attachments/route",
+          "/api/v1/workspaces/route",
+          "/dashboard/page",
+          "/imports/page",
+          "/journal/page",
+          "/page",
+          "/record/page",
+          "/sign-in/page",
+          "/strategies/page"
+        ]
+      },
+      {
+        "name": "staticAssetFileCount",
+        "passed": true,
+        "clean": 53,
+        "current": 53
+      },
+      {
+        "name": "cssArtifactBytesAndHashes",
+        "passed": true,
+        "clean": [
+          {
+            "path": "apps/web/.next/static/css/7222cacd0b6170d5.css",
+            "sha256": "7f7fb54e9ff5c0306bb0e9033c0493bdcb64963fecac7e0f11ce42b33abf9864",
+            "bytes": 1394
+          },
+          {
+            "path": "apps/web/.next/static/css/763a56c94efcf2c6.css",
+            "sha256": "a4adde277c83ce13d26eea4fedcad8a339947643f1ebceec8e353da0383f2acb",
+            "bytes": 1535
+          },
+          {
+            "path": "apps/web/.next/static/css/aee1682530449cb1.css",
+            "sha256": "9caef1760a464dd303e810b9879f8a49e2b738f0a804ca2334c5ff15949d5d76",
+            "bytes": 2737
+          },
+          {
+            "path": "apps/web/.next/static/css/ecd2ee30d68f1d82.css",
+            "sha256": "73cc9744a7e3f09eaf1cb06dbe1243c8ce2303d6380c3daf92e07603739d6902",
+            "bytes": 1648
+          },
+          {
+            "path": "apps/web/.next/static/css/ff64a7af3bc91d9c.css",
+            "sha256": "577547b5444f2d792eb1f6420d09a20067ed3c909e660151bcf1d5016a464e5f",
+            "bytes": 46891
+          }
+        ],
+        "current": [
+          {
+            "path": "apps/web/.next/static/css/7222cacd0b6170d5.css",
+            "sha256": "7f7fb54e9ff5c0306bb0e9033c0493bdcb64963fecac7e0f11ce42b33abf9864",
+            "bytes": 1394
+          },
+          {
+            "path": "apps/web/.next/static/css/763a56c94efcf2c6.css",
+            "sha256": "a4adde277c83ce13d26eea4fedcad8a339947643f1ebceec8e353da0383f2acb",
+            "bytes": 1535
+          },
+          {
+            "path": "apps/web/.next/static/css/aee1682530449cb1.css",
+            "sha256": "9caef1760a464dd303e810b9879f8a49e2b738f0a804ca2334c5ff15949d5d76",
+            "bytes": 2737
+          },
+          {
+            "path": "apps/web/.next/static/css/ecd2ee30d68f1d82.css",
+            "sha256": "73cc9744a7e3f09eaf1cb06dbe1243c8ce2303d6380c3daf92e07603739d6902",
+            "bytes": 1648
+          },
+          {
+            "path": "apps/web/.next/static/css/ff64a7af3bc91d9c.css",
+            "sha256": "577547b5444f2d792eb1f6420d09a20067ed3c909e660151bcf1d5016a464e5f",
+            "bytes": 46891
+          }
+        ]
+      },
+      {
+        "name": "standaloneNativeArgon2Load",
+        "passed": true,
+        "clean": true,
+        "current": true
+      },
+      {
+        "name": "compiledDomainWorkerAndNativeArtifacts",
+        "passed": true,
+        "clean": [
+          {
+            "path": "apps/web/.next/standalone/node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@2.2.2/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node",
+            "sha256": "0f4e6088e351149af677044c0570bdd8a1a10517069811744e48170366e714b2",
+            "bytes": 727752
+          },
+          {
+            "path": "apps/worker/dist/chunk-QMUO3IFW.js",
+            "sha256": "d682afffb27c7a1a05088090e311306ab79e898ca27af76f98898fcd910f5a48",
+            "bytes": 1760
+          },
+          {
+            "path": "apps/worker/dist/chunk-QMUO3IFW.js.map",
+            "sha256": "ba5101f157caae77a535c97ae6f1d7a6fdb2e1920c9e69dfae56ff3b23f5bddb",
+            "bytes": 3073
+          },
+          {
+            "path": "apps/worker/dist/index.js",
+            "sha256": "332814d84a8e3bcb2819bddfdff8c3c808bf1522eb2d5f934df6c7dc47f82667",
+            "bytes": 8134
+          },
+          {
+            "path": "apps/worker/dist/index.js.map",
+            "sha256": "0ab1c14618ca36c38a30f754d8d31fb05a8a12315f96e5b6d8f04975afdb24ad",
+            "bytes": 15894
+          },
+          {
+            "path": "apps/worker/dist/migrate.js",
+            "sha256": "559f3574d3d38e1db802631977168ade7a188ef4e98c782077e818d1167fb917",
+            "bytes": 873
+          },
+          {
+            "path": "apps/worker/dist/migrate.js.map",
+            "sha256": "c3d67233b456ddca8901c2a58e7d18d8a49860b2ad9450d228ad5391ed9ae149",
+            "bytes": 1710
+          },
+          {
+            "path": "packages/domain/dist/index.js",
+            "sha256": "e7ddad9fd2bbf5edae1be58dfe1a62eaead0670b4646437a16b45362aee0d210",
+            "bytes": 149661
+          },
+          {
+            "path": "packages/domain/dist/index.d.ts",
+            "sha256": "e9f7c184254fa48da2fc6ce87e4f5503f7463ee802815ebaab11174a9e3cdb9c",
+            "bytes": 40976
+          }
+        ],
+        "current": [
+          {
+            "path": "apps/web/.next/standalone/node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@2.2.2/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node",
+            "sha256": "0f4e6088e351149af677044c0570bdd8a1a10517069811744e48170366e714b2",
+            "bytes": 727752
+          },
+          {
+            "path": "apps/worker/dist/chunk-QMUO3IFW.js",
+            "sha256": "d682afffb27c7a1a05088090e311306ab79e898ca27af76f98898fcd910f5a48",
+            "bytes": 1760
+          },
+          {
+            "path": "apps/worker/dist/chunk-QMUO3IFW.js.map",
+            "sha256": "ba5101f157caae77a535c97ae6f1d7a6fdb2e1920c9e69dfae56ff3b23f5bddb",
+            "bytes": 3073
+          },
+          {
+            "path": "apps/worker/dist/index.js",
+            "sha256": "332814d84a8e3bcb2819bddfdff8c3c808bf1522eb2d5f934df6c7dc47f82667",
+            "bytes": 8134
+          },
+          {
+            "path": "apps/worker/dist/index.js.map",
+            "sha256": "0ab1c14618ca36c38a30f754d8d31fb05a8a12315f96e5b6d8f04975afdb24ad",
+            "bytes": 15894
+          },
+          {
+            "path": "apps/worker/dist/migrate.js",
+            "sha256": "559f3574d3d38e1db802631977168ade7a188ef4e98c782077e818d1167fb917",
+            "bytes": 873
+          },
+          {
+            "path": "apps/worker/dist/migrate.js.map",
+            "sha256": "c3d67233b456ddca8901c2a58e7d18d8a49860b2ad9450d228ad5391ed9ae149",
+            "bytes": 1710
+          },
+          {
+            "path": "packages/domain/dist/index.js",
+            "sha256": "e7ddad9fd2bbf5edae1be58dfe1a62eaead0670b4646437a16b45362aee0d210",
+            "bytes": 149661
+          },
+          {
+            "path": "packages/domain/dist/index.d.ts",
+            "sha256": "e9f7c184254fa48da2fc6ce87e4f5503f7463ee802815ebaab11174a9e3cdb9c",
+            "bytes": 40976
+          }
+        ]
+      }
+    ],
+    "fullSourceManifestDifferences": [
+      "scripts/operations/production-preflight.ts",
+      "scripts/operations/recovery-drill.ts"
+    ],
+    "limitation": "Semantic comparison covers exact toolchain, lock/migrations, compiled apps/packages inputs, route topology, asset count, worker/domain/CSS artifact bytes and contained host-native dependency bytes. Next.js build IDs and arbitrary generated JavaScript filenames/bytes are not required to match. This does not establish byte-identical builds, cross-platform compatibility, or production deployment readiness."
+  },
+  "tailwindReproducibilityFinding": {
+    "schemaVersion": 1,
+    "tool": "@tailwindcss/oxide 4.3.3 Scanner",
+    "explanation": "Both source trees contain the same .gitignore. The source-only snapshot has no .git metadata. Implicit scanning includes dependencies/generated files in that context; explicit src boundaries remove the dependency on Git ignore discovery.",
+    "cases": [
+      {
+        "location": ".",
+        "mode": "implicit apps/web and explicit packages/ui/src",
+        "sources": [
+          {
+            "base": "apps/web",
+            "pattern": "**/*",
+            "negated": false
+          },
+          {
+            "base": "packages/ui/src",
+            "pattern": "**/*",
+            "negated": false
+          }
+        ],
+        "fileCount": 85,
+        "candidateCount": 2383,
+        "candidateSha256": "5f4d6f79aabb35768c6ca807bf73a50af39deebfea9256d5b1ffccfac8ac1556",
+        "dependencyOrGeneratedFileCount": 0,
+        "durationMs": 16.060114,
+        "origins": {
+          "bg-purple-50": [],
+          "[color:red]/50!": [],
+          "inset-shadow-initial": []
+        }
+      },
+      {
+        "location": ".",
+        "mode": "explicit apps/web/src and packages/ui/src",
+        "sources": [
+          {
+            "base": "apps/web/src",
+            "pattern": "**/*",
+            "negated": false
+          },
+          {
+            "base": "packages/ui/src",
+            "pattern": "**/*",
+            "negated": false
+          }
+        ],
+        "fileCount": 80,
+        "candidateCount": 2326,
+        "candidateSha256": "96fb123155e2184c192d1607677e0ca3d69fabc51709c9a1e748f704a459821a",
+        "dependencyOrGeneratedFileCount": 0,
+        "durationMs": 12.152106999999994,
+        "origins": {
+          "bg-purple-50": [],
+          "[color:red]/50!": [],
+          "inset-shadow-initial": []
+        }
+      },
+      {
+        "location": "work/phase16/release/clean-source-20261017-b",
+        "mode": "implicit apps/web and explicit packages/ui/src",
+        "sources": [
+          {
+            "base": "apps/web",
+            "pattern": "**/*",
+            "negated": false
+          },
+          {
+            "base": "packages/ui/src",
+            "pattern": "**/*",
+            "negated": false
+          }
+        ],
+        "fileCount": 28846,
+        "candidateCount": 136338,
+        "candidateSha256": "39baec08a10ad6ba3fdf8c11011f9858fb6b2fe60e4d04701eaf9946d23a06b2",
+        "dependencyOrGeneratedFileCount": 28761,
+        "durationMs": 31604.028756,
+        "origins": {
+          "bg-purple-50": [
+            "apps/web/node_modules/next/dist/bundle-analyzer/_next/static/chunks/0i88bcw_h0tc6.css",
+            "apps/web/.next/cache/webpack/client-production/0.pack",
+            "apps/web/node_modules/next/dist/bundle-analyzer/_next/static/chunks/15tj-0l2vxfgr.js",
+            "apps/web/.next/static/css/5468461e7ddde842.css"
+          ],
+          "[color:red]/50!": [
+            "apps/web/node_modules/tailwindcss/dist/resolve-config-QUZ9b-Gn.d.mts"
+          ],
+          "inset-shadow-initial": [
+            "apps/web/.next/cache/webpack/client-production/0.pack",
+            "apps/web/node_modules/tailwindcss/dist/lib.js",
+            "apps/web/node_modules/tailwindcss/dist/lib.mjs",
+            "apps/web/.next/static/css/5468461e7ddde842.css"
+          ]
+        }
+      },
+      {
+        "location": "work/phase16/release/clean-source-20261017-b",
+        "mode": "explicit apps/web/src and packages/ui/src",
+        "sources": [
+          {
+            "base": "apps/web/src",
+            "pattern": "**/*",
+            "negated": false
+          },
+          {
+            "base": "packages/ui/src",
+            "pattern": "**/*",
+            "negated": false
+          }
+        ],
+        "fileCount": 80,
+        "candidateCount": 2326,
+        "candidateSha256": "96fb123155e2184c192d1607677e0ca3d69fabc51709c9a1e748f704a459821a",
+        "dependencyOrGeneratedFileCount": 0,
+        "durationMs": 13.563186999999743,
+        "origins": {
+          "bg-purple-50": [],
+          "[color:red]/50!": [],
+          "inset-shadow-initial": []
+        }
+      }
+    ]
+  },
+  "httpsSmoke": {
+    "execution": {
+      "name": "https-final",
+      "command": [
+        "corepack",
+        "pnpm",
+        "ops:https-smoke",
+        "--output",
+        "work/phase16/security/https-final-evidence.json"
+      ],
+      "startedAt": "2026-10-17T15:52:03.376468+00:00",
+      "durationMs": 3888.748,
+      "exitCode": 0,
+      "log": "work/phase16/security/https-final.log",
+      "logSha256": "6933a85a5decc448af4cee83a90ded167206b5407c5fc887c30879d82199ea33"
+    },
+    "result": {
+      "status": "passed",
+      "nodeEnvironment": "production",
+      "applicationBuildId": "ElkWHxOWnRPcxlAKk1O60",
+      "standaloneServerSha256": "adfd1653cb10655cc8227d6565da5dbdcdd909128d18455d4b2d93f7da2dde29",
+      "launcherSha256": "634545ff0e6b387c90743126fe5e85fde29795e45e4365af3d4fc80d5cbd8547",
+      "checks": [
+        "trusted-local-CA-and-hostname",
+        "untrusted-CA-rejected",
+        "wrong-hostname-rejected",
+        "production-standalone-launcher",
+        "standalone-static-asset",
+        "HSTS-and-unique-nonce-CSP",
+        "secure-host-only-HttpOnly-SameSite-cookie",
+        "safe-session-DTO",
+        "exact-origin-and-session-CSRF",
+        "authenticated-readiness",
+        "logout-revokes-session",
+        "test-proxy-HTTP-redirect",
+        "restricted-runtime-role-and-private-storage-preflight"
+      ],
+      "databaseTransport": "explicit-local-plaintext-test",
+      "restrictedRuntimePreflight": {
+        "status": "checks-passed",
+        "nodeEnvironment": "production",
+        "schemaVersion": 9,
+        "sameObservedDatabase": true,
+        "roles": [
+          {
+            "role": "journal_app",
+            "serverVersion": 170011,
+            "encryptedConnection": false
+          },
+          {
+            "role": "journal_auth",
+            "serverVersion": 170011,
+            "encryptedConnection": false
+          },
+          {
+            "role": "journal_jobs",
+            "serverVersion": 170011,
+            "encryptedConnection": false
+          }
+        ],
+        "privateStorage": "write-read-sha256-delete-verified",
+        "databaseTransportMode": "explicit-local-plaintext-test",
+        "deploymentTransportApprovalRequired": true
+      },
+      "productionDeploymentVerified": false
+    }
+  },
+  "operationsTargetedEvidence": {
+    "checkedAt": "2026-10-17T08:16:00Z",
+    "checks": [
+      {
+        "command": "corepack pnpm exec vitest run --config vitest.config.ts --project node tests/unit/production-readiness.test.ts tests/unit/readiness-route.test.ts tests/unit/worker-config.test.ts tests/unit/process-environment.test.ts tests/unit/server-logging.test.ts",
+        "result": "passed",
+        "files": 5,
+        "tests": 28,
+        "durationSeconds": 2.74,
+        "note": "Before adding seventh production-readiness launcher-drain case."
+      },
+      {
+        "command": "corepack pnpm exec vitest run --config vitest.config.ts --project node tests/unit/production-readiness.test.ts",
+        "result": "passed",
+        "files": 1,
+        "tests": 7,
+        "durationSeconds": 6.69,
+        "note": "Supersedes first run for this file; six cases overlap."
+      },
+      {
+        "command": "corepack pnpm exec vitest run --config vitest.integration.config.ts tests/integration/worker-lifecycle.test.ts tests/integration/worker.test.ts",
+        "result": "passed",
+        "files": 2,
+        "tests": 5,
+        "durationSeconds": 4.27
+      },
+      {
+        "command": "corepack pnpm exec tsc --noEmit",
+        "result": "passed"
+      },
+      {
+        "command": "targeted eslint --max-warnings 0 over the nine runtime/test files listed in sourceSha256",
+        "result": "passed",
+        "warnings": 0
+      },
+      {
+        "command": "docs/operations.md aggregate monitoring SQL examples via isolated TEST_DATABASE_URL read-only queries",
+        "result": "passed",
+        "queries": 3,
+        "rowCounts": [1, 1, 12]
+      }
+    ],
+    "sourceSha256": {
+      "apps/worker/src/index.ts": "265d517ff44841d4f1045dd32777b8e10592d64315387e16b8ee003a1b79d1c4",
+      "apps/worker/src/queue.ts": "1d737a0d9379f9734c427caf1c779ed5959af136be995f34dac40e9d4c4985f2",
+      "apps/web/src/app/api/v1/health/ready/route.ts": "d3d6102254ab6a5cdb2b05316df295474f042242e134afd03e637fe81e2af628",
+      "scripts/run.ts": "634545ff0e6b387c90743126fe5e85fde29795e45e4365af3d4fc80d5cbd8547",
+      "scripts/dev.ts": "99c8cd1dea78ebd4a7a59c38ded3bb07fec3d0348b6cd96b1f81e5f5f4623cf6",
+      "scripts/standalone-assets.ts": "d205c1144c06cb1829ff7b1bde55305d8ee4d5244f3247a30a587c6e26aaf971",
+      "tests/unit/production-readiness.test.ts": "50e26c813673b43abc200d05f44eae86975a54f90bac8eae2bacc33e55422fb2",
+      "tests/unit/readiness-route.test.ts": "7e2425ea7262d0a93b0346f3640addf748fb2acb8a4906b45a1ba56202a00605",
+      "tests/integration/worker-lifecycle.test.ts": "08a64c3404ba6dc9361eb5f2c68e719bd38fb0a257516c1cb29e8803b387289b"
+    },
+    "limitations": [
+      "Readiness authentication failure classification was fault-injected at the route unit boundary; this check did not stop a database server.",
+      "Ready/startup worker SIGTERM tests used real PostgreSQL17 and restricted queue credentials; startup held and released one owned queue.version lock.",
+      "No public deployment, production monitoring pipeline, alert delivery, network partition, sustained concurrency, or supervisor failover was exercised."
+    ]
+  },
+  "restrictedPreflightRegression": {
+    "unit": {
+      "name": "unit",
+      "command": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "tests/unit/production-preflight.test.ts"
+      ],
+      "startedAt": "2026-10-17T15:49:55.567661+00:00",
+      "durationMs": 1400.765,
+      "exitCode": 0,
+      "log": "work/phase16/security/unit.log",
+      "logSha256": "9c1763e4582f09aa2e45fd76eba38360a8b5905ff6a725662412dac209e79882"
+    },
+    "integration": {
+      "name": "integration",
+      "command": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.integration.config.ts",
+        "tests/integration/production-preflight.test.ts"
+      ],
+      "startedAt": "2026-10-17T15:49:56.968957+00:00",
+      "durationMs": 2917.271,
+      "exitCode": 0,
+      "log": "work/phase16/security/integration.log",
+      "logSha256": "dbb803f659404afa40e8394911fe8462af8d87e92fe315da1addc33d48fdbd0c"
+    },
+    "negativeCases": "Independent fresh-database grants: foreign column SELECT/INSERT/UPDATE/REFERENCES and table TRUNCATE/REFERENCES/TRIGGER. Each grant revoked before the next case.",
+    "freshClusterMembershipRegression": "The restored target alone receives journal_app -> journal_auth membership; SET ROLE succeeds, preflight rejects it, membership is revoked in finally and the full original snapshot matches before positive verification. Source/shared roles are untouched.",
+    "transportLimitation": "Actual successful preflight uses explicit local plaintext exception. TLS URL-policy negative gates are tested; certificate-verified PostgreSQL transport is not exercised."
+  },
+  "recovery": {
+    "reportSha256": "a299083151a5cf0b074362f5226a533798496b121cc88663685114616209f00e",
+    "result": {
+      "schemaVersion": 1,
+      "verifiedAt": "2026-10-17T15:52:40.056Z",
+      "status": "passed",
+      "method": "Quiesced isolated SQL custom-format dump and coordinated private local media, restored into a fresh PostgreSQL17 cluster with explicit role bootstrap",
+      "software": {
+        "node": "24.19.0",
+        "postgresTools": "pg_dump (PostgreSQL) 17.11 (Debian 17.11-1.pgdg12+2)"
+      },
+      "dataset": {
+        "trades": 3,
+        "executions": 6,
+        "counts": {
+          "accounts": 1,
+          "instruments": 1,
+          "trades": 3,
+          "trade_legs": 3,
+          "executions": 6,
+          "fees": 6,
+          "ledger_events": 13,
+          "postings": 26,
+          "allocation_sets": 6,
+          "allocation_items": 12,
+          "cost_attribution_sets": 6,
+          "cost_allocations": 12,
+          "holding_books": 1,
+          "positions": 1,
+          "lots": 3,
+          "lot_matches": 3,
+          "trade_closures": 3,
+          "financial_commands": 375,
+          "outbox_events": 375,
+          "fx_observations": 365,
+          "price_observations": 1
+        },
+        "financialOracle": {
+          "runtimeRole": "journal_app",
+          "disabledApplicationTriggers": 0,
+          "expectedNativeRealizedNet": "38.9875",
+          "projectedNativeRealizedNet": "38.9875",
+          "expectedNativeCash": "100038.9875",
+          "actualNativeCash": "100038.987500000000000000000000000000000000",
+          "remainingPreparationIndexes": 0
+        }
+      },
+      "durations": {
+        "fixtureMilliseconds": 3339.371725,
+        "backupMilliseconds": 214.38764999999967,
+        "restoreMilliseconds": 459.1721319999997,
+        "restoreBootstrapAndVerificationMilliseconds": 5835.762487,
+        "totalMilliseconds": 9740.36645
+      },
+      "archives": {
+        "sql": {
+          "bytes": 783095,
+          "sha256": "879c9f77364a2c4a7d670216cd5818bff6221db726e4d7adc019869f66a345b0"
+        },
+        "media": {
+          "bytes": 10240,
+          "sha256": "27d9d00bc23bd81c29eb8ceb4c9dd1169d621b17c35eba931ab62eba18ae1607"
+        }
+      },
+      "comparison": {
+        "allTables": [
+          {
+            "table": "app.account_cash_events",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.account_settings_versions",
+            "count": "1",
+            "sha256": "eb4aa19d50d85010e759feb33e9fff702f5ca3d8a7b1d083b34d07ca9ccdaf78"
+          },
+          {
+            "table": "app.account_valuation_observations",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.accounts",
+            "count": "1",
+            "sha256": "1de8f4ad7313b3a991cc928dcae109d223dcf2206e90301d0852a4dba7cf82a9"
+          },
+          {
+            "table": "app.allocation_items",
+            "count": "12",
+            "sha256": "203532e3d05c40b2821b4c8249b65ffc4a00f8b30f0566d72109ec7e4903eee3"
+          },
+          {
+            "table": "app.allocation_sets",
+            "count": "6",
+            "sha256": "f846785c20be0b3ed9fd0cc222820c1571a627b92d5044e48bb982a78121d745"
+          },
+          {
+            "table": "app.audit_events",
+            "count": "378",
+            "sha256": "0c4bcab2a5dc2fa7186af2e255f3f8c0ffc2ab66249c66b2941c8577048b7eff"
+          },
+          {
+            "table": "app.brokers",
+            "count": "2",
+            "sha256": "2928d29bc28e4467b5b5bac21934e2125a7c5757b170d8f3c8116bbba3880153"
+          },
+          {
+            "table": "app.cash_buckets",
+            "count": "1",
+            "sha256": "1f46a96abd50c7627962b42c5ab3f5887986038663f7b2a2a923947c68cb706a"
+          },
+          {
+            "table": "app.cash_movements",
+            "count": "1",
+            "sha256": "3c9cf19c76d3568ac4cba804db4523008684524e4c8a288121b8e8a948d57ba0"
+          },
+          {
+            "table": "app.cash_transfer_receipts",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.cash_transfers",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.cost_allocations",
+            "count": "12",
+            "sha256": "ad87bb09c3f6b5a183b837a3d61976c384f65596ca08229e4544c0302994b459"
+          },
+          {
+            "table": "app.cost_attribution_sets",
+            "count": "6",
+            "sha256": "2aad9baa3fc9bc376f5bbc01fe8855aad807ce9993ecb1a1be30de762ecf8c63"
+          },
+          {
+            "table": "app.currencies",
+            "count": "2",
+            "sha256": "678ae6b2177f5a3a958e877355a07ed90ae2eae1a266957c41b123bdc1d4f102"
+          },
+          {
+            "table": "app.currency_convention_versions",
+            "count": "2",
+            "sha256": "bc4f4c7a6df6930ee312c7496c1d808fbdd0b2a68a53c3be5a4a68f70ac9fb48"
+          },
+          {
+            "table": "app.execution_supersessions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.executions",
+            "count": "6",
+            "sha256": "a322642f36f456d21a168f27f8e50aafb072c5b2c9dcd6def06a67259bd84a25"
+          },
+          {
+            "table": "app.fees",
+            "count": "6",
+            "sha256": "3b2c3dd684785723274663e54516ec1b645f3e27650e0432d35e33f87593981c"
+          },
+          {
+            "table": "app.financial_commands",
+            "count": "375",
+            "sha256": "6f89306bbf4f1aaeef8a9a3b99f9d0c67618df5780362cdc6bd264dbb8c513a4"
+          },
+          {
+            "table": "app.financial_state",
+            "count": "1",
+            "sha256": "767b2ae53c2061037f688718aa639d2fd7d3cd94455ed8dcd08375bb7e9884dc"
+          },
+          {
+            "table": "app.fx_conversions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.fx_observations",
+            "count": "365",
+            "sha256": "a8e4f1d2064bf15ca12caf8c1ee95732253abb52db5d4d6b263e4788267b4c2d"
+          },
+          {
+            "table": "app.holding_books",
+            "count": "1",
+            "sha256": "7efaae17efbe38c0c982c788660c731a02fae8fdc8f1f30b9715ae63e8c478a9"
+          },
+          {
+            "table": "app.holding_transfers",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_batches",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_operations",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_rows",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_source_history",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_sources",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.import_template_versions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.instrument_versions",
+            "count": "1",
+            "sha256": "50778a6e6c9f81711cfc13bb21d82117cdc1ffca698e080809a7ddb612a0faf9"
+          },
+          {
+            "table": "app.instruments",
+            "count": "1",
+            "sha256": "1e0992e7b7db61e869945441ca5da43860a0d75fed0770c9bc124a7c695c216d"
+          },
+          {
+            "table": "app.inventory_events",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_commands",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_entries",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_plan_attachments",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_plan_commitments",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_plan_versions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_revision_attachments",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_revisions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.journal_risk_additions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.ledger_events",
+            "count": "13",
+            "sha256": "bd343ae3aba3a0d69b30f4f8d0c24b5d1234cd630688c0a5f3bb4b59b9a309f5"
+          },
+          {
+            "table": "app.lot_matches",
+            "count": "3",
+            "sha256": "bdced47d7599fef11b6da11298fbce86ff11bc98db3acb9e549fe1a6002221b6"
+          },
+          {
+            "table": "app.lots",
+            "count": "3",
+            "sha256": "09a4f46a35fe534042450931e735b57993f47d97fed828bef275855a8ccb9b05"
+          },
+          {
+            "table": "app.opening_lots",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.order_legs",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.order_revisions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.orders",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.outbox_events",
+            "count": "375",
+            "sha256": "26c4240f170fce6444a90230c1c67cba8341ddf8d1f4f9a898b3f9a8344f323c"
+          },
+          {
+            "table": "app.portfolio_version_accounts",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.portfolio_versions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.portfolios",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.positions",
+            "count": "1",
+            "sha256": "3a4689765855d470e0ba118eb70c39beb52fa2b5281b994b8f85e8a2da2fa498"
+          },
+          {
+            "table": "app.postings",
+            "count": "26",
+            "sha256": "c3641b2a3ca694ef30c4cebbab75adc5944acfb1ac6d04fde9f8e424296462da"
+          },
+          {
+            "table": "app.price_observations",
+            "count": "1",
+            "sha256": "a02bd625e087cc158dc3ea285c2a6e37ff05df83f0dc5430fd3501a82b0c26f0"
+          },
+          {
+            "table": "app.schema_metadata",
+            "count": "1",
+            "sha256": "3f6b030b6796549ef35fbac53c5e0611063a42d90a85b192e108aecb04d89b8a"
+          },
+          {
+            "table": "app.strategies",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.strategy_attachments",
+            "count": "1",
+            "sha256": "15479805f829d8f664a7043c66885528beb2cf864d4ed5c9af38d02f215ffc28"
+          },
+          {
+            "table": "app.strategy_commands",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.strategy_version_attachments",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.strategy_versions",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.trade_closures",
+            "count": "3",
+            "sha256": "1b622e4762603dfc2a1f7b147ed2dda38dca01e96bc6ae4f319d3cc3d5ceccc9"
+          },
+          {
+            "table": "app.trade_legs",
+            "count": "3",
+            "sha256": "3131140dff473d79a0ca613beda29febb535aa63543c48d3083b5cb55b4d8a33"
+          },
+          {
+            "table": "app.trade_strategy_links",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.trades",
+            "count": "3",
+            "sha256": "2a6fc712b4aa3c84f77d5a86cca6360e0c1fd21443c9849309a207ddaebc82c4"
+          },
+          {
+            "table": "app.user_preferences",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "app.workspace_memberships",
+            "count": "1",
+            "sha256": "5972f41b0a2c97ecfce5c673479b45160c924deaeea2fac49199c3d8a69c7466"
+          },
+          {
+            "table": "app.workspaces",
+            "count": "1",
+            "sha256": "a65cf3fb150042cf45bf67c2a8057300ff88ba7759a0a2661891ce171e66cd0a"
+          },
+          {
+            "table": "auth.account",
+            "count": "1",
+            "sha256": "a66441305f6dc04a2e7a6aad5f40367eccb7ba8afddc92da40e5541c0217956c"
+          },
+          {
+            "table": "auth.rate_limit",
+            "count": "3",
+            "sha256": "66b6b1d91121e3b2d4b75b265b0de4da918fd93a8fb7083db14a3d0a3a2aceae"
+          },
+          {
+            "table": "auth.security_events",
+            "count": "3",
+            "sha256": "de04ac140acf8afb9f6508a47d91b200bc59fb33d8de44cf002af6978daaa7a5"
+          },
+          {
+            "table": "auth.session",
+            "count": "2",
+            "sha256": "9d1ecf93a387ba15e358ea030d14c20f55a6699b6b2a9c2daf35d4739042c1fe"
+          },
+          {
+            "table": "auth.user",
+            "count": "1",
+            "sha256": "e0646ca693fbcc8aeb2d77edd2d338d04abdf9b9abbf0de5465906f698a31455"
+          },
+          {
+            "table": "auth.verification",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "migrations.__drizzle_migrations",
+            "count": "9",
+            "sha256": "3f448d8d6bbbbb07eae73c045be88c2a29bbd51d09d4e6a9aa0d2c6e1549d7f0"
+          },
+          {
+            "table": "queue.bam",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.instance",
+            "count": "1",
+            "sha256": "1947f3f46c325ff406c9ab36412b14bf90af3c0baec47e6e6d5a09d2f59dd476"
+          },
+          {
+            "table": "queue.job",
+            "count": "1",
+            "sha256": "453b03ccce2591ce85c14904c0682fbcf72b30c02ac3a17e4c16eaaab2c4b42a"
+          },
+          {
+            "table": "queue.job_common",
+            "count": "1",
+            "sha256": "453b03ccce2591ce85c14904c0682fbcf72b30c02ac3a17e4c16eaaab2c4b42a"
+          },
+          {
+            "table": "queue.job_dependency",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.queue",
+            "count": "1",
+            "sha256": "b35445ad8ff3a792c1575a5298b111e6d805b6df74d7ff54d62d9b465ae34dc9"
+          },
+          {
+            "table": "queue.queue_stats",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.queue_stats_20261017",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.queue_stats_20261018",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.schedule",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.subscription",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "table": "queue.version",
+            "count": "1",
+            "sha256": "a3328fb5de80484d8f3b29535fb207babcc199b69014d0a188e4d4e525f97f69"
+          },
+          {
+            "table": "queue.warning",
+            "count": "0",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "sequenceState": [
+          {
+            "sequence": "migrations.__drizzle_migrations_id_seq",
+            "last_value": "9",
+            "is_called": true
+          }
+        ],
+        "securitySha256": "d48e5191f625a02325aa432d1044b62f19d08b5a05b6f17efb7eba560dcca9a4",
+        "roles": [
+          {
+            "rolname": "journal_app",
+            "rolcanlogin": true,
+            "rolinherit": false,
+            "rolsuper": false,
+            "rolcreatedb": false,
+            "rolcreaterole": false,
+            "rolbypassrls": false,
+            "rolreplication": false
+          },
+          {
+            "rolname": "journal_auth",
+            "rolcanlogin": true,
+            "rolinherit": false,
+            "rolsuper": false,
+            "rolcreatedb": false,
+            "rolcreaterole": false,
+            "rolbypassrls": false,
+            "rolreplication": false
+          },
+          {
+            "rolname": "journal_jobs",
+            "rolcanlogin": true,
+            "rolinherit": false,
+            "rolsuper": false,
+            "rolcreatedb": false,
+            "rolcreaterole": false,
+            "rolbypassrls": false,
+            "rolreplication": false
+          },
+          {
+            "rolname": "journal_migrator",
+            "rolcanlogin": false,
+            "rolinherit": false,
+            "rolsuper": false,
+            "rolcreatedb": false,
+            "rolcreaterole": false,
+            "rolbypassrls": true,
+            "rolreplication": false
+          }
+        ],
+        "memberships": [],
+        "financialDtoSha256": "000dacd401e9544c81d8e90b633b8e25a302727ec9420ab4a2975ce94a78fa50",
+        "attachmentSha256": "1696e5f491ca90980f337814ac87374e98847dd30a8b03f8ca439ffdd59ad957"
+      },
+      "verified": {
+        "freshClusterRoleBootstrap": true,
+        "allSchemaDataExact": true,
+        "sequenceStateExact": true,
+        "ownersGrantsPoliciesFunctionsTriggersConstraintsExact": true,
+        "schemaReadiness": true,
+        "runtimeNonOwnerNoSuperuserNoBypassRlsNoReplication": true,
+        "zeroMembershipPreflightRejectsSetRoleEscalation": true,
+        "missingAndWrongTenantDenied": true,
+        "existingSessionAndFinancialDtos": true,
+        "freshPasswordLoginAndFinancialDtos": true,
+        "privateAttachmentHash": true,
+        "restoredPendingQueueJobCompleted": true
+      },
+      "limitations": [
+        "Tiny synthetic isolated fixture, not a production-scale RTO test.",
+        "Synthetic local trust/socket backup access; production backup-role/network/TLS authorization is not exercised.",
+        "No offsite transfer, encryption/key recovery, scheduled retention, physical backup or PITR is exercised.",
+        "No restore-to-public-deployment or end-user workspace export/import is implemented."
+      ]
+    },
+    "sourceSha256": {
+      "scripts/operations/recovery-drill.ts": "f4f55b80ca980da407472b8ad3e757b23230fbd3858c428d6d8808625c1130e6",
+      "scripts/operations/recovery-safety.ts": "58b2e1eb51440afb50c992d45c4741288a398b93dfbe20adb4d0ca93ed2d63cd",
+      "scripts/operations/production-preflight.ts": "26b6056223535c6f7062ca97beee6eb28f5c5730758c1f289e2e98e1dcd97f1a",
+      "tests/unit/recovery-safety.test.ts": "c0b5b5b73fd363320029c06b57237247e65dccdf91b3ec6c91f5bad7410726bc",
+      "docs/backup-and-recovery.md": "743a78f09690a5f188581eb7f52370d47ea0d4e43f416d38e89d830daa80fe34"
+    }
+  },
+  "privateValueScan": {
+    "scannedFiles": 475,
+    "privateValuesChecked": 136,
+    "matchingFiles": []
+  },
+  "financialPreservation": {
+    "financialImplementationChanges": [],
+    "evidence": "Complete existing unit/property/UI and PostgreSQL correctness suites plus browser workflows passed. Recovery checks compare exact financial DTOs without field exclusions and all database-rendered table hashes before restored writes.",
+    "limitation": "The recovery fixture has three trades/six executions; it does not certify every financial workflow or production-scale recovery time."
+  },
+  "fileInventory": {
+    "created": [
+      "docs/backup-and-recovery.md",
+      "docs/deployment.md",
+      "docs/operations.md",
+      "docs/production-readiness-checklist.md",
+      "docs/production-readiness-evidence.json",
+      "scripts/operations/https-smoke.ts",
+      "scripts/operations/production-preflight.ts",
+      "scripts/operations/recovery-drill.ts",
+      "scripts/operations/recovery-safety.ts",
+      "scripts/release-check.ts",
+      "scripts/standalone-assets.ts",
+      "tests/integration/production-preflight.test.ts",
+      "tests/integration/worker-lifecycle.test.ts",
+      "tests/unit/production-build-sources.test.ts",
+      "tests/unit/production-preflight.test.ts",
+      "tests/unit/production-readiness.test.ts",
+      "tests/unit/readiness-route.test.ts",
+      "tests/unit/recovery-safety.test.ts",
+      "tests/unit/release-check.test.ts"
+    ],
+    "modified": [
+      ".github/workflows/ci.yml",
+      "README.md",
+      "apps/web/src/app/api/v1/health/ready/route.ts",
+      "apps/web/src/app/globals.css",
+      "apps/worker/src/index.ts",
+      "apps/worker/src/queue.ts",
+      "docs/development-plan.md",
+      "package.json",
+      "scripts/dev.ts",
+      "scripts/run.ts"
+    ],
+    "deleted": []
+  },
+  "limitations": [
+    "No production host, actual public domain/proxy, certificate renewal or certificate-verified PostgreSQL session tested.",
+    "No hosted CI run executed for these uncommitted changes; workflow configuration is reviewed and equivalent commands executed locally.",
+    "Source-only frozen installation uses the existing offline pnpm store; no cold-network or byte-identical cross-platform build claim.",
+    "Full-checkout release with full dependencies is validated; no minimal application image, read-only filesystem or shared-filesystem multi-replica deployment is certified.",
+    "No production monitoring/collector, delivered alerts, network-partition test or sustained production concurrency proof.",
+    "Worker startup/ready termination and launcher drain are tested. Web uses Next shutdown without a dedicated tenant/auth pool-drain hook; in-flight production cutover remains a deployment rehearsal gate.",
+    "No scheduled encrypted offsite backup, retention/key retrieval, physical backup/WAL/PITR, production-size restore/cutover or accepted RPO/RTO demonstrated.",
+    "Worker only executes infrastructure health probes; no business outbox/import/report/rebuild handlers or job redrive certified.",
+    "All actual-production gates in production-readiness-checklist.md remain unchecked."
+  ],
+  "readinessChecklist": {
+    "verifiedLocalItems": 24,
+    "pendingLocalItems": 0,
+    "uncheckedProductionDeploymentGates": 13,
+    "checkedProductionDeploymentGates": 0
+  }
+}
