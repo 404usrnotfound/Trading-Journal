@@ -9,6 +9,7 @@ test-results/
 .cache/
 .private/
 .data/
+work/
 **/next-env.d.ts
 packages/contracts/openapi.json
 packages/contracts/src/generated/

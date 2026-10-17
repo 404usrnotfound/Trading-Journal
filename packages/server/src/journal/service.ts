@@ -4,7 +4,7 @@ import { sql, type DbTransaction } from '@journal/database';
 import * as contract from '@journal/contracts';
 import type { AuthorizationContext } from '../services.js';
 import { inaccessible } from '../errors.js';
-import { readTrade } from '../financial/catalog.js';
+import { readTrade, readTrades } from '../financial/catalog.js';
 import type { TradeDto } from '../financial/catalog-types.js';
 import {
   executeFinancialCommand,
@@ -546,9 +546,12 @@ export function createJournalServices(platform: JournalPlatform) {
         ))
         AND (${filter.cursor ?? null}::uuid IS NULL OR t.id>${filter.cursor ?? null}::uuid) ORDER BY t.id LIMIT ${filter.limit + 1}`,
         );
-        const page = rows.slice(0, filter.limit),
-          trades = [];
-        for (const row of page) trades.push(await readTrade(tx, context.workspaceId, row.id));
+        const page = rows.slice(0, filter.limit);
+        const trades = await readTrades(
+          tx,
+          context.workspaceId,
+          page.map((row) => row.id),
+        );
         return contract.journalListResponseSchema.parse({
           trades,
           nextCursor: rows.length > filter.limit ? page.at(-1)!.id : null,

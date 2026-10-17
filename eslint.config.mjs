@@ -91,6 +91,7 @@ export default tseslint.config(
       '.cache/**',
       '.private/**',
       '.data/**',
+      'work/**',
     ],
   },
   ...tseslint.configs.recommended,

@@ -185,6 +185,9 @@ export async function readJournalFinancialSnapshot(
     JOIN app.instruments i ON i.workspace_id=v.workspace_id AND i.id=v.instrument_id
     WHERE l.workspace_id=${context.workspaceId}::uuid AND l.trade_id=${trade.id}::uuid ORDER BY l.id`,
   );
+  // Allocation constraints retain the execution account for every historical version.
+  // Bound the latest-allocation lookup before scanning unrelated account histories.
+  const legAccountIds = [...new Set(legRows.map((leg) => leg.account_id))];
   const fills = await queryRows<FillRow>(
     tx,
     sql`
@@ -202,6 +205,7 @@ export async function readJournalFinancialSnapshot(
     JOIN app.allocation_items i ON i.workspace_id=s.workspace_id AND i.allocation_set_id=s.id
     JOIN app.trade_legs l ON l.workspace_id=i.workspace_id AND l.id=i.trade_leg_id
     WHERE e.workspace_id=${context.workspaceId}::uuid AND l.trade_id=${trade.id}::uuid
+      AND e.account_id=ANY(${`{${legAccountIds.join(',')}}`}::uuid[])
       AND e.source_revision<=${sourceRevision}::integer AND i.quantity_raw::numeric>0
       AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions x WHERE x.workspace_id=e.workspace_id
         AND x.original_execution_id=e.id AND x.source_revision<=${sourceRevision}::integer)
@@ -256,6 +260,9 @@ export async function readJournalFinancialSnapshot(
           AND e.source_revision<=${sourceRevision}::integer AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions x
             WHERE x.workspace_id=e.workspace_id AND x.original_execution_id=e.id AND x.source_revision<=${sourceRevision}::integer))))`,
   );
+  // The preceding fill read already resolved the effective allocated execution population
+  // in this snapshot. Keep the cash read in that population before its text-payload join.
+  const effectiveExecutionIds = [...new Set(fills.map((fill) => fill.execution_id))];
   const cashRows = await queryRows<{
     id: string;
     execution_id: string;
@@ -270,6 +277,7 @@ export async function readJournalFinancialSnapshot(
     FROM app.postings p JOIN app.ledger_events e ON e.workspace_id=p.workspace_id AND e.id=p.ledger_event_id
     JOIN app.executions x ON x.workspace_id=e.workspace_id AND x.id::text=e.payload->>'executionId'
     WHERE p.workspace_id=${context.workspaceId}::uuid AND p.cash_bucket_id IS NOT NULL
+      AND x.id=ANY(${`{${effectiveExecutionIds.join(',')}}`}::uuid[])
       AND e.source_revision<=${sourceRevision}::integer AND e.payload->>'feeId' IS NULL
       AND x.source_revision<=${sourceRevision}::integer
       AND EXISTS (SELECT 1 FROM LATERAL (SELECT id FROM app.allocation_sets

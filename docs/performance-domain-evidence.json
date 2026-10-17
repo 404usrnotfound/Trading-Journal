@@ -1,0 +1,2461 @@
+{
+  "formatVersion": 1,
+  "kind": "pure-domain-inventory-and-reporting-valuation-performance-evidence",
+  "assembledAtUtc": "2026-10-16T13:14:51.805112+00:00",
+  "verification": {
+    "status": "passed",
+    "scenarioCount": 6,
+    "canonicalInputAndFullFinancialOutputHashesMatch": true,
+    "outputBytesAndSourceDerivedCountsMatch": true,
+    "financialFieldsExcluded": [],
+    "note": "Full output includes every inventory/valuation field, provenance, economic timestamp, sequence, revision, manifest, availability state, lot, match and cost. No recordedAt or other field is stripped from a financial DTO."
+  },
+  "scope": {
+    "operations": ["replayInventory", "valueInventory"],
+    "databaseOrApiOrBrowserEvidence": false,
+    "tradeMeaning": "Deterministic complete round-trip groups in kernel inputs; actual journal trade rows and SQL row counts are measured separately by the database benchmark.",
+    "payloadMeaning": "UTF-8 byte length of the complete canonical JSON array of internal kernel inventory plus valuation results, not an API response or transferred network payload.",
+    "applicationLimitsChanged": false
+  },
+  "sources": {
+    "beforeCommit": "8359d63e26e700764b07b5ce312f1f60b584cafe",
+    "beforeInventorySha256": "0b56d964046d6fb483cacaf75ba850997c7a9c5cc0bfec07fc9b4626a231c146",
+    "afterState": "Uncommitted Phase15 working tree; no commit, push or merge.",
+    "afterInventorySha256": "a54ab49a9cd4399133815bedbcec548c1c4203e4abbebd8121a5c8418877309a",
+    "sourceFile": "packages/domain/src/inventory.ts",
+    "fingerprintNote": "Source fingerprints recorded at evidence assembly; benchmark artifacts were collected from the pristine baseline worktree and the reviewed optimized working tree respectively."
+  },
+  "environment": {
+    "platform": "linux",
+    "architecture": "x64",
+    "kernelReleaseAtAssembly": "6.18.44",
+    "logicalCpusVisible": 3,
+    "cpuModels": ["AMD EPYC 9V74 80-Core Processor"],
+    "hostTotalMemoryBytes": 10452496384,
+    "cgroupV2": {
+      "cpuMax": "200000 100000",
+      "memoryMax": "8589934592"
+    },
+    "effectiveCpuQuota": 2,
+    "effectiveMemoryLimitBytes": 8589934592,
+    "node": "v24.19.0",
+    "nodeRuntimeVersions": {
+      "node": "24.19.0",
+      "acorn": "8.17.0",
+      "ada": "3.4.4",
+      "amaro": "1.1.10",
+      "ares": "1.34.6",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.3",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.69.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.7",
+      "simdjson": "4.6.4",
+      "simdutf": "6.4.0",
+      "sqlite": "3.53.3",
+      "tz": "2026b",
+      "undici": "7.29.0",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.51",
+      "zlib": "1.3.2.1-motley-3246f1b",
+      "zstd": "1.5.7"
+    },
+    "packageManager": "pnpm@10.34.6",
+    "decimalJs": "10.6.0",
+    "build": "Standalone TypeScript kernel through tsx; separate from production Next.js and React profiling builds."
+  },
+  "methodology": {
+    "fixtureVersion": "phase-15-domain-v1",
+    "seed": 15202610,
+    "policy": "fifo",
+    "sourceRevision": "Dataset execution count, with source revisions and verified economic sequences 1 through that count.",
+    "financialContext": {
+      "nativeCurrency": "USD synthetic currency identity",
+      "reportingCurrency": "EUR synthetic currency identity",
+      "sourceInstant": "2026-01-02T12:00:00.000001Z",
+      "valuationInstant": "2026-01-03T00:00:00.000001Z",
+      "openingUsdEur": "0.90",
+      "closingUsdEur": "0.92",
+      "markUsdEur": "0.91",
+      "eurFeeNativeUsdRate": "1.10",
+      "actualFee": "0.0125",
+      "explicitRebateEvery19Executions": "-0.0015",
+      "feeCurrency": "Every fifth execution EUR; other charges USD.",
+      "quantities": "Seeded exact integer ten-thousandths, formatted with BigInt; entry and exit partial fills have equal quantity within a trade.",
+      "directions": "Both long and short; every seventh trade is short.",
+      "outcomes": "Seeded prices with positive, negative and zero quote-price changes; native and reporting costs retain charged-currency rates.",
+      "metadata": "Four ordinary-share instrument/unit identities in distributed histories; one in concentrated history. All metadata/version and FX observation references are pinned in the canonical input hash."
+    },
+    "distributions": {
+      "concentrated": "One account, one instrument, one book containing the complete history.",
+      "distributed": "100 accounts and four instruments, 400 books; 10 trades/account at the 1000-trade scale and 100 trades/account at the 10000-trade scale."
+    },
+    "persistence": "Pass --fixture-dir for persisted complete input JSON. Exact canonical input hashes prove equality with the earlier deterministically regenerated fixtures. The quiet pair and extended100k use shared persisted inputs; all AFTER scenarios use persisted inputs.",
+    "hashing": "SHA256 of complete JSON with recursively sorted object keys; array ordering, values, economics and all provenance remain intact.",
+    "timing": "operationMs sums replay and reporting valuation only. Fixture generation/read/write, canonical input hashing, output serialization/hashing and forced GC are excluded. Separate serializationAndHashMs, loopWallMs, fixturePreparationMs and memory observations are retained.",
+    "statistics": "Median (middle value, or mean of middle values for even counts), arithmetic mean, minimum, maximum and nearest-rank p95. With three samples p95 is only the observed maximum, not a production tail-latency claim.",
+    "cacheAndConcurrency": "Fresh Node process per matrix scenario, concurrency1 within a scenario, one complete warmup except the explicitly cold extended100k equivalence run. No OS cache flush or CPU affinity. Shared-host contention is disclosed separately.",
+    "memory": "GC requested before each warmup/sample using --expose-gc. Heap/RSS sampled at book boundaries including canonical output serialization; transient peaks inside one synchronous book are not observed. Whole-process RSS high-water mark includes preparation/serialization. These samples are not proof of production request-leak behavior."
+  },
+  "scenarios": [
+    {
+      "id": "1000-trades-2000-executions/concentrated",
+      "dataset": {
+        "name": "1000-trades-2000-executions",
+        "trades": 1000,
+        "executions": 2000
+      },
+      "distribution": "concentrated",
+      "accounts": 1,
+      "instruments": 1,
+      "books": 1,
+      "executionsPerBook": {
+        "min": 2000,
+        "median": 2000,
+        "p95": 2000,
+        "max": 2000,
+        "mean": 2000
+      },
+      "executionsPerAccount": {
+        "min": 2000,
+        "median": 2000,
+        "p95": 2000,
+        "max": 2000,
+        "mean": 2000
+      },
+      "sourceCounts": {
+        "executions": 2000,
+        "originalCosts": 2000,
+        "retainedLots": 1000,
+        "matches": 1000
+      },
+      "inputSha256": "b08b72e2a5414f15983043795b8770a811720e8fac0c278d22cd7e9c45bb0212",
+      "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+      "payloadBytes": 3580609,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+          "payloadBytes": 3580609
+        },
+        {
+          "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+          "payloadBytes": 3580609
+        },
+        {
+          "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+          "payloadBytes": 3580609
+        }
+      ],
+      "before": {
+        "context": "shared host; fixture preparation could overlap; not a controlled speed-factor comparison",
+        "label": "baseline",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "deterministically-regenerated",
+        "fixturePreparationMs": 2.5711320000000057,
+        "subprocessDeadlineMs": null,
+        "statistics": {
+          "operationMs": {
+            "min": 415.10790999999995,
+            "median": 416.3581529999999,
+            "p95": 477.44301099999996,
+            "max": 477.44301099999996,
+            "mean": 436.30302466666654
+          },
+          "replayMs": {
+            "min": 366.2627339999999,
+            "median": 368.294304,
+            "p95": 421.32710399999996,
+            "max": 421.32710399999996,
+            "mean": 385.29471399999994
+          },
+          "valuationMs": {
+            "min": 46.813605999999936,
+            "median": 50.09541899999999,
+            "p95": 56.11590699999999,
+            "max": 56.11590699999999,
+            "mean": 51.00831066666664
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 421.32710399999996,
+            "valuationMs": 56.11590699999999,
+            "operationMs": 477.44301099999996,
+            "serializationAndHashMs": 41.36872399999993,
+            "loopWallMs": 518.942121,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10927968,
+              "heapTotal": 32239616,
+              "rss": 83087360,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 26379192,
+              "heapTotal": 53125120,
+              "rss": 106418176,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 26368744,
+              "heapTotal": 53125120,
+              "rss": 106418176,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 366.2627339999999,
+            "valuationMs": 50.09541899999999,
+            "operationMs": 416.3581529999999,
+            "serializationAndHashMs": 40.40137700000014,
+            "loopWallMs": 456.85889999999995,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10838456,
+              "heapTotal": 49541120,
+              "rss": 102887424,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 33614888,
+              "heapTotal": 53125120,
+              "rss": 110358528,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 33613720,
+              "heapTotal": 53125120,
+              "rss": 110358528,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 368.294304,
+            "valuationMs": 46.813605999999936,
+            "operationMs": 415.10790999999995,
+            "serializationAndHashMs": 42.97864900000013,
+            "loopWallMs": 458.21088599999985,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10875672,
+              "heapTotal": 49541120,
+              "rss": 106872832,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 48821712,
+              "heapTotal": 86679552,
+              "rss": 145408000,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 48818152,
+              "heapTotal": 86679552,
+              "rss": 145408000,
+              "external": 2703202
+            }
+          }
+        ],
+        "processMaxRssBytes": 145408000
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "created-persisted-inputs",
+        "fixturePreparationMs": 49.211490999999995,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 485.8853510000001,
+            "median": 504.1381769999998,
+            "p95": 597.7710069999998,
+            "max": 597.7710069999998,
+            "mean": 529.2648449999999
+          },
+          "operationCpuMs": {
+            "min": 336.722,
+            "median": 357.064,
+            "p95": 434.474,
+            "max": 434.474,
+            "mean": 376.08666666666664
+          },
+          "replayMs": {
+            "min": 335.8723850000001,
+            "median": 412.268049,
+            "p95": 506.81062999999995,
+            "max": 506.81062999999995,
+            "mean": 418.31702133333334
+          },
+          "valuationMs": {
+            "min": 90.96037699999988,
+            "median": 91.8701279999998,
+            "p95": 150.012966,
+            "max": 150.012966,
+            "mean": 110.94782366666657
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 335.8723850000001,
+            "valuationMs": 150.012966,
+            "operationMs": 485.8853510000001,
+            "operationCpuMs": 336.722,
+            "serializationAndHashMs": 44.74735499999997,
+            "loopWallMs": 530.764785,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10689520,
+              "heapTotal": 32239616,
+              "rss": 84279296,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 28991800,
+              "heapTotal": 52862976,
+              "rss": 105644032,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 28979568,
+              "heapTotal": 52862976,
+              "rss": 105644032,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 412.268049,
+            "valuationMs": 91.8701279999998,
+            "operationMs": 504.1381769999998,
+            "operationCpuMs": 357.064,
+            "serializationAndHashMs": 86.28666500000031,
+            "loopWallMs": 590.5968409999998,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10583488,
+              "heapTotal": 49278976,
+              "rss": 102125568,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 31182184,
+              "heapTotal": 52862976,
+              "rss": 109465600,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 31180992,
+              "heapTotal": 52862976,
+              "rss": 109465600,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 506.81062999999995,
+            "valuationMs": 90.96037699999988,
+            "operationMs": 597.7710069999998,
+            "operationCpuMs": 434.474,
+            "serializationAndHashMs": 43.249506999999994,
+            "loopWallMs": 641.1990530000003,
+            "payloadBytes": 3580609,
+            "outputSha256": "9237f37ca320659b50d135cc31096a2b7255737baa4326aeb1d1e5530e3640c5",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 10650616,
+              "heapTotal": 49278976,
+              "rss": 105914368,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 44042392,
+              "heapTotal": 86417408,
+              "rss": 144318464,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 44038808,
+              "heapTotal": 86417408,
+              "rss": 144318464,
+              "external": 2703218
+            }
+          }
+        ],
+        "processMaxRssBytes": 144318464
+      }
+    },
+    {
+      "id": "1000-trades-2000-executions/distributed",
+      "dataset": {
+        "name": "1000-trades-2000-executions",
+        "trades": 1000,
+        "executions": 2000
+      },
+      "distribution": "distributed",
+      "accounts": 100,
+      "instruments": 4,
+      "books": 400,
+      "executionsPerBook": {
+        "min": 4,
+        "median": 5,
+        "p95": 6,
+        "max": 6,
+        "mean": 5
+      },
+      "executionsPerAccount": {
+        "min": 20,
+        "median": 20,
+        "p95": 20,
+        "max": 20,
+        "mean": 20
+      },
+      "sourceCounts": {
+        "executions": 2000,
+        "originalCosts": 2000,
+        "retainedLots": 1000,
+        "matches": 1000
+      },
+      "inputSha256": "46f2396a190135a1c5a70aea2a08610ea3669017161a0eb855ceafff2e9aa7a5",
+      "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+      "payloadBytes": 5091330,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+          "payloadBytes": 5091330
+        },
+        {
+          "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+          "payloadBytes": 5091330
+        },
+        {
+          "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+          "payloadBytes": 5091330
+        }
+      ],
+      "before": {
+        "context": "shared host; fixture preparation could overlap; not a controlled speed-factor comparison",
+        "label": "baseline",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "deterministically-regenerated",
+        "fixturePreparationMs": 12.22869,
+        "subprocessDeadlineMs": null,
+        "statistics": {
+          "operationMs": {
+            "min": 246.75330499999927,
+            "median": 246.84949700000112,
+            "p95": 288.6321199999953,
+            "max": 288.6321199999953,
+            "mean": 260.7449739999986
+          },
+          "replayMs": {
+            "min": 174.59263399999963,
+            "median": 176.9732580000005,
+            "p95": 208.37486799999726,
+            "max": 208.37486799999726,
+            "mean": 186.64691999999914
+          },
+          "valuationMs": {
+            "min": 69.87623900000062,
+            "median": 72.16067099999964,
+            "p95": 80.25725199999806,
+            "max": 80.25725199999806,
+            "mean": 74.09805399999944
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 176.9732580000005,
+            "valuationMs": 69.87623900000062,
+            "operationMs": 246.84949700000112,
+            "serializationAndHashMs": 65.31554300000005,
+            "loopWallMs": 319.43995399999994,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11590200,
+              "heapTotal": 29880320,
+              "rss": 72781824,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 12321648,
+              "heapTotal": 29880320,
+              "rss": 73117696,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 20460456,
+              "heapTotal": 29880320,
+              "rss": 73699328,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 208.37486799999726,
+            "valuationMs": 80.25725199999806,
+            "operationMs": 288.6321199999953,
+            "serializationAndHashMs": 73.69254099999932,
+            "loopWallMs": 375.028187,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11322624,
+              "heapTotal": 29880320,
+              "rss": 73117696,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 19488152,
+              "heapTotal": 29880320,
+              "rss": 69365760,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 20223128,
+              "heapTotal": 29880320,
+              "rss": 73117696,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 174.59263399999963,
+            "valuationMs": 72.16067099999964,
+            "operationMs": 246.75330499999927,
+            "serializationAndHashMs": 67.69042400000058,
+            "loopWallMs": 320.67838000000006,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11332520,
+              "heapTotal": 29880320,
+              "rss": 69365760,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 19355888,
+              "heapTotal": 29880320,
+              "rss": 70086656,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 20127128,
+              "heapTotal": 29880320,
+              "rss": 71991296,
+              "external": 2703202
+            }
+          }
+        ],
+        "processMaxRssBytes": 73699328
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "created-persisted-inputs",
+        "fixturePreparationMs": 53.419095999999996,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 466.40171399998553,
+            "median": 598.082750999999,
+            "p95": 670.9220809999979,
+            "max": 670.9220809999979,
+            "mean": 578.4688486666608
+          },
+          "operationCpuMs": {
+            "min": 294.812,
+            "median": 307.7390000000001,
+            "p95": 325.4650000000002,
+            "max": 325.4650000000002,
+            "mean": 309.33866666666677
+          },
+          "replayMs": {
+            "min": 314.4524770000003,
+            "median": 407.0379130000083,
+            "p95": 452.65984000000026,
+            "max": 452.65984000000026,
+            "mean": 391.3834100000029
+          },
+          "valuationMs": {
+            "min": 151.94923699998526,
+            "median": 191.0448379999907,
+            "p95": 218.26224099999763,
+            "max": 218.26224099999763,
+            "mean": 187.08543866665786
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 452.65984000000026,
+            "valuationMs": 218.26224099999763,
+            "operationMs": 670.9220809999979,
+            "operationCpuMs": 307.7390000000001,
+            "serializationAndHashMs": 757.8707110000007,
+            "loopWallMs": 1618.54831,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11295632,
+              "heapTotal": 29618176,
+              "rss": 79298560,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 19529840,
+              "heapTotal": 29618176,
+              "rss": 79560704,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 20228120,
+              "heapTotal": 29618176,
+              "rss": 79560704,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 407.0379130000083,
+            "valuationMs": 191.0448379999907,
+            "operationMs": 598.082750999999,
+            "operationCpuMs": 325.4650000000002,
+            "serializationAndHashMs": 259.3489780000027,
+            "loopWallMs": 888.2666390000004,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11039256,
+              "heapTotal": 29618176,
+              "rss": 79560704,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 18228736,
+              "heapTotal": 29618176,
+              "rss": 79691776,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 19670968,
+              "heapTotal": 29618176,
+              "rss": 79691776,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 314.4524770000003,
+            "valuationMs": 151.94923699998526,
+            "operationMs": 466.40171399998553,
+            "operationCpuMs": 294.812,
+            "serializationAndHashMs": 158.47782700000926,
+            "loopWallMs": 652.5985470000005,
+            "payloadBytes": 5091330,
+            "outputSha256": "9e92a6586ff6f91ed49d2e617e1fcf3e08a49a91b84c774f436f393169e48643",
+            "lots": 1000,
+            "matches": 1000,
+            "originalCosts": 2000,
+            "memoryBefore": {
+              "heapUsed": 11048592,
+              "heapTotal": 29618176,
+              "rss": 79691776,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 18120584,
+              "heapTotal": 29618176,
+              "rss": 80609280,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 19713256,
+              "heapTotal": 29618176,
+              "rss": 80609280,
+              "external": 2703218
+            }
+          }
+        ],
+        "processMaxRssBytes": 80609280
+      }
+    },
+    {
+      "id": "10000-trades-20000-executions/concentrated",
+      "dataset": {
+        "name": "10000-trades-20000-executions",
+        "trades": 10000,
+        "executions": 20000
+      },
+      "distribution": "concentrated",
+      "accounts": 1,
+      "instruments": 1,
+      "books": 1,
+      "executionsPerBook": {
+        "min": 20000,
+        "median": 20000,
+        "p95": 20000,
+        "max": 20000,
+        "mean": 20000
+      },
+      "executionsPerAccount": {
+        "min": 20000,
+        "median": 20000,
+        "p95": 20000,
+        "max": 20000,
+        "mean": 20000
+      },
+      "sourceCounts": {
+        "executions": 20000,
+        "originalCosts": 20000,
+        "retainedLots": 10000,
+        "matches": 10000
+      },
+      "inputSha256": "4971d5551fe9ae4b1dbfd4b95cf295bcc71b0a1442dedc3c891ff23a634ed562",
+      "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+      "payloadBytes": 35793314,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "payloadBytes": 35793314
+        },
+        {
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "payloadBytes": 35793314
+        },
+        {
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "payloadBytes": 35793314
+        }
+      ],
+      "before": {
+        "context": "shared host; fixture preparation could overlap; not a controlled speed-factor comparison",
+        "label": "baseline",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "deterministically-regenerated",
+        "fixturePreparationMs": 24.741594000000006,
+        "subprocessDeadlineMs": null,
+        "statistics": {
+          "operationMs": {
+            "min": 38851.307841,
+            "median": 47660.10625700001,
+            "p95": 52214.184552999985,
+            "max": 52214.184552999985,
+            "mean": 46241.866217
+          },
+          "replayMs": {
+            "min": 37985.049989,
+            "median": 46892.289361,
+            "p95": 51515.829461,
+            "max": 51515.829461,
+            "mean": 45464.38960366667
+          },
+          "valuationMs": {
+            "min": 698.3550919999834,
+            "median": 767.8168960000039,
+            "p95": 866.2578520000025,
+            "max": 866.2578520000025,
+            "mean": 777.47661333333
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 37985.049989,
+            "valuationMs": 866.2578520000025,
+            "operationMs": 38851.307841,
+            "serializationAndHashMs": 884.424583,
+            "loopWallMs": 39735.90242,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 27470376,
+              "heapTotal": 177389568,
+              "rss": 253595648,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 121334704,
+              "heapTotal": 238055424,
+              "rss": 300789760,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 121324256,
+              "heapTotal": 238055424,
+              "rss": 300789760,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 46892.289361,
+            "valuationMs": 767.8168960000039,
+            "operationMs": 47660.10625700001,
+            "serializationAndHashMs": 839.3561029999983,
+            "loopWallMs": 48499.61375799999,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 27425944,
+              "heapTotal": 180797440,
+              "rss": 261357568,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 115692632,
+              "heapTotal": 238055424,
+              "rss": 301957120,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 115691464,
+              "heapTotal": 238055424,
+              "rss": 301957120,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 51515.829461,
+            "valuationMs": 698.3550919999834,
+            "operationMs": 52214.184552999985,
+            "serializationAndHashMs": 799.5251799999969,
+            "loopWallMs": 53013.975924,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 27544952,
+              "heapTotal": 182370304,
+              "rss": 262414336,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 113599112,
+              "heapTotal": 237793280,
+              "rss": 302174208,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 113595552,
+              "heapTotal": 237793280,
+              "rss": 302174208,
+              "external": 2703202
+            }
+          }
+        ],
+        "processMaxRssBytes": 337928192
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "read-persisted-inputs",
+        "fixturePreparationMs": 222.386978,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 6223.228906000002,
+            "median": 8504.938787000003,
+            "p95": 9293.131696,
+            "max": 9293.131696,
+            "mean": 8007.099796333336
+          },
+          "operationCpuMs": {
+            "min": 2316.908,
+            "median": 2533.743,
+            "p95": 2777.019,
+            "max": 2777.019,
+            "mean": 2542.556666666667
+          },
+          "replayMs": {
+            "min": 4679.927741000001,
+            "median": 6946.959321999999,
+            "p95": 7359.852788,
+            "max": 7359.852788,
+            "mean": 6328.913283666666
+          },
+          "valuationMs": {
+            "min": 1543.3011650000008,
+            "median": 1557.979465000004,
+            "p95": 1933.2789080000002,
+            "max": 1933.2789080000002,
+            "mean": 1678.1865126666682
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 4679.927741000001,
+            "valuationMs": 1543.3011650000008,
+            "operationMs": 6223.228906000002,
+            "operationCpuMs": 2777.019,
+            "serializationAndHashMs": 1566.00144,
+            "loopWallMs": 7799.020277000001,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 29777856,
+              "heapTotal": 175271936,
+              "rss": 258101248,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 155163944,
+              "heapTotal": 239345664,
+              "rss": 335585280,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 155151712,
+              "heapTotal": 239345664,
+              "rss": 335585280,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 7359.852788,
+            "valuationMs": 1933.2789080000002,
+            "operationMs": 9293.131696,
+            "operationCpuMs": 2533.743,
+            "serializationAndHashMs": 2216.8413390000023,
+            "loopWallMs": 11514.306795,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 29823256,
+              "heapTotal": 180252672,
+              "rss": 296153088,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 162242072,
+              "heapTotal": 239869952,
+              "rss": 336941056,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 162240880,
+              "heapTotal": 239869952,
+              "rss": 336941056,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 6946.959321999999,
+            "valuationMs": 1557.979465000004,
+            "operationMs": 8504.938787000003,
+            "operationCpuMs": 2316.908,
+            "serializationAndHashMs": 1617.9784879999934,
+            "loopWallMs": 10127.684257999997,
+            "payloadBytes": 35793314,
+            "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 29830088,
+              "heapTotal": 182349824,
+              "rss": 297508864,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 156746488,
+              "heapTotal": 239345664,
+              "rss": 338210816,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 156742904,
+              "heapTotal": 239345664,
+              "rss": 338210816,
+              "external": 2703218
+            }
+          }
+        ],
+        "processMaxRssBytes": 373985280
+      }
+    },
+    {
+      "id": "10000-trades-20000-executions/distributed",
+      "dataset": {
+        "name": "10000-trades-20000-executions",
+        "trades": 10000,
+        "executions": 20000
+      },
+      "distribution": "distributed",
+      "accounts": 100,
+      "instruments": 4,
+      "books": 400,
+      "executionsPerBook": {
+        "min": 50,
+        "median": 50,
+        "p95": 50,
+        "max": 50,
+        "mean": 50
+      },
+      "executionsPerAccount": {
+        "min": 200,
+        "median": 200,
+        "p95": 200,
+        "max": 200,
+        "mean": 200
+      },
+      "sourceCounts": {
+        "executions": 20000,
+        "originalCosts": 20000,
+        "retainedLots": 10000,
+        "matches": 10000
+      },
+      "inputSha256": "b0743813c002f571120c2398e0a32852eb4a809dbeb9b6fd2fedb5446852dbd2",
+      "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+      "payloadBytes": 37305590,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+          "payloadBytes": 37305590
+        },
+        {
+          "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+          "payloadBytes": 37305590
+        },
+        {
+          "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+          "payloadBytes": 37305590
+        }
+      ],
+      "before": {
+        "context": "shared host; fixture preparation could overlap; not a controlled speed-factor comparison",
+        "label": "baseline",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "deterministically-regenerated",
+        "fixturePreparationMs": 156.038405,
+        "subprocessDeadlineMs": null,
+        "statistics": {
+          "operationMs": {
+            "min": 3940.97820700002,
+            "median": 4554.788816999953,
+            "p95": 9322.299052000042,
+            "max": 9322.299052000042,
+            "mean": 5939.355358666672
+          },
+          "replayMs": {
+            "min": 2996.8454049999837,
+            "median": 3561.125526999993,
+            "p95": 6947.770880000035,
+            "max": 6947.770880000035,
+            "mean": 4501.913937333337
+          },
+          "valuationMs": {
+            "min": 944.1328020000365,
+            "median": 993.6632899999604,
+            "p95": 2374.5281720000075,
+            "max": 2374.5281720000075,
+            "mean": 1437.4414213333348
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 2996.8454049999837,
+            "valuationMs": 944.1328020000365,
+            "operationMs": 3940.97820700002,
+            "serializationAndHashMs": 843.5234349999646,
+            "loopWallMs": 4912.205936,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28147000,
+              "heapTotal": 98824192,
+              "rss": 139927552,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 39306496,
+              "heapTotal": 99348480,
+              "rss": 140271616,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 64324448,
+              "heapTotal": 99348480,
+              "rss": 145248256,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 6947.770880000035,
+            "valuationMs": 2374.5281720000075,
+            "operationMs": 9322.299052000042,
+            "serializationAndHashMs": 2107.243645000013,
+            "loopWallMs": 13116.272455999999,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28096008,
+              "heapTotal": 99348480,
+              "rss": 140271616,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 37174016,
+              "heapTotal": 166457344,
+              "rss": 207863808,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 97034008,
+              "heapTotal": 166457344,
+              "rss": 213659648,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 3561.125526999993,
+            "valuationMs": 993.6632899999604,
+            "operationMs": 4554.788816999953,
+            "serializationAndHashMs": 1049.756223999986,
+            "loopWallMs": 5896.602855000001,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28106832,
+              "heapTotal": 166457344,
+              "rss": 207863808,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 62728440,
+              "heapTotal": 166457344,
+              "rss": 208035840,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 97280424,
+              "heapTotal": 166457344,
+              "rss": 213585920,
+              "external": 2703202
+            }
+          }
+        ],
+        "processMaxRssBytes": 213659648
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "created-persisted-inputs",
+        "fixturePreparationMs": 599.986697,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 4690.0956409999835,
+            "median": 6320.131504999999,
+            "p95": 7167.73392999998,
+            "max": 7167.73392999998,
+            "mean": 6059.320358666654
+          },
+          "operationCpuMs": {
+            "min": 2285.120999999998,
+            "median": 2373.3000000000015,
+            "p95": 2391.2330000000006,
+            "max": 2391.2330000000006,
+            "mean": 2349.884666666667
+          },
+          "replayMs": {
+            "min": 3364.79706299997,
+            "median": 4661.828497999992,
+            "p95": 4944.142208999998,
+            "max": 4944.142208999998,
+            "mean": 4323.589256666653
+          },
+          "valuationMs": {
+            "min": 1325.2985780000135,
+            "median": 1658.3030070000077,
+            "p95": 2223.5917209999825,
+            "max": 2223.5917209999825,
+            "mean": 1735.7311020000013
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 3364.79706299997,
+            "valuationMs": 1325.2985780000135,
+            "operationMs": 4690.0956409999835,
+            "operationCpuMs": 2285.120999999998,
+            "serializationAndHashMs": 1309.370571000003,
+            "loopWallMs": 6490.550832000001,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28226000,
+              "heapTotal": 98824192,
+              "rss": 168140800,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 59717128,
+              "heapTotal": 99348480,
+              "rss": 173121536,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 64005216,
+              "heapTotal": 99348480,
+              "rss": 173121536,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 4661.828497999992,
+            "valuationMs": 1658.3030070000077,
+            "operationMs": 6320.131504999999,
+            "operationCpuMs": 2373.3000000000015,
+            "serializationAndHashMs": 2364.3960179999867,
+            "loopWallMs": 9214.720274000001,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28178328,
+              "heapTotal": 99348480,
+              "rss": 173121536,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 91894064,
+              "heapTotal": 166457344,
+              "rss": 244424704,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 97422680,
+              "heapTotal": 166457344,
+              "rss": 244424704,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 4944.142208999998,
+            "valuationMs": 2223.5917209999825,
+            "operationMs": 7167.73392999998,
+            "operationCpuMs": 2391.2330000000006,
+            "serializationAndHashMs": 2138.5456380000105,
+            "loopWallMs": 10208.314662,
+            "payloadBytes": 37305590,
+            "outputSha256": "294ccf06876fe6e5328276b827052336caacfad7b7d9ac4add995d1800648c10",
+            "lots": 10000,
+            "matches": 10000,
+            "originalCosts": 20000,
+            "memoryBefore": {
+              "heapUsed": 28188656,
+              "heapTotal": 166457344,
+              "rss": 244424704,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 82703688,
+              "heapTotal": 166457344,
+              "rss": 244555776,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 96880304,
+              "heapTotal": 166457344,
+              "rss": 244555776,
+              "external": 2703218
+            }
+          }
+        ],
+        "processMaxRssBytes": 244555776
+      }
+    },
+    {
+      "id": "10000-trades-100000-executions/concentrated",
+      "dataset": {
+        "name": "10000-trades-100000-executions",
+        "trades": 10000,
+        "executions": 100000
+      },
+      "distribution": "concentrated",
+      "accounts": 1,
+      "instruments": 1,
+      "books": 1,
+      "executionsPerBook": {
+        "min": 100000,
+        "median": 100000,
+        "p95": 100000,
+        "max": 100000,
+        "mean": 100000
+      },
+      "executionsPerAccount": {
+        "min": 100000,
+        "median": 100000,
+        "p95": 100000,
+        "max": 100000,
+        "mean": 100000
+      },
+      "sourceCounts": {
+        "executions": 100000,
+        "originalCosts": 100000,
+        "retainedLots": 50000,
+        "matches": 50000
+      },
+      "inputSha256": "e20140c7499fe43f6548659ddec73f893dae8bf241f76b5f1a62f949d3c164fa",
+      "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+      "payloadBytes": 178968290,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+          "payloadBytes": 178968290
+        }
+      ],
+      "before": {
+        "context": "equivalence-only; contended; single cold sample; no performance-factor claim",
+        "label": "equivalence-before",
+        "seed": 15202610,
+        "warmups": 0,
+        "repetitions": 1,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "created-persisted-inputs",
+        "fixturePreparationMs": 919.188717,
+        "subprocessDeadlineMs": 900000,
+        "statistics": {
+          "operationMs": {
+            "min": 783543.5205399999,
+            "median": 783543.5205399999,
+            "p95": 783543.5205399999,
+            "max": 783543.5205399999,
+            "mean": 783543.5205399999
+          },
+          "operationCpuMs": {
+            "min": 570235.569,
+            "median": 570235.569,
+            "p95": 570235.569,
+            "max": 570235.569,
+            "mean": 570235.569
+          },
+          "replayMs": {
+            "min": 781441.876806,
+            "median": 781441.876806,
+            "p95": 781441.876806,
+            "max": 781441.876806,
+            "mean": 781441.876806
+          },
+          "valuationMs": {
+            "min": 2101.6437339999247,
+            "median": 2101.6437339999247,
+            "p95": 2101.6437339999247,
+            "max": 2101.6437339999247,
+            "mean": 2101.6437339999247
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 781441.876806,
+            "valuationMs": 2101.6437339999247,
+            "operationMs": 783543.5205399999,
+            "operationCpuMs": 570235.569,
+            "serializationAndHashMs": 2617.249991000048,
+            "loopWallMs": 786161.096132,
+            "payloadBytes": 178968290,
+            "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 99814288,
+              "heapTotal": 243396608,
+              "rss": 301420544,
+              "external": 83510736
+            },
+            "memoryAfter": {
+              "heapUsed": 476340104,
+              "heapTotal": 578146304,
+              "rss": 673726464,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 476324136,
+              "heapTotal": 578146304,
+              "rss": 673726464,
+              "external": 83510736
+            }
+          }
+        ],
+        "processMaxRssBytes": 852639744
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "read-persisted-inputs",
+        "fixturePreparationMs": 1985.8323720000003,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 30998.929175000005,
+            "median": 32439.630814000004,
+            "p95": 35055.29563000001,
+            "max": 35055.29563000001,
+            "mean": 32831.285206333334
+          },
+          "operationCpuMs": {
+            "min": 11215.808,
+            "median": 11707.238,
+            "p95": 11867.792,
+            "max": 11867.792,
+            "mean": 11596.945999999998
+          },
+          "replayMs": {
+            "min": 20375.355898999995,
+            "median": 24256.314701000025,
+            "p95": 26609.671025000003,
+            "max": 26609.671025000003,
+            "mean": 23747.11387500001
+          },
+          "valuationMs": {
+            "min": 8183.316112999979,
+            "median": 8445.624605000005,
+            "p95": 10623.57327600001,
+            "max": 10623.57327600001,
+            "mean": 9084.171331333331
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 20375.355898999995,
+            "valuationMs": 10623.57327600001,
+            "operationMs": 30998.929175000005,
+            "operationCpuMs": 11215.808,
+            "serializationAndHashMs": 7907.8894,
+            "loopWallMs": 38912.198842,
+            "payloadBytes": 178968290,
+            "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 109715832,
+              "heapTotal": 261894144,
+              "rss": 535113728,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 507665352,
+              "heapTotal": 629112832,
+              "rss": 732913664,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 507649888,
+              "heapTotal": 629112832,
+              "rss": 732913664,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 26609.671025000003,
+            "valuationMs": 8445.624605000005,
+            "operationMs": 35055.29563000001,
+            "operationCpuMs": 11867.792,
+            "serializationAndHashMs": 9344.10901,
+            "loopWallMs": 44403.980455,
+            "payloadBytes": 178968290,
+            "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 109744824,
+              "heapTotal": 267923456,
+              "rss": 541343744,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 529876856,
+              "heapTotal": 627015680,
+              "rss": 736903168,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 529872432,
+              "heapTotal": 627015680,
+              "rss": 736903168,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 24256.314701000025,
+            "valuationMs": 8183.316112999979,
+            "operationMs": 32439.630814000004,
+            "operationCpuMs": 11707.238,
+            "serializationAndHashMs": 5757.2286380000005,
+            "loopWallMs": 38197.06471100001,
+            "payloadBytes": 178968290,
+            "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 108573696,
+              "heapTotal": 270544896,
+              "rss": 544931840,
+              "external": 2698552
+            },
+            "memoryAfter": {
+              "heapUsed": 528534416,
+              "heapTotal": 626491392,
+              "rss": 737366016,
+              "external": 2698552
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 528529680,
+              "heapTotal": 626491392,
+              "rss": 737366016,
+              "external": 2698552
+            }
+          }
+        ],
+        "processMaxRssBytes": 916279296
+      }
+    },
+    {
+      "id": "10000-trades-100000-executions/distributed",
+      "dataset": {
+        "name": "10000-trades-100000-executions",
+        "trades": 10000,
+        "executions": 100000
+      },
+      "distribution": "distributed",
+      "accounts": 100,
+      "instruments": 4,
+      "books": 400,
+      "executionsPerBook": {
+        "min": 250,
+        "median": 250,
+        "p95": 250,
+        "max": 250,
+        "mean": 250
+      },
+      "executionsPerAccount": {
+        "min": 1000,
+        "median": 1000,
+        "p95": 1000,
+        "max": 1000,
+        "mean": 1000
+      },
+      "sourceCounts": {
+        "executions": 100000,
+        "originalCosts": 100000,
+        "retainedLots": 50000,
+        "matches": 50000
+      },
+      "inputSha256": "8231064470413e3f006c8c01a112cdf626b7cfd7833364b4404b0b297e69aa42",
+      "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+      "payloadBytes": 180492183,
+      "financialEquivalence": {
+        "status": "passed",
+        "canonicalInputsEqual": true,
+        "canonicalFullOutputsEqual": true,
+        "outputBytesEqual": true,
+        "sourceAndDerivedCountsEqual": true,
+        "financialFieldsExcludedFromHash": []
+      },
+      "samples": [
+        {
+          "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+          "payloadBytes": 180492183
+        },
+        {
+          "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+          "payloadBytes": 180492183
+        },
+        {
+          "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+          "payloadBytes": 180492183
+        }
+      ],
+      "before": {
+        "context": "shared host; fixture preparation could overlap; not a controlled speed-factor comparison",
+        "label": "baseline",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "deterministically-regenerated",
+        "fixturePreparationMs": 128.124885,
+        "subprocessDeadlineMs": null,
+        "statistics": {
+          "operationMs": {
+            "min": 10463.434610000062,
+            "median": 10537.919511999995,
+            "p95": 11181.503083999942,
+            "max": 11181.503083999942,
+            "mean": 10727.619068666667
+          },
+          "replayMs": {
+            "min": 8299.904481000049,
+            "median": 8346.606238999992,
+            "p95": 8788.272501999985,
+            "max": 8788.272501999985,
+            "mean": 8478.26107400001
+          },
+          "valuationMs": {
+            "min": 2163.5301290000134,
+            "median": 2191.3132730000034,
+            "p95": 2393.2305819999565,
+            "max": 2393.2305819999565,
+            "mean": 2249.3579946666578
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 8346.606238999992,
+            "valuationMs": 2191.3132730000034,
+            "operationMs": 10537.919511999995,
+            "serializationAndHashMs": 2151.0714799999696,
+            "loopWallMs": 12712.798872,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101271288,
+              "heapTotal": 242741248,
+              "rss": 300015616,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 252587232,
+              "heapTotal": 323670016,
+              "rss": 385318912,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 252576864,
+              "heapTotal": 323670016,
+              "rss": 385318912,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 8788.272501999985,
+            "valuationMs": 2393.2305819999565,
+            "operationMs": 11181.503083999942,
+            "serializationAndHashMs": 2235.2291950000763,
+            "loopWallMs": 13442.78659,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101301120,
+              "heapTotal": 241692672,
+              "rss": 303800320,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 169271288,
+              "heapTotal": 246116352,
+              "rss": 308133888,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 247740096,
+              "heapTotal": 320155648,
+              "rss": 382627840,
+              "external": 2703202
+            }
+          },
+          {
+            "replayMs": 8299.904481000049,
+            "valuationMs": 2163.5301290000134,
+            "operationMs": 10463.434610000062,
+            "serializationAndHashMs": 2169.1547560000545,
+            "loopWallMs": 12657.532734,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101299944,
+              "heapTotal": 241954816,
+              "rss": 304070656,
+              "external": 2703202
+            },
+            "memoryAfter": {
+              "heapUsed": 167445856,
+              "heapTotal": 244297728,
+              "rss": 305209344,
+              "external": 2703202
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 246810296,
+              "heapTotal": 322236416,
+              "rss": 383340544,
+              "external": 2703202
+            }
+          }
+        ],
+        "processMaxRssBytes": 385449984
+      },
+      "after": {
+        "context": "contended with fixture preparation and the extended baseline; no performance-factor claim",
+        "label": "after-contended",
+        "seed": 15202610,
+        "warmups": 1,
+        "repetitions": 3,
+        "concurrency": 1,
+        "garbageCollectionBeforeEachRun": true,
+        "fixtureInputMode": "created-persisted-inputs",
+        "fixturePreparationMs": 1556.712225,
+        "subprocessDeadlineMs": 300000,
+        "statistics": {
+          "operationMs": {
+            "min": 15719.779678000174,
+            "median": 16094.609598000112,
+            "p95": 22838.300040000024,
+            "max": 22838.300040000024,
+            "mean": 18217.563105333436
+          },
+          "operationCpuMs": {
+            "min": 9848.315999999995,
+            "median": 10120.272000000004,
+            "p95": 10298.186999999994,
+            "max": 10298.186999999994,
+            "mean": 10088.924999999997
+          },
+          "replayMs": {
+            "min": 12224.031446000066,
+            "median": 12338.959096000137,
+            "p95": 17065.55828600003,
+            "max": 17065.55828600003,
+            "mean": 13876.182942666745
+          },
+          "valuationMs": {
+            "min": 3495.7482320001072,
+            "median": 3755.650501999975,
+            "p95": 5772.741753999995,
+            "max": 5772.741753999995,
+            "mean": 4341.380162666693
+          }
+        },
+        "samples": [
+          {
+            "replayMs": 17065.55828600003,
+            "valuationMs": 5772.741753999995,
+            "operationMs": 22838.300040000024,
+            "operationCpuMs": 10298.186999999994,
+            "serializationAndHashMs": 5499.514218999982,
+            "loopWallMs": 28911.957665999995,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101438696,
+              "heapTotal": 241692672,
+              "rss": 314990592,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 207231656,
+              "heapTotal": 314699776,
+              "rss": 389890048,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 238113840,
+              "heapTotal": 314437632,
+              "rss": 389890048,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 12224.031446000066,
+            "valuationMs": 3495.7482320001072,
+            "operationMs": 15719.779678000174,
+            "operationCpuMs": 9848.315999999995,
+            "serializationAndHashMs": 3244.557737999974,
+            "loopWallMs": 19026.510827,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101470008,
+              "heapTotal": 241954816,
+              "rss": 317267968,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 205965320,
+              "heapTotal": 314961920,
+              "rss": 390070272,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 237711504,
+              "heapTotal": 314961920,
+              "rss": 390070272,
+              "external": 2703218
+            }
+          },
+          {
+            "replayMs": 12338.959096000137,
+            "valuationMs": 3755.650501999975,
+            "operationMs": 16094.609598000112,
+            "operationCpuMs": 10120.272000000004,
+            "serializationAndHashMs": 3461.462517000051,
+            "loopWallMs": 19626.726536999995,
+            "payloadBytes": 180492183,
+            "outputSha256": "9cce3a7205ade85f9fa06270551e8edd4c69350eb62e59451048b51b99b8ea41",
+            "lots": 50000,
+            "matches": 50000,
+            "originalCosts": 100000,
+            "memoryBefore": {
+              "heapUsed": 101478456,
+              "heapTotal": 242216960,
+              "rss": 317448192,
+              "external": 2703218
+            },
+            "memoryAfter": {
+              "heapUsed": 203561984,
+              "heapTotal": 314769408,
+              "rss": 389849088,
+              "external": 2703218
+            },
+            "observedBoundaryPeak": {
+              "heapUsed": 244341968,
+              "heapTotal": 315224064,
+              "rss": 390307840,
+              "external": 2703218
+            }
+          }
+        ],
+        "processMaxRssBytes": 456925184
+      }
+    }
+  ],
+  "quiet20kPair": {
+    "id": "10000-trades-20000-executions/concentrated",
+    "context": "Coordinated quiet project CPU window; fixture construction and other project benchmarks paused. The host is still shared infrastructure.",
+    "inputSha256": "4971d5551fe9ae4b1dbfd4b95cf295bcc71b0a1442dedc3c891ff23a634ed562",
+    "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+    "payloadBytes": 35793314,
+    "financialEquivalence": "passed-full-output-and-input-sha256",
+    "before": {
+      "context": "quiet paired benchmark",
+      "label": "quiet-before",
+      "seed": 15202610,
+      "warmups": 1,
+      "repetitions": 3,
+      "concurrency": 1,
+      "garbageCollectionBeforeEachRun": true,
+      "fixtureInputMode": "created-persisted-inputs",
+      "fixturePreparationMs": 146.11133299999997,
+      "subprocessDeadlineMs": null,
+      "statistics": {
+        "operationMs": {
+          "min": 16984.072866000002,
+          "median": 17346.433192000004,
+          "p95": 17821.118269,
+          "max": 17821.118269,
+          "mean": 17383.874775666667
+        },
+        "operationCpuMs": {
+          "min": 17062.121,
+          "median": 17524.472,
+          "p95": 17947.47,
+          "max": 17947.47,
+          "mean": 17511.354333333333
+        },
+        "replayMs": {
+          "min": 16550.634803,
+          "median": 16911.531478000004,
+          "p95": 17412.252420000004,
+          "max": 17412.252420000004,
+          "mean": 16958.139567000002
+        },
+        "valuationMs": {
+          "min": 408.86584899999434,
+          "median": 433.4380630000014,
+          "p95": 434.90171399999963,
+          "max": 434.90171399999963,
+          "mean": 425.73520866666513
+        }
+      },
+      "samples": [
+        {
+          "replayMs": 16911.531478000004,
+          "valuationMs": 434.90171399999963,
+          "operationMs": 17346.433192000004,
+          "operationCpuMs": 17524.472,
+          "serializationAndHashMs": 451.08638000000064,
+          "loopWallMs": 17797.756078000002,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 27743896,
+            "heapTotal": 176340992,
+            "rss": 318320640,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 125883912,
+            "heapTotal": 238055424,
+            "rss": 364568576,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 125871680,
+            "heapTotal": 238055424,
+            "rss": 364568576,
+            "external": 2703218
+          }
+        },
+        {
+          "replayMs": 16550.634803,
+          "valuationMs": 433.4380630000014,
+          "operationMs": 16984.072866000002,
+          "operationCpuMs": 17062.121,
+          "serializationAndHashMs": 455.4151369999963,
+          "loopWallMs": 17439.670808999996,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 27697224,
+            "heapTotal": 180797440,
+            "rss": 325136384,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 119864744,
+            "heapTotal": 238055424,
+            "rss": 365330432,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 119863552,
+            "heapTotal": 238055424,
+            "rss": 365330432,
+            "external": 2703218
+          }
+        },
+        {
+          "replayMs": 17412.252420000004,
+          "valuationMs": 408.86584899999434,
+          "operationMs": 17821.118269,
+          "operationCpuMs": 17947.47,
+          "serializationAndHashMs": 445.30725900000834,
+          "loopWallMs": 18266.638898999998,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 27813040,
+            "heapTotal": 182894592,
+            "rss": 325898240,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 117369920,
+            "heapTotal": 238055424,
+            "rss": 365502464,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 117366336,
+            "heapTotal": 238055424,
+            "rss": 365502464,
+            "external": 2703218
+          }
+        }
+      ],
+      "processMaxRssBytes": 401285120
+    },
+    "after": {
+      "context": "quiet paired benchmark",
+      "label": "quiet-after",
+      "seed": 15202610,
+      "warmups": 1,
+      "repetitions": 3,
+      "concurrency": 1,
+      "garbageCollectionBeforeEachRun": true,
+      "fixtureInputMode": "read-persisted-inputs",
+      "fixturePreparationMs": 97.79723000000001,
+      "subprocessDeadlineMs": null,
+      "statistics": {
+        "operationMs": {
+          "min": 1885.1478470000002,
+          "median": 1886.1043650000001,
+          "p95": 1915.2924749999993,
+          "max": 1915.2924749999993,
+          "mean": 1895.5148956666665
+        },
+        "operationCpuMs": {
+          "min": 2158.713,
+          "median": 2162.947,
+          "p95": 2170.838,
+          "max": 2170.838,
+          "mean": 2164.166
+        },
+        "replayMs": {
+          "min": 1436.2960429999994,
+          "median": 1442.577311,
+          "p95": 1455.9031590000004,
+          "max": 1455.9031590000004,
+          "mean": 1444.9255043333333
+        },
+        "valuationMs": {
+          "min": 430.20120599999973,
+          "median": 442.5705360000002,
+          "p95": 478.9964319999999,
+          "max": 478.9964319999999,
+          "mean": 450.58939133333325
+        }
+      },
+      "samples": [
+        {
+          "replayMs": 1455.9031590000004,
+          "valuationMs": 430.20120599999973,
+          "operationMs": 1886.1043650000001,
+          "operationCpuMs": 2170.838,
+          "serializationAndHashMs": 452.0081229999996,
+          "loopWallMs": 2338.283886,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 29989408,
+            "heapTotal": 176320512,
+            "rss": 307732480,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 157684248,
+            "heapTotal": 239607808,
+            "rss": 320462848,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 157683056,
+            "heapTotal": 239607808,
+            "rss": 320462848,
+            "external": 2703218
+          }
+        },
+        {
+          "replayMs": 1442.577311,
+          "valuationMs": 442.5705360000002,
+          "operationMs": 1885.1478470000002,
+          "operationCpuMs": 2158.713,
+          "serializationAndHashMs": 560.1287729999995,
+          "loopWallMs": 2445.4468960000004,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 30007584,
+            "heapTotal": 179728384,
+            "rss": 281030656,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 162022248,
+            "heapTotal": 240656384,
+            "rss": 354775040,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 162021056,
+            "heapTotal": 240656384,
+            "rss": 354775040,
+            "external": 2703218
+          }
+        },
+        {
+          "replayMs": 1436.2960429999994,
+          "valuationMs": 478.9964319999999,
+          "operationMs": 1915.2924749999993,
+          "operationCpuMs": 2162.947,
+          "serializationAndHashMs": 512.0770380000013,
+          "loopWallMs": 2427.5664000000006,
+          "payloadBytes": 35793314,
+          "outputSha256": "3963ae333e3cc82964ba5074d0371b8ce6b56095c8bfbc24a356fccb5ef8f1d9",
+          "lots": 10000,
+          "matches": 10000,
+          "originalCosts": 20000,
+          "memoryBefore": {
+            "heapUsed": 30058752,
+            "heapTotal": 182087680,
+            "rss": 315297792,
+            "external": 2703218
+          },
+          "memoryAfter": {
+            "heapUsed": 151990544,
+            "heapTotal": 239869952,
+            "rss": 355487744,
+            "external": 2703218
+          },
+          "observedBoundaryPeak": {
+            "heapUsed": 151986960,
+            "heapTotal": 239869952,
+            "rss": 355487744,
+            "external": 2703218
+          }
+        }
+      ],
+      "processMaxRssBytes": 391270400
+    },
+    "localOperationMedianRatio": 9.196963600686011,
+    "ratioUse": "This local quiet pair is the only performance-factor claim; no factor is inferred from the contended full matrix."
+  },
+  "profile": {
+    "scope": "Separate original20k concentrated profiling run,0warmups/1sample; not included in benchmark sample statistics.",
+    "profileWallMs": 50994.937,
+    "totalSamples": 22564,
+    "inventoryFrames": [
+      {
+        "function": "replayInventory",
+        "samplesInclusive": 20564,
+        "sampleWeightedMsInclusive": 46936.9
+      },
+      {
+        "function": "processFill",
+        "samplesInclusive": 19872,
+        "sampleWeightedMsInclusive": 45488.9
+      },
+      {
+        "function": "(anonymous)",
+        "samplesInclusive": 17481,
+        "sampleWeightedMsInclusive": 40472.1
+      },
+      {
+        "function": "valueInventory",
+        "samplesInclusive": 453,
+        "sampleWeightedMsInclusive": 866.8
+      },
+      {
+        "function": "recomputeMatch",
+        "samplesInclusive": 259,
+        "sampleWeightedMsInclusive": 507.0
+      },
+      {
+        "function": "netMetric",
+        "samplesInclusive": 231,
+        "sampleWeightedMsInclusive": 415.7
+      },
+      {
+        "function": "costsTotal",
+        "samplesInclusive": 150,
+        "sampleWeightedMsInclusive": 273.1
+      },
+      {
+        "function": "compareOrder",
+        "samplesInclusive": 129,
+        "sampleWeightedMsInclusive": 209.7
+      },
+      {
+        "function": "netMetric",
+        "samplesInclusive": 124,
+        "sampleWeightedMsInclusive": 239.3
+      },
+      {
+        "function": "positive",
+        "samplesInclusive": 112,
+        "sampleWeightedMsInclusive": 334.6
+      },
+      {
+        "function": "instantKey",
+        "samplesInclusive": 111,
+        "sampleWeightedMsInclusive": 190.2
+      },
+      {
+        "function": "makeLot",
+        "samplesInclusive": 101,
+        "sampleWeightedMsInclusive": 237.8
+      }
+    ],
+    "limitation": "tsx-transformed source positions map to line1; anonymous frame identified by parent processFill and inspected source. Sampling weights include scheduling effects; separate profile is not a benchmark timing run.",
+    "retainedLotFilterShareOfReplaySamplesPercent": 85.00778058743435,
+    "retainedLotFilterShareOfReplaySampleWeightedTimePercent": 86.22661488082937,
+    "decision": "Replace per-fill scans of all retained historical lots with a local Set of nonzero WorkingLot object references. Preserve the complete historical lots/matches DTO and all Decimal calculations, cost attribution, transfer validation and ordering."
+  },
+  "capacityObservations": [
+    {
+      "id": "10000-trades-100000-executions/concentrated",
+      "status": "timed-out",
+      "deadlineMs": 120000,
+      "deadlineScope": "Whole scenario process including fixture preparation, warmup and repetitions.",
+      "warmups": 1,
+      "requestedRepetitions": 3,
+      "completedRepetitions": 0,
+      "inputSha256": "e20140c7499fe43f6548659ddec73f893dae8bf241f76b5f1a62f949d3c164fa",
+      "verifiedExecutions": 100000,
+      "books": 1,
+      "completeFinancialOutputAvailable": false,
+      "note": "The process exceeded 120 s before any measured sample completed. The checkpoint does not establish whether it was in warmup or the first measured sample. This was not a successfully computed 100k concentrated report or a precise operation-duration measurement."
+    },
+    {
+      "id": "10000-trades-100000-executions/concentrated",
+      "status": "completed",
+      "deadlineMs": 900000,
+      "warmups": 0,
+      "repetitions": 1,
+      "operationMs": 783543.5205399999,
+      "operationCpuMs": 570235.569,
+      "inputSha256": "e20140c7499fe43f6548659ddec73f893dae8bf241f76b5f1a62f949d3c164fa",
+      "outputSha256": "3bae002bd119e63353ce649dd5440bcced10c407d1c2f05db308d55c04e001e9",
+      "classification": "Equivalence-only; cold single sample contended with fixture preparation and other work. No before/after speed factor."
+    }
+  ],
+  "limitations": [
+    "No SQL, restricted database role/RLS plan, API, browser, ledger write, import throughput or production frontend claim is made by this evidence.",
+    "Pure kernel trade groups are not SQL journal trade rows; actual persisted table counts are supplied by the database fixture benchmark.",
+    "All economic instants are pinned to one microsecond with verified ordering sequences; temporal/date-filter performance is not exercised.",
+    "FIFO complete round trips only; equal-sized partial fills within each group. Open positions, transfers, policy transitions, source corrections, late attribution, orders, ledger postings and database projections are omitted from throughput fixtures.",
+    "Existing and new regression tests cover transfer/late-cost/policy/correction correctness, but that does not measure those workflows at100k scale.",
+    "Full internal financial DTO sizes are deliberately large because closed lots, matches, costs and provenance remain present. They are not API/network payload measurements.",
+    "Application campaign/fact/response limits and SQL statement timeouts are neither bypassed through an API nor removed; this harness directly exercises the pure kernel.",
+    "The full matrix has different external contention and the concentrated100k BEFORE has different warmup/repetition settings. Only full financial equivalence and raw observations are claimed there; only the quiet20k pair supplies a speed factor.",
+    "Forced-GC book-boundary memory samples do not establish absence of production leaks or exact intra-book peaks."
+  ],
+  "targetedValidation": {
+    "status": "passed",
+    "testFiles": 4,
+    "tests": 54,
+    "command": "corepack pnpm exec vitest run --config vitest.config.ts tests/unit/financial-inventory.test.ts tests/unit/financial-inventory-transfer.test.ts tests/unit/financial-inventory-campaign.test.ts tests/unit/performance-fixture.test.ts",
+    "coverage": [
+      "FIFO/average/specific retained closed history and zero crossing",
+      "Late charges against historical matches",
+      "Full holding departures/receipts followed by new inventory",
+      "Independent fractional short, signed fee/rebate and historical FX fixtures at2 and10 executions"
+    ],
+    "formatAndTargetedLint": "passed",
+    "broaderValidation": "Reported by the Phase15 development report, not inferred from this kernel evidence."
+  },
+  "reproduction": {
+    "notes": [
+      "Commands assume repository root unless workingDirectory is given. Use a fresh isolated worktree path if the example path exists; never overwrite an existing checkout.",
+      "The baseline commit predates the harness, so copy the reviewed current benchmark script into the pristine worktree. Install there with the frozen lockfile.",
+      "All output filenames use exclusive creation; choose fresh output names or intentionally retain prior results.",
+      "This evidence file is directly accepted by --compare: its top-level scenarios[].samples retain every completed BEFORE full-output digest.",
+      "Run the quiet pair during a coordinated quiet window. Full-matrix or extended contended timings are not substitutes for that pair."
+    ],
+    "prepare": [
+      "git worktree add --detach work/phase15-baseline-repro 8359d63e26e700764b07b5ce312f1f60b584cafe",
+      "mkdir -p work/phase15-baseline-repro/scripts/performance",
+      "cp scripts/performance/domain-benchmark.ts work/phase15-baseline-repro/scripts/performance/domain-benchmark.ts"
+    ],
+    "commands": [
+      {
+        "purpose": "Frozen installation in pristine baseline",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "corepack pnpm install --frozen-lockfile"
+      },
+      {
+        "purpose": "Before small/medium matrix, complete available scopes",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=1000-trades-2000-executions,10000-trades-20000-executions --fixture-dir=../performance/domain-fixtures --deadline-ms=120000 --warmups=1 --repetitions=3 --label=before-repro --compare=../../docs/performance-domain-evidence.json --output=../performance/domain-before-small-repro.json"
+      },
+      {
+        "purpose": "Before distributed100k",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-100000-executions --distributions=distributed --fixture-dir=../performance/domain-fixtures --deadline-ms=120000 --warmups=1 --repetitions=3 --label=before-repro --compare=../../docs/performance-domain-evidence.json --output=../performance/domain-before-distributed100k-repro.json"
+      },
+      {
+        "purpose": "Original120s concentrated100k capacity attempt",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-100000-executions --distributions=concentrated --fixture-dir=../performance/domain-fixtures --deadline-ms=120000 --warmups=1 --repetitions=3 --label=capacity-repro --output=../performance/domain-capacity100k-repro.json"
+      },
+      {
+        "purpose": "Extended concentrated100k full-output equivalence only",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-100000-executions --distributions=concentrated --fixture-dir=../performance/domain-fixtures --deadline-ms=900000 --warmups=0 --repetitions=1 --label=equivalence-before-repro --compare=../../docs/performance-domain-evidence.json --output=../performance/domain-equivalence100k-repro.json"
+      },
+      {
+        "purpose": "After complete matrix with full-output equivalence checks",
+        "workingDirectory": ".",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --fixture-dir=work/performance/domain-fixtures --deadline-ms=300000 --warmups=1 --repetitions=3 --label=after-repro --compare=docs/performance-domain-evidence.json --output=work/performance/domain-after-repro.json"
+      },
+      {
+        "purpose": "Quiet paired20k BEFORE",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-20000-executions --distributions=concentrated --fixture-dir=../performance/domain-fixtures --warmups=1 --repetitions=3 --label=quiet-before-repro --compare=../../docs/performance-domain-evidence.json --output=../performance/domain-quiet-before-repro.json"
+      },
+      {
+        "purpose": "Quiet paired20k AFTER reading the same persisted fixture",
+        "workingDirectory": ".",
+        "command": "node --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-20000-executions --distributions=concentrated --fixture-dir=work/performance/domain-fixtures --warmups=1 --repetitions=3 --label=quiet-after-repro --compare=work/performance/domain-quiet-before-repro.json --output=work/performance/domain-quiet-after-repro.json"
+      },
+      {
+        "purpose": "Separate original20k V8 profile",
+        "workingDirectory": "work/phase15-baseline-repro",
+        "command": "node --cpu-prof --cpu-prof-dir=../performance --cpu-prof-name=domain-before-repro.cpuprofile --expose-gc --import tsx scripts/performance/domain-benchmark.ts --datasets=10000-trades-20000-executions --distributions=concentrated --fixture-dir=../performance/domain-fixtures --warmups=0 --repetitions=1 --label=profile-before-repro --output=../performance/domain-profile-before-repro.json"
+      }
+    ]
+  }
+}

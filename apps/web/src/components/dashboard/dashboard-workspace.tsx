@@ -1,12 +1,13 @@
 'use client';
 import { formatDashboardValue as format } from './dashboard-format';
-import { useId, useState } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   dashboardCatalogSchema,
   dashboardRequestSchema,
   dashboardResponseSchema,
+  type DashboardResponse,
   type WorkspaceResponse,
 } from '@journal/contracts';
 import { Button, Panel } from '@journal/ui';
@@ -83,6 +84,245 @@ const metricDefinitions = {
     'Mean of the R multiples of eligible completed campaigns. Each R multiple divides the complete net outcome by that campaign’s original, positive, pre-trade committed risk in the same currency. Missing or retrospective risk is excluded. R is not a portfolio percentage return.',
 } as const;
 
+// Local search, pagination and unsubmitted filters do not change the report generation.
+// Keep its chart datasets and callbacks behind one boundary with stable, explicit inputs.
+const DashboardVisualizations = memo(function DashboardVisualizations({
+  response,
+  timezone,
+  money,
+  tab,
+  curve,
+  setCurve,
+  from,
+  to,
+  onDrill,
+  onCrossFilter,
+}: {
+  response: DashboardResponse;
+  timezone: string;
+  money: string;
+  tab: DashboardView;
+  curve: string;
+  setCurve: (value: string) => void;
+  from: string;
+  to: string;
+  onDrill: (ids: string[]) => void;
+  onCrossFilter: (dimension: 'strategy' | 'asset', value: string) => void;
+}) {
+  const analytics = response.analytics;
+  if (!analytics) return null;
+  const groupRows = (dimension: 'strategy' | 'asset') =>
+    analytics?.groups
+      .filter((group) => group.dimension === dimension)
+      .map((group) => ({
+        key: group.key,
+        label: group.label,
+        value: group.summary.metrics.netPnl.value,
+        campaignIds: group.summary.population.campaignIds,
+        detail:
+          group.kind === 'mixed'
+            ? 'Mixed campaign · counted once'
+            : `${group.summary.counts.completed} completed trades`,
+      })) ?? [];
+  const distributionRows = (kind: 'pnlDistribution' | 'rDistribution') =>
+    response?.views[kind].bins.map((bin) => ({
+      key: bin.key,
+      label:
+        bin.lower === bin.upper
+          ? format(bin.lower, kind === 'rDistribution' ? 'R' : money)
+          : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(bin.lower))}–${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(bin.upper))}`,
+      value: String(bin.count),
+      campaignIds: bin.campaignIds,
+      detail: `Exact boundaries: ${bin.lower} to ${bin.upper} ${kind === 'rDistribution' ? 'R' : money}; final upper boundary included`,
+    })) ?? [];
+  return (
+    <>
+      {tab === 'performance' && (
+        <>
+          <div className="dashboard-wide">
+            <div className="dashboard-inline-controls">
+              <Button
+                variant={curve === 'equity' ? 'primary' : 'quiet'}
+                aria-pressed={curve === 'equity'}
+                onClick={() => setCurve('equity')}
+              >
+                Account equity
+              </Button>
+              <Button
+                variant={curve === 'performance' ? 'primary' : 'quiet'}
+                aria-pressed={curve === 'performance'}
+                onClick={() => setCurve('performance')}
+              >
+                Capital-adjusted performance
+              </Button>
+            </div>
+            <DashboardChart
+              title={curve === 'equity' ? 'Equity curve' : 'Capital-adjusted monetary performance'}
+              description={
+                curve === 'equity'
+                  ? 'Raw account equity includes deposits and withdrawals. Sampled historical valuations; gaps remain unavailable.'
+                  : 'Change in marked equity less net capital flows since the opening boundary. Money, not a percentage return.'
+              }
+              unit={money}
+              kind="line"
+              rows={response.accountView.points.map((point) => ({
+                key: point.at,
+                label: new Intl.DateTimeFormat(undefined, {
+                  timeZone: timezone,
+                  month: 'short',
+                  day: 'numeric',
+                }).format(new Date(point.at)),
+                value: point[curve === 'equity' ? 'equity' : 'performance'].value,
+                campaignIds: [],
+                detail: `${point.at} · ${point.priceObservationIds.length} price observations · ${point.fxObservationIds.length} FX observations`,
+              }))}
+              empty={response.accountView.reason ?? 'Complete historical valuations are missing.'}
+            />
+          </div>
+          <DashboardChart
+            title="Cumulative closed P&L"
+            description="Fee-net completed-campaign outcomes, ordered by actual close time. Deposits never enter this curve."
+            unit={money}
+            kind="step"
+            rows={analytics.summary.curve.points.map((point) => ({
+              key: point.campaignId ?? 'baseline',
+              label: new Intl.DateTimeFormat(undefined, {
+                timeZone: timezone,
+                month: 'short',
+                day: 'numeric',
+              }).format(new Date(point.economicAt)),
+              value: point.cumulativePnl,
+              campaignIds: point.campaignId ? [point.campaignId] : [],
+            }))}
+            onSelect={(row) => onDrill(row.campaignIds)}
+            empty="A complete closed-outcome sequence is needed."
+          />
+          <DashboardChart
+            title="Drawdown"
+            description="Monetary depth below the zero-anchored closed-P&L peak. Account equity and cash-flow recovery are separate."
+            unit={money}
+            kind="step"
+            rows={analytics.summary.curve.points.map((point) => ({
+              key: point.campaignId ?? 'baseline',
+              label: new Intl.DateTimeFormat(undefined, {
+                timeZone: timezone,
+                month: 'short',
+                day: 'numeric',
+              }).format(new Date(point.economicAt)),
+              value: point.drawdown,
+              campaignIds: point.campaignId ? [point.campaignId] : [],
+            }))}
+            onSelect={(row) => onDrill(row.campaignIds)}
+          />
+          <DashboardCalendar
+            key={`${from}:${to}`}
+            days={response.views.calendar}
+            from={from}
+            to={to}
+            currency={money}
+            unknownCount={response.views.unknownChronologyIds.length}
+            onSelect={onDrill}
+          />
+          <DashboardChart
+            title="Performance over time"
+            description="Monthly fee-net completed-campaign outcomes; partial buckets never plot as complete totals."
+            unit={money}
+            rows={response.views.periods.map((row) => ({
+              key: row.key,
+              label: row.key,
+              value: row.value,
+              campaignIds: [...row.campaignIds, ...row.excludedIds],
+              detail: `${row.excludedIds.length} excluded`,
+            }))}
+            onSelect={(row) => onDrill(row.campaignIds)}
+          />
+        </>
+      )}
+      {tab === 'distributions' && (
+        <>
+          <DashboardChart
+            title="P&L distribution"
+            description={`${response.views.pnlDistribution.excludedIds.length} excluded; six exact equal-width outcome bins, with a single bin for identical results.`}
+            unit="trades"
+            rows={distributionRows('pnlDistribution')}
+            onSelect={(row) => onDrill(row.campaignIds)}
+          />
+          <DashboardChart
+            title="R distribution"
+            description={`${response.views.rDistribution.excludedIds.length} excluded; original committed risk only. R is not a portfolio return.`}
+            unit="trades"
+            rows={distributionRows('rDistribution')}
+            onSelect={(row) => onDrill(row.campaignIds)}
+          />
+          <DashboardChart
+            title="Win/loss distribution"
+            description="Exact fee-net sign; breakevens stay in the eligible denominator."
+            unit="trades"
+            rows={(['win', 'loss', 'breakeven'] as const).map((key) => {
+              const selected = analytics.records.filter(
+                (row) =>
+                  row.status === 'completed' &&
+                  row.netPnl.state === 'available' &&
+                  row.netPnl.value !== null &&
+                  (key === 'win'
+                    ? !row.netPnl.value.startsWith('-') && /[1-9]/.test(row.netPnl.value)
+                    : key === 'loss'
+                      ? row.netPnl.value.startsWith('-') && /[1-9]/.test(row.netPnl.value)
+                      : !/[1-9]/.test(row.netPnl.value)),
+              );
+              return {
+                key,
+                label: key,
+                value: String(selected.length),
+                campaignIds: selected.map((row) => row.id),
+              };
+            })}
+            onSelect={(row) => onDrill(row.campaignIds)}
+          />
+        </>
+      )}
+      {tab === 'breakdowns' && (
+        <>
+          <DashboardChart
+            title="Strategy performance"
+            description="Completed + open lifetime campaign P&L by historical strategy. Mixed/unknown groups remain explicit. Select a strategy to cross-filter."
+            unit={money}
+            rows={groupRows('strategy')}
+            onSelect={(row) => {
+              if (row.key.startsWith('value:')) onCrossFilter('strategy', row.key.slice(6));
+              else onDrill(row.campaignIds);
+            }}
+          />
+          <DashboardChart
+            title="Asset performance"
+            description="Completed + open lifetime campaign P&L. Multi-asset campaigns are counted once in a mixed group."
+            unit={money}
+            rows={groupRows('asset')}
+            onSelect={(row) => {
+              if (row.key.startsWith('value:')) onCrossFilter('asset', row.key.slice(6));
+              else onDrill(row.campaignIds);
+            }}
+          />
+          <DashboardChart
+            title="Account allocation"
+            description="Signed cash + holdings by account; owned transfers in transit appear separately. Values are not percentages."
+            unit={money}
+            rows={response.accountView.allocation.map((row) => ({
+              key: row.id,
+              label: row.label,
+              value: row.equity.value,
+              campaignIds: [],
+              detail:
+                row.equity.state === 'available' ? 'Account ledger' : row.equity.reasons.join('; '),
+            }))}
+            empty={response.accountView.reason ?? 'Allocation inputs are incomplete.'}
+          />
+        </>
+      )}
+    </>
+  );
+});
+
 function DashboardContent({
   workspace,
   workspaces,
@@ -131,7 +371,7 @@ function DashboardContent({
   // A view-only URL change preserves draft filters, while external navigation restores its view.
   if (viewSelection.query !== queryView)
     setViewSelection({ query: queryView, value: viewFromQuery(queryView) });
-  const tab = viewSelection.query === queryView ? viewSelection.value : viewFromQuery(queryView);
+  const tab = viewFromQuery(viewSelection.query === queryView ? viewSelection.value : queryView);
   const catalog = useQuery({
     queryKey: ['dashboard-catalog', workspace.id],
     queryFn: ({ signal }) => read(`${prefix}/catalog`, dashboardCatalogSchema, undefined, signal),
@@ -188,25 +428,28 @@ function DashboardContent({
     queryFn: ({ signal }) => read(`${prefix}/reports`, dashboardResponseSchema, request, signal),
     retry: false,
   });
-  function apply(next: Form) {
-    try {
-      const range = inclusiveDateRange(next.from, next.to, workspace.timezone);
-      if (next.from > next.to) throw new Error('From must be on or before Through.');
-      if (Date.parse(range.to) - Date.parse(range.from) > 367 * 86_400_000)
-        throw new Error('Choose a period of at most one year.');
-    } catch (error) {
-      setFailure(error instanceof Error ? error.message : 'Choose valid dates.');
-      return;
-    }
-    setForm(next);
-    setApplied(next);
-    setDrill(null);
-    setPage(0);
-    setFailure(null);
-    const url = new URLSearchParams({ workspace: workspace.id, view: tab });
-    for (const [key, value] of Object.entries(next)) if (value) url.set(key, value);
-    router.replace(`/dashboard?${url}`, { scroll: false });
-  }
+  const apply = useCallback(
+    (next: Form) => {
+      try {
+        const range = inclusiveDateRange(next.from, next.to, workspace.timezone);
+        if (next.from > next.to) throw new Error('From must be on or before Through.');
+        if (Date.parse(range.to) - Date.parse(range.from) > 367 * 86_400_000)
+          throw new Error('Choose a period of at most one year.');
+      } catch (error) {
+        setFailure(error instanceof Error ? error.message : 'Choose valid dates.');
+        return;
+      }
+      setForm(next);
+      setApplied(next);
+      setDrill(null);
+      setPage(0);
+      setFailure(null);
+      const url = new URLSearchParams({ workspace: workspace.id, view: tab });
+      for (const [key, value] of Object.entries(next)) if (value) url.set(key, value);
+      router.replace(`/dashboard?${url}`, { scroll: false });
+    },
+    [router, workspace.id, workspace.timezone, tab],
+  );
   function selectView(next: DashboardView) {
     setViewSelection({ query: queryView, value: next });
     const url = new URLSearchParams(params.toString());
@@ -214,13 +457,26 @@ function DashboardContent({
     url.set('view', next);
     router.replace(`/dashboard?${url}`, { scroll: false });
   }
-  function drillInto(ids: string[]) {
-    setDrill(ids);
-    setPage(0);
-    document
-      .getElementById(`${id}-records`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  const drillInto = useCallback(
+    (ids: string[]) => {
+      setDrill(ids);
+      setPage(0);
+      document
+        .getElementById(`${id}-records`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    [id],
+  );
+  const crossFilter = useCallback(
+    (dimension: 'strategy' | 'asset', value: string) => {
+      apply(
+        dimension === 'strategy'
+          ? { ...applied, strategyIds: value, strategyVersionIds: '' }
+          : { ...applied, assetIds: value },
+      );
+    },
+    [applied, apply],
+  );
   const response = report.data,
     analytics = response?.analytics;
   const money = data?.currencies.find((row) => row.id === currency)?.code ?? 'reporting currency';
@@ -273,30 +529,6 @@ function DashboardContent({
       ? { portfolioVersionId: applied.portfolioVersionId }
       : { accountIds: selectedAccounts?.map((row) => row.id).join(',') ?? '' }),
   });
-  const groupRows = (dimension: 'strategy' | 'asset') =>
-    analytics?.groups
-      .filter((group) => group.dimension === dimension)
-      .map((group) => ({
-        key: group.key,
-        label: group.label,
-        value: group.summary.metrics.netPnl.value,
-        campaignIds: group.summary.population.campaignIds,
-        detail:
-          group.kind === 'mixed'
-            ? 'Mixed campaign · counted once'
-            : `${group.summary.counts.completed} completed trades`,
-      })) ?? [];
-  const distributionRows = (kind: 'pnlDistribution' | 'rDistribution') =>
-    response?.views[kind].bins.map((bin) => ({
-      key: bin.key,
-      label:
-        bin.lower === bin.upper
-          ? format(bin.lower, kind === 'rDistribution' ? 'R' : money)
-          : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(bin.lower))}–${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(bin.upper))}`,
-      value: String(bin.count),
-      campaignIds: bin.campaignIds,
-      detail: `Exact boundaries: ${bin.lower} to ${bin.upper} ${kind === 'rDistribution' ? 'R' : money}; final upper boundary included`,
-    })) ?? [];
   return (
     <>
       <div className="page-heading">
@@ -732,196 +964,18 @@ function DashboardContent({
             tabIndex={0}
             className="dashboard-chart-grid"
           >
-            {tab === 'performance' && (
-              <>
-                <div className="dashboard-wide">
-                  <div className="dashboard-inline-controls">
-                    <Button
-                      variant={curve === 'equity' ? 'primary' : 'quiet'}
-                      aria-pressed={curve === 'equity'}
-                      onClick={() => setCurve('equity')}
-                    >
-                      Account equity
-                    </Button>
-                    <Button
-                      variant={curve === 'performance' ? 'primary' : 'quiet'}
-                      aria-pressed={curve === 'performance'}
-                      onClick={() => setCurve('performance')}
-                    >
-                      Capital-adjusted performance
-                    </Button>
-                  </div>
-                  <DashboardChart
-                    title={
-                      curve === 'equity' ? 'Equity curve' : 'Capital-adjusted monetary performance'
-                    }
-                    description={
-                      curve === 'equity'
-                        ? 'Raw account equity includes deposits and withdrawals. Sampled historical valuations; gaps remain unavailable.'
-                        : 'Change in marked equity less net capital flows since the opening boundary. Money, not a percentage return.'
-                    }
-                    unit={money}
-                    kind="line"
-                    rows={response.accountView.points.map((point) => ({
-                      key: point.at,
-                      label: new Intl.DateTimeFormat(undefined, {
-                        timeZone: workspace.timezone,
-                        month: 'short',
-                        day: 'numeric',
-                      }).format(new Date(point.at)),
-                      value: point[curve === 'equity' ? 'equity' : 'performance'].value,
-                      campaignIds: [],
-                      detail: `${point.at} · ${point.priceObservationIds.length} price observations · ${point.fxObservationIds.length} FX observations`,
-                    }))}
-                    empty={
-                      response.accountView.reason ?? 'Complete historical valuations are missing.'
-                    }
-                  />
-                </div>
-                <DashboardChart
-                  title="Cumulative closed P&L"
-                  description="Fee-net completed-campaign outcomes, ordered by actual close time. Deposits never enter this curve."
-                  unit={money}
-                  kind="step"
-                  rows={analytics.summary.curve.points.map((point) => ({
-                    key: point.campaignId ?? 'baseline',
-                    label: new Intl.DateTimeFormat(undefined, {
-                      timeZone: workspace.timezone,
-                      month: 'short',
-                      day: 'numeric',
-                    }).format(new Date(point.economicAt)),
-                    value: point.cumulativePnl,
-                    campaignIds: point.campaignId ? [point.campaignId] : [],
-                  }))}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                  empty="A complete closed-outcome sequence is needed."
-                />
-                <DashboardChart
-                  title="Drawdown"
-                  description="Monetary depth below the zero-anchored closed-P&L peak. Account equity and cash-flow recovery are separate."
-                  unit={money}
-                  kind="step"
-                  rows={analytics.summary.curve.points.map((point) => ({
-                    key: point.campaignId ?? 'baseline',
-                    label: new Intl.DateTimeFormat(undefined, {
-                      timeZone: workspace.timezone,
-                      month: 'short',
-                      day: 'numeric',
-                    }).format(new Date(point.economicAt)),
-                    value: point.drawdown,
-                    campaignIds: point.campaignId ? [point.campaignId] : [],
-                  }))}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                />
-                <DashboardCalendar
-                  key={`${applied.from}:${applied.to}`}
-                  days={response.views.calendar}
-                  from={applied.from}
-                  to={applied.to}
-                  currency={money}
-                  unknownCount={response.views.unknownChronologyIds.length}
-                  onSelect={drillInto}
-                />
-                <DashboardChart
-                  title="Performance over time"
-                  description="Monthly fee-net completed-campaign outcomes; partial buckets never plot as complete totals."
-                  unit={money}
-                  rows={response.views.periods.map((row) => ({
-                    key: row.key,
-                    label: row.key,
-                    value: row.value,
-                    campaignIds: [...row.campaignIds, ...row.excludedIds],
-                    detail: `${row.excludedIds.length} excluded`,
-                  }))}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                />
-              </>
-            )}
-            {tab === 'distributions' && (
-              <>
-                <DashboardChart
-                  title="P&L distribution"
-                  description={`${response.views.pnlDistribution.excludedIds.length} excluded; six exact equal-width outcome bins, with a single bin for identical results.`}
-                  unit="trades"
-                  rows={distributionRows('pnlDistribution')}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                />
-                <DashboardChart
-                  title="R distribution"
-                  description={`${response.views.rDistribution.excludedIds.length} excluded; original committed risk only. R is not a portfolio return.`}
-                  unit="trades"
-                  rows={distributionRows('rDistribution')}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                />
-                <DashboardChart
-                  title="Win/loss distribution"
-                  description="Exact fee-net sign; breakevens stay in the eligible denominator."
-                  unit="trades"
-                  rows={(['win', 'loss', 'breakeven'] as const).map((key) => {
-                    const selected = analytics.records.filter(
-                      (row) =>
-                        row.status === 'completed' &&
-                        row.netPnl.state === 'available' &&
-                        row.netPnl.value !== null &&
-                        (key === 'win'
-                          ? !row.netPnl.value.startsWith('-') && /[1-9]/.test(row.netPnl.value)
-                          : key === 'loss'
-                            ? row.netPnl.value.startsWith('-') && /[1-9]/.test(row.netPnl.value)
-                            : !/[1-9]/.test(row.netPnl.value)),
-                    );
-                    return {
-                      key,
-                      label: key,
-                      value: String(selected.length),
-                      campaignIds: selected.map((row) => row.id),
-                    };
-                  })}
-                  onSelect={(row) => drillInto(row.campaignIds)}
-                />
-              </>
-            )}
-            {tab === 'breakdowns' && (
-              <>
-                <DashboardChart
-                  title="Strategy performance"
-                  description="Completed + open lifetime campaign P&L by historical strategy. Mixed/unknown groups remain explicit. Select a strategy to cross-filter."
-                  unit={money}
-                  rows={groupRows('strategy')}
-                  onSelect={(row) => {
-                    if (row.key.startsWith('value:'))
-                      apply({ ...applied, strategyIds: row.key.slice(6), strategyVersionIds: '' });
-                    else drillInto(row.campaignIds);
-                  }}
-                />
-                <DashboardChart
-                  title="Asset performance"
-                  description="Completed + open lifetime campaign P&L. Multi-asset campaigns are counted once in a mixed group."
-                  unit={money}
-                  rows={groupRows('asset')}
-                  onSelect={(row) => {
-                    if (row.key.startsWith('value:'))
-                      apply({ ...applied, assetIds: row.key.slice(6) });
-                    else drillInto(row.campaignIds);
-                  }}
-                />
-                <DashboardChart
-                  title="Account allocation"
-                  description="Signed cash + holdings by account; owned transfers in transit appear separately. Values are not percentages."
-                  unit={money}
-                  rows={response.accountView.allocation.map((row) => ({
-                    key: row.id,
-                    label: row.label,
-                    value: row.equity.value,
-                    campaignIds: [],
-                    detail:
-                      row.equity.state === 'available'
-                        ? 'Account ledger'
-                        : row.equity.reasons.join('; '),
-                  }))}
-                  empty={response.accountView.reason ?? 'Allocation inputs are incomplete.'}
-                />
-              </>
-            )}
+            <DashboardVisualizations
+              response={response}
+              timezone={workspace.timezone}
+              money={money}
+              tab={tab}
+              curve={curve}
+              setCurve={setCurve}
+              from={applied.from}
+              to={applied.to}
+              onDrill={drillInto}
+              onCrossFilter={crossFilter}
+            />
           </div>
           <Panel className="dashboard-records" id={`${id}-records`}>
             <div className="dashboard-chart-heading">

@@ -81,6 +81,42 @@ function transfer(sources: readonly InventorySource[], quantity = '4') {
 const mark = { id: 'mark', price: '25', multiplier: '1', instant: '2026-01-01T13:00:00Z' };
 
 describe('holding transfer lineage independent fixture F-07', () => {
+  it('fully departs and closes carried lots before subsequent independent inventory', () => {
+    const purchase = fill('A-purchase', '1', 'buy', '10', '20', '200', '2');
+    const pair = transfer([purchase], '10');
+    const accountA = replayInventory(
+      input([purchase, pair.departure, fill('A-new-short', '3', 'sell', '1', '25', '25')]),
+    );
+    expect(accountA.lots.map((lot) => [lot.id, lot.remainingQuantity])).toEqual([
+      ['A-purchase', '0'],
+      ['A-new-short', '1'],
+    ]);
+    expect(accountA.matches).toEqual([]);
+    expect(accountA.openQuantity.value).toBe('-1');
+    expect(accountA.grossBasis.value).toBe('-25');
+    expect(accountA.transferredCosts[0]!.amount).toBe('2');
+
+    const accountB = replayInventory(
+      input(
+        [
+          pair.receipt,
+          fill('B-close', '3', 'sell', '10', '25', '250', '1'),
+          fill('B-new-buy', '4', 'buy', '0.5', '30', '15'),
+        ],
+        'B',
+      ),
+    );
+    expect(accountB.lots.map((lot) => [lot.id, lot.remainingQuantity])).toEqual([
+      ['B-carried-lot', '0'],
+      ['B-new-buy', '0.5'],
+    ]);
+    expect(accountB.matches[0]!.openingSourceId).toBe('A-purchase');
+    expect(accountB.realizedGross.value).toBe('50');
+    expect(accountB.realizedNet.value).toBe('47');
+    expect(accountB.openQuantity.value).toBe('0.5');
+    expect(accountB.grossBasis.value).toBe('15');
+  });
+
   it('carries exact basis and original fee without creating a disposal or purchase', () => {
     const purchase = fill('A-purchase', '1', 'buy', '10', '20', '200', '2');
     const pair = transfer([purchase]);

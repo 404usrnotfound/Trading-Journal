@@ -2,12 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { journalDocumentSchema, journalFinancialSnapshotSchema } from '@journal/contracts';
 import { sumDecimals } from '@journal/domain';
-import { createCatalogServices } from '../../packages/server/src/financial/catalog.js';
+import { createCatalogServices, readTrades } from '../../packages/server/src/financial/catalog.js';
 import { createFinancialLedger } from '../../packages/server/src/financial/ledger.js';
 import { createFinancialObservations } from '../../packages/server/src/financial/observations.js';
 import type { ExecutionInput } from '../../packages/server/src/financial/ledger-types.js';
 import { createJournalServices } from '../../packages/server/src/journal/service.js';
 import { createJournalFinancialFixture } from './journal-financial-fixture.js';
+import { instrumentPlatform } from '../../scripts/performance/instrument.js';
 
 const initial = '2025-01-01T00:00:00.000001Z';
 // Economic time is controlled independently of the server's real commitment clock.
@@ -205,6 +206,147 @@ describe('journal financial read model on restricted real PostgreSQL and persist
     );
     return journal.get(fixture.owner.context, tradeId);
   }
+
+  it('batches page closure checks without losing corrected quantities, missing activity or late obligations', async () => {
+    const scope = await account();
+    const cases: {
+      id: string;
+      entry: Awaited<ReturnType<typeof fill>>;
+      exit: Awaited<ReturnType<typeof fill>>;
+    }[] = [];
+    for (let index = 0; index < 4; index++) {
+      const created = await campaign([scope], null);
+      const legId = created.financial.legs[0]!.legId;
+      const entry = await fill(scope, legId, 'buy', '1', '10', null, index * 2 + 1);
+      const exit = await fill(scope, legId, 'sell', '1', '12', null, index * 2 + 2);
+      await close(created.trade.id);
+      cases.push({ id: created.trade.id, entry, exit });
+    }
+    // Later accepted attribution changes keep the historical completion, but require review.
+    for (const execution of [cases[1]!.entry, cases[1]!.exit, cases[2]!.exit])
+      await ledger.allocateExecution(fixture.owner.context, {
+        commandId: randomUUID(),
+        executionId: execution.id,
+        expectedVersion: 2,
+        reason: 'Reviewed attribution is now unassigned.',
+        allocations: [],
+      });
+    const unsettled = await ledger.createCashBucket(fixture.owner.context, {
+      commandId: randomUUID(),
+      accountId: scope.id,
+      currencyId: usd,
+      kind: 'unsettled',
+    });
+    await ledger.recordFee(fixture.owner.context, {
+      commandId: randomUUID(),
+      accountId: scope.id,
+      executionId: cases[3]!.exit.id,
+      cashBucketId: unsettled.id,
+      currencyId: usd,
+      amount: '0.25',
+      kind: 'commission',
+      economicAt: at(10),
+      orderingKey: '1',
+    });
+    const planned = await journal.create(
+      fixture.owner.context,
+      {
+        title: 'Unfilled page member',
+        classification: 'active-trading',
+        legs: [
+          {
+            accountId: scope.id,
+            instrumentVersionId: instrument,
+            direction: 'long',
+            label: 'Unfilled leg',
+          },
+        ],
+      },
+      randomUUID(),
+    );
+    const expected = await Promise.all(
+      [...cases.map((item) => item.id), planned.trade.id]
+        .sort()
+        .map((id) => catalog.getTrade(fixture.owner.context, id)),
+    );
+    expect(expected.filter((trade) => trade.closureReviewRequired)).toHaveLength(3);
+    const instrumentation = instrumentPlatform(fixture.services);
+    const batchedJournal = createJournalServices(instrumentation.platform);
+    const page = await batchedJournal.list(fixture.viewer.context, {
+      accountId: scope.id,
+      limit: 5,
+    });
+    expect(page).toEqual({ trades: expected, nextCursor: null });
+    expect(instrumentation.snapshot().businessQueries).toBe(4);
+    const first = await batchedJournal.list(fixture.viewer.context, {
+      accountId: scope.id,
+      limit: 2,
+    });
+    const next = await batchedJournal.list(fixture.viewer.context, {
+      accountId: scope.id,
+      limit: 5,
+      cursor: first.nextCursor!,
+    });
+    expect([...first.trades, ...next.trades]).toEqual(expected);
+    await expect(
+      fixture.services.withWorkspaceContext(fixture.outsider.context, (tx) =>
+        readTrades(tx, fixture.outsider.context.workspaceId, [cases[0]!.id]),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('keeps cash scoped to effective allocated fills and clears it after attribution is removed', async () => {
+    const scope = await account();
+    const second = await account();
+    const target = await campaign([scope, second], null);
+    await ledger.recordExecution(fixture.owner.context, {
+      commandId: randomUUID(),
+      accountId: scope.id,
+      instrumentVersionId: instrument,
+      side: 'buy',
+      quantity: '1',
+      price: '5',
+      cashBucketId: scope.bucket,
+      economicAt: at(1),
+      orderingKey: '1',
+      costsComplete: true,
+    });
+    const firstLeg = target.financial.legs.find((leg) => leg.accountId === scope.id)!;
+    const secondLeg = target.financial.legs.find((leg) => leg.accountId === second.id)!;
+    const assigned = await fill(scope, firstLeg.legId, 'buy', '1.25', '10', '0.5', 2);
+    const another = await fill(second, secondLeg.legId, 'buy', '0.75', '20', '0.3', 3);
+    const detail = await journal.get(fixture.viewer.context, target.trade.id);
+    expect(detail.financial.timeline.filter((event) => event.kind === 'cash')).toMatchObject([
+      { executionId: assigned.id, amount: '-12.5', currencyId: usd },
+      { executionId: another.id, amount: '-15', currencyId: usd },
+    ]);
+    expect(detail.financial.timeline.filter((event) => event.kind === 'fee')).toMatchObject([
+      { executionId: assigned.id, amount: '0.5', currencyId: usd },
+      { executionId: another.id, amount: '0.3', currencyId: usd },
+    ]);
+    await ledger.allocateExecution(fixture.owner.context, {
+      commandId: randomUUID(),
+      executionId: assigned.id,
+      expectedVersion: 2,
+      reason: 'Reviewed source no longer belongs to this campaign.',
+      allocations: [],
+    });
+    const remaining = await journal.get(fixture.viewer.context, target.trade.id);
+    expect(remaining.financial.timeline.filter((event) => event.kind === 'cash')).toMatchObject([
+      { executionId: another.id, amount: '-15', currencyId: usd },
+    ]);
+    await ledger.allocateExecution(fixture.owner.context, {
+      commandId: randomUUID(),
+      executionId: another.id,
+      expectedVersion: 2,
+      reason: 'Second account source no longer belongs to this campaign.',
+      allocations: [],
+    });
+    const unassigned = await journal.get(fixture.viewer.context, target.trade.id);
+    expect(unassigned.financial.timeline.filter((event) => event.kind === 'cash')).toEqual([]);
+    expect(unassigned.financial.timeline.filter((event) => event.kind === 'fee')).toEqual([]);
+    expect(unassigned.financial.legs.every((leg) => leg.executions.length === 0)).toBe(true);
+  });
 
   it('distinguishes lifetime actual fills from remaining basis, manual prices, revised plans and supplemental risk', async () => {
     const scope = await account();

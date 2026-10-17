@@ -1,5 +1,5 @@
 'use client';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -36,6 +36,7 @@ export function DashboardChart({
   empty?: string;
 }) {
   const id = useId();
+  const [tableOpen, setTableOpen] = useState(false);
   const data = rows.map((row) => ({ ...row, plot: row.value === null ? null : Number(row.value) }));
   const available = rows.some((row) => row.value !== null);
   const common = { data, margin: { top: 12, right: 15, bottom: 5, left: 5 } };
@@ -118,42 +119,47 @@ export function DashboardChart({
           {empty}
         </p>
       )}
-      <details className="dashboard-chart-table">
+      <details
+        className="dashboard-chart-table"
+        onToggle={(event) => setTableOpen(event.currentTarget.open)}
+      >
         <summary>View data · {rows.length} observations</summary>
-        <div className="dashboard-table-scroll">
-          <table>
-            <caption>
-              {title} · exact values in {unit}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Observation</th>
-                <th scope="col">Value</th>
-                <th scope="col">Supporting records</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key}>
-                  <th scope="row">{row.label}</th>
-                  <td>
-                    {row.value === null ? 'Unavailable' : `${row.value} ${unit}`}
-                    {row.detail && <small className="muted">{row.detail}</small>}
-                  </td>
-                  <td>
-                    {onSelect && row.campaignIds.length ? (
-                      <button className="button button-quiet" onClick={() => onSelect(row)}>
-                        Review {row.campaignIds.length} trades
-                      </button>
-                    ) : (
-                      (row.detail ?? 'Account-ledger observation')
-                    )}
-                  </td>
+        {tableOpen && (
+          <div className="dashboard-table-scroll">
+            <table>
+              <caption>
+                {title} · exact values in {unit}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Observation</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Supporting records</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.key}>
+                    <th scope="row">{row.label}</th>
+                    <td>
+                      {row.value === null ? 'Unavailable' : `${row.value} ${unit}`}
+                      {row.detail && <small className="muted">{row.detail}</small>}
+                    </td>
+                    <td>
+                      {onSelect && row.campaignIds.length ? (
+                        <button className="button button-quiet" onClick={() => onSelect(row)}>
+                          Review {row.campaignIds.length} trades
+                        </button>
+                      ) : (
+                        (row.detail ?? 'Account-ledger observation')
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </details>
     </section>
   );

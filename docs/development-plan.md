@@ -4,7 +4,7 @@
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative. [Requirements analysis](requirements-analysis.md) supplies requirement identifiers, the 16 acceptance scenarios (`AC-01`–`AC-16`), and missing decisions (`D-01`–`D-20`). This plan sequences that full scope; it does not replace or reduce it.
 
-**The current authorized increment is Phase 14: a dedicated testing and correctness campaign.** Phases 0–13 are approved and merged. This increment audits coverage and strengthens independent financial oracles, persisted API reconciliation and end-to-end review of EUR funding, FX, partial fills, scaling, disposal, income, fees, final liquidation, return FX and withdrawal. It verifies every existing analytics metric, adds precision/import edge cases and corrects the confirmed zero-exposure NAV availability defect. It adds no product features. The [testing campaign](testing-campaign.md) records exact expected values, new coverage, executed checks and remaining limits. Publication requires subsequent user approval. The [security review](security.md), [UX review](ux-review.md), [asset-class audit](asset-class-audit.md), [import semantics](imports.md) and [analytics definitions](analytics-definitions.md) retain their scope and evidence. Advanced native accounting, return solvers, full statement reconciliation, bulk jobs, exports/restore and deployment work remain deferred.
+**The current authorized increment is Phase 15: performance.** Phases 0–14 are approved and merged. This increment profiles realistically large persisted datasets and the browser, optimizes only measured bottlenecks, and preserves exact financial results and security boundaries. The [performance report](performance.md) records reproducible fixture/benchmark commands, before/after measurements, financial hashes, verification and explicit capacity limits. The [Phase 14 correctness campaign](testing-campaign.md) remains the financial baseline, including its complete EUR-funded lifecycle and zero-exposure NAV regression guards. No unrelated product features, relaxed report budgets, stale caching, publication, push or merge are authorized. Advanced native accounting, return solvers, full statement reconciliation, bulk jobs, exports/restore and deployment work remain deferred.
 
 The original full-product roadmap numbering below is retained. Its Phase 6 imports and Phase 7 all-asset workflows are distinct from the user's delivered Phase 6 trade journal and Phase 7 portfolio/accounting increments. The user's Phase 8 analytics engine and Phase 9 dashboard add campaign statistics, historical breakdowns and visualizations. Delivered Phase 10 implements the bounded import foundation within original-roadmap Phase 6. Phase 11 audits and hardens existing all-asset boundaries. Phase 12 improves common user journeys; it does not complete every asset's specialized lifecycle, native calculations or full-product workflows.
 
@@ -317,7 +317,7 @@ Named broker adapters require real or documented source samples and tests agains
 
 If an integration is later pursued but unavailable, provide its interface, working manual fallback, configuration documentation and truthful status. The progress/capability records must retain advanced native-calculation limitations without disguising them as automatic support. Completion still requires the complete record/import/review/settlement journeys for **every** listed asset family, the core strategy workspace, financial foundations, risk/analytics, journals, files, exports and tested restore.
 
-The current authorized action is the Phase 14 testing and correctness campaign. Publication requires subsequent user approval. This increment audits and extends independent financial tests, realistic persisted workflows and reconciliation evidence without adding product features or changing financial semantics. Account return solvers, complete financial entry screens, standalone period-review storage/templates, bulk imports, full statement reconciliation, exports/restore, advanced native settlement and deployment remain outside this increment.
+The current authorized action is Phase 15 performance profiling and measured optimization, preserving the merged Phase 14 correctness baseline. Publication requires subsequent user approval. The performance increment adds reusable isolated fixtures and backend/browser/domain instrumentation, exact financial comparisons, focused regression coverage and an honest report of successful bounded reads, explicit limit rejections and timeouts. Account return solvers, complete financial entry screens, standalone period-review storage/templates, bulk imports, full statement reconciliation, exports/restore, advanced native settlement and deployment remain outside this increment.
 
 ## Authorized Phase 7: portfolio/accounting engine
 
@@ -415,3 +415,14 @@ Weekly review uses the period's individual trade reviews and tested analytics. I
 - Correct the reproduced NAV availability bug for known zero foreign cash/holdings; preserve strict validation and incomplete states for unknown/nonzero exposure.
 - Exercise existing authenticated APIs and supported browser account review; preserve honest limits for missing entry screens and unsupported asset lifecycles.
 - Run the complete relevant checks, report created/modified/deleted files and leave changes uncommitted pending approval.
+
+## Authorized Phase 15: performance
+
+- Reusable isolated PostgreSQL fixtures at 1,000 trades / 2,000 executions, 10,000 trades / 20,000 executions, and 10,000 trades / 100,000 executions, with actual SQL counts and genuine projections.
+- Whole-dataset requests and valid bounded scopes, retaining all campaign/fact/group/payload/statement limits and tenant/runtime-role checks.
+- Query counts, SQL timing and restricted-role plans; complete service/API/browser payload, timing, DOM and sampled memory evidence.
+- Measured journal batching and fill/cash population narrowing, transfer-query gating, active-lot matching and dashboard rendering/disclosure changes, with exact financial hashes and focused regressions.
+- Complete relevant correctness, migration, contract, formatting, lint, type, production-build and browser validation.
+- No commit, push or merge without separate approval.
+
+See [performance.md](performance.md) for executed outcomes and limitations. The original million-fill, ten-reader, import/rebuild and worker-contention targets above remain separate unverified roadmap obligations; the Phase 15 dataset matrix does not silently replace or certify them.

@@ -11,6 +11,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
       'next/navigation': requireWeb.resolve('next/navigation'),
       '@tanstack/react-query': requireWeb.resolve('@tanstack/react-query'),
+      recharts: requireWeb.resolve('recharts'),
     },
   },
   test: {

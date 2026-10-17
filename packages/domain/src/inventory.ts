@@ -486,6 +486,7 @@ function recomputeMatch(match: WorkingMatch, native: string): void {
 function processFill(
   fill: InventoryFill,
   lots: WorkingLot[],
+  activeLots: Set<WorkingLot>,
   matches: WorkingMatch[],
   costs: InventoryCostPiece[],
   policy: InventoryPolicy,
@@ -497,8 +498,8 @@ function processFill(
   const multiplier = positive(fill.multiplier);
   const principal = positive(fill.bookedPrincipal);
   const direction = fill.side === 'buy' ? 'long' : 'short';
-  const eligible = lots
-    .filter((lot) => lot.direction !== direction && !dv(lot.remainingQuantity).isZero())
+  const eligible = [...activeLots]
+    .filter((lot) => lot.direction !== direction)
     .sort(
       (left, right) =>
         compareOrder(left.economicOrder, right.economicOrder) ||
@@ -605,6 +606,7 @@ function processFill(
       recomputeMatch(match, native);
       matches.push(match);
       lot.remainingQuantity = remainder;
+      if (dv(remainder).isZero()) activeLots.delete(lot);
       lot.remainingPrincipal = principalRest;
       lot.remainingQuoteNotional = quoteRest;
       lot.costs = retainedCosts;
@@ -614,8 +616,11 @@ function processFill(
           : available(q(dv(principalRest).times(sign(lot.direction))), native);
     }
   }
-  if (!dv(openQuantity).isZero())
-    lots.push(makeLot(fill, direction, openQuantity, openPrincipal, openQuote, openCosts, native));
+  if (!dv(openQuantity).isZero()) {
+    const lot = makeLot(fill, direction, openQuantity, openPrincipal, openQuote, openCosts, native);
+    lots.push(lot);
+    activeLots.add(lot);
+  }
 }
 
 function snapshotMatches(snapshot: InventoryContributionSnapshot, lot: WorkingLot): boolean {
@@ -1018,38 +1023,39 @@ export function replayInventory(input: InventoryReplayInput): InventoryReplayRes
   let policy = input.policy;
   let policyVersion = input.manifest.lotPolicyVersion;
   const lots: WorkingLot[] = [];
+  // Matching needs only nonzero lots. Retain every historical lot in `lots` for provenance,
+  // late costs, transfers, and the unchanged full replay result. Object identity also keeps
+  // the index faithful if distinct source paths happen to share a lot-reference string.
+  const activeLots = new Set<WorkingLot>();
   const matches: WorkingMatch[] = [];
   const unassigned: InventoryCostPiece[] = [];
   const transferredCosts: InventoryCostPiece[] = [];
   for (const source of ordered) {
     if (source.kind === 'opening') {
-      if (
-        lots.some(
-          (lot) => !dv(lot.remainingQuantity).isZero() && lot.direction !== source.direction,
-        )
-      )
+      if ([...activeLots].some((lot) => lot.direction !== source.direction))
         fail('opening_inventory_direction_conflict');
       const quantity = positive(source.quantity);
       const quote =
         source.entryPrice === null
           ? null
           : q(dv(quantity).times(positive(source.multiplier)).times(source.entryPrice));
-      lots.push(
-        makeLot(
-          source,
-          source.direction,
-          quantity,
-          source.bookedPrincipal,
-          quote,
-          costBySource.get(source.id)!,
-          native,
-        ),
+      const lot = makeLot(
+        source,
+        source.direction,
+        quantity,
+        source.bookedPrincipal,
+        quote,
+        costBySource.get(source.id)!,
+        native,
       );
+      lots.push(lot);
+      activeLots.add(lot);
     } else if (source.kind === 'fill') {
       if (!['buy', 'sell'].includes(source.side)) fail('invalid_inventory_side');
       processFill(
         source,
         lots,
+        activeLots,
         matches,
         costBySource.get(source.id)!,
         policy,
@@ -1068,16 +1074,19 @@ export function replayInventory(input: InventoryReplayInput): InventoryReplayRes
       attributeCost(source, costBySource.get(source.id)![0]!, lots, matches, unassigned, native);
     } else if (source.kind === 'holding-departure') {
       departHolding(source, lots, transferredCosts, native);
+      for (const lot of activeLots) if (dv(lot.remainingQuantity).isZero()) activeLots.delete(lot);
     } else if (source.kind === 'holding-receipt') {
+      const firstReceivedLot = lots.length;
       receiveHolding(source, lots, native);
+      for (let index = firstReceivedLot; index < lots.length; index++) activeLots.add(lots[index]!);
     }
     if (
       !input.capability.shortSupported &&
-      lots.some((lot) => lot.direction === 'short' && !dv(lot.remainingQuantity).isZero())
+      [...activeLots].some((lot) => lot.direction === 'short')
     )
       return blocked(input, ordered, originals, 'unsupported_short_inventory', true);
   }
-  const remaining = lots.filter((lot) => !dv(lot.remainingQuantity).isZero());
+  const remaining = [...activeLots];
   const signedQuantity = q(
     remaining.reduce(
       (total, lot) => total.plus(dv(lot.remainingQuantity).times(sign(lot.direction))),

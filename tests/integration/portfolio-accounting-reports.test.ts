@@ -13,6 +13,7 @@ import { createFinancialLedger } from '../../packages/server/src/financial/ledge
 import { createFinancialObservations } from '../../packages/server/src/financial/observations.js';
 import { createAccountingServices } from '../../packages/server/src/accounting/service.js';
 import { createAccountingReports } from '../../packages/server/src/accounting/report.js';
+import { instrumentPlatform } from '../../scripts/performance/instrument.js';
 
 const origin = 'http://localhost:3000';
 const password = 'portfolio-accounting-fixture-passphrase-42';
@@ -243,6 +244,37 @@ describe('portfolio accounting reconciliation on restricted real PostgreSQL', ()
   }
   const money = (metric: { state: string; value: string | null }, value: string) =>
     expect(metric).toMatchObject({ state: 'available', value });
+
+  it('does not scan transfer legs while reporting ordinary cash postings under the runtime role', async () => {
+    const f = await fixture();
+    await fund(f, '100');
+    const instrumentation = instrumentPlatform(services);
+    const result = await createAccountingReports(instrumentation.platform).report(
+      owner,
+      query([f.account.id], f.source),
+    );
+    money(result.closing.equity, '100');
+    money(result.breakdown.boundaryTransfers, '0');
+    money(result.reconciliation.performance, '0');
+    money(result.reconciliation.variance, '0');
+    const plans = await instrumentation.explain(owner, 100);
+    const postingPlan = plans.find((plan) => plan.shape.includes('LEFT JOIN LATERAL'));
+    expect(postingPlan?.state).toBe('available');
+    if (!postingPlan || !('plan' in postingPlan)) throw new Error('Posting plan was not captured');
+    const pending: unknown[] = [postingPlan.plan];
+    const transferLegScans: Record<string, unknown>[] = [];
+    while (pending.length) {
+      const node = pending.pop();
+      if (Array.isArray(node)) pending.push(...node);
+      else if (node && typeof node === 'object') {
+        const record = node as Record<string, unknown>;
+        if (record.Alias === 'leg') transferLegScans.push(record);
+        pending.push(...Object.values(record));
+      }
+    }
+    // PG17 may prune the branch entirely; every retained transfer scan must remain unexecuted.
+    expect(transferLegScans.every((node) => node['Actual Loops'] === 0)).toBe(true);
+  });
 
   it('reconciles independent multi-currency price, holding FX, cash FX, conversion and fee effects', async () => {
     const f = await fixture();

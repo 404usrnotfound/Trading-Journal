@@ -877,3 +877,54 @@ describe('inventory conservation properties', () => {
     );
   });
 });
+
+describe('active inventory with retained closed history', () => {
+  it.each(['fifo', 'average', 'specific'] as const)(
+    'keeps closed lots and late costs while matching new and crossing fills under %s',
+    (policy) => {
+      const close = (source: InventoryFill, lotId: string, quantity: string) =>
+        policy === 'specific' ? { ...source, specificLots: [{ lotId, quantity }] } : source;
+      const result = replayInventory(
+        input(
+          [
+            fill('old-buy', '1', 'buy', '1', '10', '10', '0.1'),
+            close(fill('old-sale', '2', 'sell', '1', '12', '12', '0.2'), 'old-buy', '1'),
+            fill('new-buy', '3', 'buy', '2', '20', '40', '0.4'),
+            close(fill('cross-sale', '4', 'sell', '3', '25', '75', '0.6'), 'new-buy', '2'),
+            {
+              kind: 'cost-attribution',
+              id: 'late-commission',
+              effectId: 'late-commission-effect',
+              sourceRevision: '5',
+              economicOrder: at('5'),
+              cost: fee('late-cost', '0.3'),
+              allocations: [{ target: 'match', targetId: 'old-sale:old-buy', amount: '0.3' }],
+            },
+            close(fill('cover', '6', 'buy', '1', '22', '22', '0.1'), 'cross-sale', '1'),
+            fill('current-buy', '7', 'buy', '0.5', '30', '15'),
+          ],
+          policy,
+        ),
+      );
+      expect(result.lots.map((lot) => [lot.id, lot.remainingQuantity])).toEqual([
+        ['old-buy', '0'],
+        ['new-buy', '0'],
+        ['cross-sale', '0'],
+        ['current-buy', '0.5'],
+      ]);
+      expect(result.matches.map((match) => match.id)).toEqual([
+        'old-sale:old-buy',
+        'cross-sale:new-buy',
+        'cover:cross-sale',
+      ]);
+      // Gross realizations 2+10+3; actual costs .1+.2+.4+.6+.3+.1=1.7.
+      expect(value(result.realizedGross)).toBe('15');
+      expect(value(result.realizedNet)).toBe('13.3');
+      expect(value(result.matches[0]!.netPnl)).toBe('1.4');
+      expect(result.matches[0]!.carryingCosts[0]!.id).toBe('late-cost');
+      expect(value(result.openQuantity)).toBe('0.5');
+      expect(value(result.grossBasis)).toBe('15');
+      expect(result.originalCosts).toHaveLength(6);
+    },
+  );
+});

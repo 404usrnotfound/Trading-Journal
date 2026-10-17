@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T07:45:43.750218+00:00",
+  "git": {
+    "head": "8359d63e26e700764b07b5ce312f1f60b584cafe",
+    "branch": "perf/phase-15-profiling",
+    "originMain": "8359d63e26e700764b07b5ce312f1f60b584cafe",
+    "publication": "Uncommitted; no Phase 15 commit, push or merge."
+  },
+  "methodology": {
+    "checks": "Repository documented commands, sequential full suites. Non-secret toolchain cache overrides only; PostgreSQL services retained. Check timings can include concurrent fixture preparation and are validation timings, not benchmark measurements.",
+    "buildEnvironment": {
+      "NODE_ENV": "production",
+      "APP_ORIGIN": "https://localhost:3000",
+      "NEXT_TELEMETRY_DISABLED": "1"
+    },
+    "browserEnvironment": {
+      "NODE_ENV": "test",
+      "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH": "/usr/bin/chromium"
+    },
+    "installation": "Frozen-lockfile installation passed before development; pnpm-lock.yaml unchanged.",
+    "logs": "Local work/performance/validation log paths are ignored scratch; their hashes preserve this executed record without publishing raw logs."
+  },
+  "checks": [
+    {
+      "name": "integration",
+      "command": ["corepack", "pnpm", "test:integration"],
+      "exitCode": 0,
+      "milliseconds": 194836.824677,
+      "logSha256": "01ebf3faf8cfeba8726a249cd63ae283a156a777c80f4846bd30c8c4dbda6e25"
+    },
+    {
+      "name": "migrations",
+      "command": ["corepack", "pnpm", "db:migrate:check"],
+      "exitCode": 0,
+      "milliseconds": 1307.0326930000447,
+      "logSha256": "37ecc792eec6e6d6b554a9b1bb94769dc2c7c4ab1a9fa8431927a76b6f417860"
+    },
+    {
+      "name": "readiness",
+      "command": ["corepack", "pnpm", "db:check"],
+      "exitCode": 0,
+      "milliseconds": 1292.6518800000194,
+      "logSha256": "8559152f6ad2fc6ac007e6406da05f6937c498ac1508f34313e9557ffd978500"
+    },
+    {
+      "name": "audit",
+      "command": ["corepack", "pnpm", "security:audit"],
+      "exitCode": 0,
+      "milliseconds": 1030.2220469999593,
+      "logSha256": "99f3ace6eaf379ccb66b4910037e8b74f9cb6003f6ef25042cf6a98e48aa83da"
+    },
+    {
+      "name": "build",
+      "command": ["corepack", "pnpm", "build"],
+      "exitCode": 0,
+      "milliseconds": 63486.36927800003,
+      "logSha256": "fb437fcc582747e1a0cc164b756e4a955f8f02be67c8d2ce4a11b2d2db5e7c8f"
+    },
+    {
+      "name": "browser",
+      "command": ["corepack", "pnpm", "test:e2e"],
+      "exitCode": 0,
+      "milliseconds": 250428.46543599997,
+      "logSha256": "5c8bcf0c513d3c7bb1e9d9a29f83722f3be5cd4737f7ef301ace1d86d27b58d7"
+    },
+    {
+      "name": "unit",
+      "command": ["corepack", "pnpm", "test:unit"],
+      "exitCode": 0,
+      "milliseconds": 59997.468687,
+      "logSha256": "c689ad4a169f6c89ed1c247eade4074a2d532372a3dd16ca1c3a7b73846191cb"
+    },
+    {
+      "name": "api",
+      "command": ["corepack", "pnpm", "api:check"],
+      "exitCode": 0,
+      "milliseconds": 2961.7306230000004,
+      "logSha256": "6b9e54602e71b38bb5820a86b61356324b7a51429deb18de1d65e975d22e5ec3"
+    },
+    {
+      "name": "lint",
+      "command": ["corepack", "pnpm", "lint"],
+      "exitCode": 0,
+      "milliseconds": 10327.476954000002,
+      "logSha256": "52b79c40b755bc110619563fccf64cd1590f28779db22ae5da711f9c006a026c"
+    },
+    {
+      "name": "types",
+      "command": ["corepack", "pnpm", "typecheck"],
+      "exitCode": 0,
+      "milliseconds": 36561.980148999995,
+      "logSha256": "b8720b820fa07cb2fc67bab00a51ca1310c1fb578d64c05c318eb206695e71c1"
+    },
+    {
+      "name": "format",
+      "command": ["corepack", "pnpm", "format:check"],
+      "exitCode": 0,
+      "milliseconds": 10075.204672,
+      "logSha256": "865081cb06d34fd2e65fa37ab9e8ad8b2914475a39b10480919845e701447d40"
+    }
+  ],
+  "supplementalChecks": [
+    {
+      "name": "final-performance-harness",
+      "command": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "tests/unit/performance-fixture.test.ts",
+        "tests/unit/performance-instrument.test.ts"
+      ],
+      "startedAtUtc": "2026-10-17T07:42:47.356Z",
+      "finishedAtUtc": "2026-10-17T07:42:50.463Z",
+      "exitCode": 0,
+      "milliseconds": 3107.516989,
+      "testCount": 13,
+      "logSha256": "3b3c35c076b5f67decccc9a8cd4f4d94a2c75e4064099132bad79fd204dba7c3"
+    }
+  ],
+  "testCounts": {
+    "unitPropertyUi": 766,
+    "postgresIntegration": 508,
+    "browserScenarios": 14
+  },
+  "privateValueScan": {
+    "scannedFiles": 456,
+    "privateValuesChecked": 76,
+    "matchingFiles": []
+  },
+  "productionBuildIds": {
+    "baseline": "yq1hrutrCNM9Cv0ugWzl8",
+    "optimized": "rSQUPkHubK409M0WWNWx7"
+  },
+  "changedSourceAndTestSha256": {
+    "apps/web/src/components/dashboard/dashboard-chart.tsx": "00ca0e88233563a42f6babe59007ce5b5d57dc38d1056f779a01721ae5975507",
+    "apps/web/src/components/dashboard/dashboard-workspace.tsx": "023eea1b926a0538c49f37219308f15e63383e0b665fd9534a387cbc96c9f270",
+    "eslint.config.mjs": "f9b380a581be2aca0024f6da5dd0a8ff8fac152ebcdbe886cea16f3f86e7bd04",
+    "packages/domain/src/inventory.ts": "a54ab49a9cd4399133815bedbcec548c1c4203e4abbebd8121a5c8418877309a",
+    "packages/server/src/accounting/report.ts": "10ee8d0cab34a9aacf4072e8e74bc5e631730f9d0ed079692c75da77e749249d",
+    "packages/server/src/financial/catalog.ts": "507dc4cbda732d5566bc4af5bcbd6f38afbd9c78b5992db2230b5092d27faf93",
+    "packages/server/src/journal/financial.ts": "639e9a63305879707538247a2b404700d4e09fe29f6607c6baf77915368c9cf8",
+    "packages/server/src/journal/service.ts": "97547f66ae9a8d7e89da77c2589aeedb15125fd26dc81edbc368bf46bc969db9",
+    "scripts/performance/backend-benchmark.ts": "e2824f049fefd9bea6eb69ff168646b3a52068decab19dfc7700fd657c59ea9d",
+    "scripts/performance/dataset.ts": "22c305c28d179467d9f3b77aa8db10122adb6b62ae9803fc954fca8e8ef11237",
+    "scripts/performance/domain-benchmark.ts": "90dee4affc253b4fc9ddfc4c9d3d5becea38a17766ed7727fc3c632669d59c76",
+    "scripts/performance/frontend-benchmark.ts": "3a980024e26d316c388afb7a50cebbab695554c5ea8fb1e7f5cf3056e49b5e47",
+    "scripts/performance/instrument.ts": "8886fec042a317b6cbbf49a5abf0bce722be7049cb21719ef93de00b4490b091",
+    "scripts/performance/serve.ts": "7b26905238d2437a0e930f73c7d2cbd37bf336f4c73408676579d10c6a4d1ef6",
+    "tests/integration/journal-financial.test.ts": "9d908939bde09e2c52f261c66008cc8b0242fada65f497c23226d22e20c677bc",
+    "tests/integration/portfolio-accounting-reports.test.ts": "43b49e1e2da098fe0f4d3d8a653f8999590af46945491c2329413c11bb619eb3",
+    "tests/ui/dashboard.test.tsx": "0dedca066bba0973f993d051e2533aca38cc3342db3a952a4ad526cf3db7853d",
+    "tests/unit/financial-inventory-transfer.test.ts": "02287f8cde083cc92605d462dd229409c3657be1b9137a00dacdbcf757d22b3a",
+    "tests/unit/financial-inventory.test.ts": "a59397b8d6c8e6442decfaf6e1c79dfe47979b30c73da6da4ff9a42412603d00",
+    "tests/unit/performance-fixture.test.ts": "789fa23ebe89726c57ef4844245d94fdb25ebef88a34dff2ef6485340a12cf43",
+    "tests/unit/performance-instrument.test.ts": "5931b7fffcbaa87b880fe6d2b1ca1fd6664532dd35f406e32f2af461d5c354d8",
+    "vitest.config.ts": "a4a0b6273299459bff553f5e20b8900f180b237efb9aa66d1c34af62b5395665"
+  },
+  "fileInventory": {
+    "created": [
+      "docs/performance-backend-evidence.json",
+      "docs/performance-domain-evidence.json",
+      "docs/performance-frontend-evidence.json",
+      "docs/performance-validation-evidence.json",
+      "docs/performance.md",
+      "scripts/performance/backend-benchmark.ts",
+      "scripts/performance/dataset.ts",
+      "scripts/performance/domain-benchmark.ts",
+      "scripts/performance/frontend-benchmark.ts",
+      "scripts/performance/instrument.ts",
+      "scripts/performance/serve.ts",
+      "tests/unit/performance-fixture.test.ts",
+      "tests/unit/performance-instrument.test.ts"
+    ],
+    "modified": [
+      ".gitignore",
+      ".prettierignore",
+      "README.md",
+      "apps/web/src/components/dashboard/dashboard-chart.tsx",
+      "apps/web/src/components/dashboard/dashboard-workspace.tsx",
+      "docs/development-plan.md",
+      "eslint.config.mjs",
+      "packages/domain/src/inventory.ts",
+      "packages/server/src/accounting/report.ts",
+      "packages/server/src/financial/catalog.ts",
+      "packages/server/src/journal/financial.ts",
+      "packages/server/src/journal/service.ts",
+      "tests/integration/journal-financial.test.ts",
+      "tests/integration/portfolio-accounting-reports.test.ts",
+      "tests/ui/dashboard.test.tsx",
+      "tests/unit/financial-inventory-transfer.test.ts",
+      "tests/unit/financial-inventory.test.ts",
+      "vitest.config.ts"
+    ],
+    "deleted": []
+  },
+  "limitations": [
+    "Financial comparison measurements are separate from validation timings.",
+    "A private-value scan checks known local binding values in reviewable source and public client assets; it is not a general security certification.",
+    "No deployment, commit, push or merge was performed."
+  ]
+}

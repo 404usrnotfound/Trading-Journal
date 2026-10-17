@@ -1,4 +1,5 @@
 import { configure } from '@testing-library/react';
+import { writeFile } from 'node:fs/promises';
 import { afterAll as restoreAfterAll } from 'vitest';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -11,20 +12,29 @@ import {
 } from '@journal/domain';
 import type { DashboardCatalog, WorkspaceResponse } from '@journal/contracts';
 import { DashboardWorkspace } from '../../apps/web/src/components/dashboard/dashboard-workspace.js';
+import { DashboardChart } from '../../apps/web/src/components/dashboard/dashboard-chart.js';
 import {
   dashboardDatePreset,
   inclusiveDateRange,
 } from '../../apps/web/src/components/dashboard/dashboard-time.js';
-const navigation = vi.hoisted(() => ({
-  replace: vi.fn(),
-  params: new URLSearchParams('from=2030-01-01&to=2030-01-31'),
-}));
+const navigation = vi.hoisted(() => {
+  const replace = vi.fn();
+  return {
+    replace,
+    router: { replace },
+    params: new URLSearchParams('from=2030-01-01&to=2030-01-31'),
+  };
+});
+const chartCensus = vi.hoisted(() => ({ render: vi.fn() }));
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: navigation.replace }),
+  useRouter: () => navigation.router,
   useSearchParams: () => navigation.params,
 }));
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => {
+    chartCensus.render();
+    return <div>{children}</div>;
+  },
   BarChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   LineChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CartesianGrid: () => null,
@@ -202,6 +212,97 @@ function mount() {
   );
 }
 describe('dashboard UI generation and financial display', () => {
+  it('measures chart subtree renders during local search and draft changes without changing the financial generation', async () => {
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      if (!init?.body) return new Response(JSON.stringify(catalog));
+      const body = JSON.parse(String(init.body));
+      requests.push(body);
+      const fixture = response(body.filters);
+      return new Response(
+        JSON.stringify({
+          ...fixture,
+          views: {
+            ...fixture.views,
+            periods: [
+              {
+                key: '2030-01',
+                state: 'available',
+                value: '10',
+                knownSubtotal: '10',
+                campaignIds: [uuid(6)],
+                excludedIds: [],
+              },
+            ],
+          },
+        }),
+      );
+    });
+    mount();
+    await screen.findByRole('button', { name: /Closed net P&L/ });
+    const initial = chartCensus.render.mock.calls.length;
+    expect(initial).toBeGreaterThan(0);
+    fireEvent.change(screen.getByLabelText('Search supporting trades'), {
+      target: { value: 'Recorded' },
+    });
+    const afterSearch = chartCensus.render.mock.calls.length;
+    fireEvent.change(screen.getByLabelText('From', { exact: true }), {
+      target: { value: '2030-01-02' },
+    });
+    const afterDraft = chartCensus.render.mock.calls.length;
+    const census = {
+      environment: 'React UI test with mocked Recharts; invocation counts, not browser durations',
+      initial,
+      searchChartSubtreeRenders: afterSearch - initial,
+      draftChartSubtreeRenders: afterDraft - afterSearch,
+      reportRequests: requests.length,
+    };
+    expect(requests).toHaveLength(1);
+    expect(census.searchChartSubtreeRenders).toBe(0);
+    expect(census.draftChartSubtreeRenders).toBe(0);
+    expect(screen.getByRole('button', { name: /Closed net P&L/ })).toHaveTextContent('10 EUR');
+    expect(screen.getByRole('link', { name: 'Recorded trade' })).toBeVisible();
+    if (process.env.PERFORMANCE_UI_CENSUS_OUTPUT)
+      await writeFile(
+        process.env.PERFORMANCE_UI_CENSUS_OUTPUT,
+        `${JSON.stringify(census, null, 2)}\n`,
+      );
+  });
+  it('mounts exact chart values on expansion, supports drill-down, and preserves them when reopened', async () => {
+    const select = vi.fn();
+    const props = {
+      title: 'Exact sample',
+      description: 'Decimal strings remain authoritative.',
+      unit: 'EUR',
+      onSelect: select,
+      rows: [
+        { key: 'first', label: 'Known', value: '12345678901234567890.125', campaignIds: [uuid(6)] },
+        { key: 'second', label: 'Missing', value: null, campaignIds: [] },
+      ],
+    };
+    const view = render(<DashboardChart {...props} />);
+    const summary = screen.getByText('View data · 2 observations');
+    expect(screen.queryByRole('table', { hidden: true })).not.toBeInTheDocument();
+    fireEvent.click(summary);
+    await screen.findByRole('table');
+    expect(screen.getByText('12345678901234567890.125 EUR')).toBeVisible();
+    expect(screen.getByText('Unavailable')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Review 1 trades' }));
+    expect(select).toHaveBeenCalledWith(props.rows[0]);
+    fireEvent.click(summary);
+    await waitFor(() =>
+      expect(screen.queryByRole('table', { hidden: true })).not.toBeInTheDocument(),
+    );
+    view.rerender(
+      <DashboardChart
+        {...props}
+        rows={[{ ...props.rows[0]!, value: '12345678901234567890.126' }, props.rows[1]!]}
+      />,
+    );
+    fireEvent.click(summary);
+    await screen.findByRole('table');
+    expect(screen.getByText('12345678901234567890.126 EUR')).toBeVisible();
+    expect(screen.queryByText('12345678901234567890.125 EUR')).not.toBeInTheDocument();
+  });
   it('preserves a multi-account report link as individual IDs across queries, filters and account review', async () => {
     navigation.params.set('accountIds', `${uuid(2)},${uuid(8)}`);
     vi.stubGlobal(

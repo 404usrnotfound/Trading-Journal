@@ -516,6 +516,7 @@ export function createAccountingReports(platform: FinancialPlatform) {
                 (min(owner.account_id::text) FILTER (WHERE leg.amount>0))::uuid AS destination_account_id
               FROM app.postings leg JOIN app.cash_buckets owner ON owner.workspace_id=leg.workspace_id AND owner.id=leg.cash_bucket_id
               WHERE leg.workspace_id=e.workspace_id AND leg.ledger_event_id=COALESCE(original.id,e.id)
+                AND COALESCE(original.kind,e.kind)='internal-transfer'
               HAVING count(*)=2 AND sum(leg.amount)=0
             ) legs ON COALESCE(original.kind,e.kind)='internal-transfer'
             LEFT JOIN app.cash_transfer_receipts receipt ON receipt.workspace_id=e.workspace_id

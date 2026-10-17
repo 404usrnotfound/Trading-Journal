@@ -478,6 +478,82 @@ export async function readTrade(
   };
 }
 
+/** Read a bounded page, including current closure evidence, in three business queries. */
+export async function readTrades(
+  tx: DbTransaction,
+  workspaceId: string,
+  ids: readonly string[],
+): Promise<TradeDto[]> {
+  if (!ids.length) return [];
+  const rows = await queryRows<{ data: Omit<TradeDto, 'closureReviewRequired'> }>(
+    tx,
+    sql`SELECT jsonb_build_object('id',t.id,'title',t.title,'classification',t.classification,'status',t.status,
+      'revision',t.revision,'archivedAt',t.archived_at,'strategyId',l.strategy_id,
+      'strategyVersionId',l.strategy_version_id,'strategyLinkTiming',l.timing) AS data
+      FROM app.trades t LEFT JOIN app.trade_strategy_links l ON l.workspace_id=t.workspace_id AND l.trade_id=t.id
+      WHERE t.workspace_id=${workspaceId} AND t.id=ANY(ARRAY[${sql.join(
+        ids.map((id) => sql`${id}::uuid`),
+        sql`, `,
+      )}])`,
+  );
+  const byId = new Map(rows.map(({ data }) => [data.id, data]));
+  if (ids.some((id) => !byId.has(id))) throw inaccessible();
+  const closedIds = rows.filter(({ data }) => data.status === 'closed').map(({ data }) => data.id);
+  const needsReview = new Set<string>();
+  if (closedIds.length) {
+    const quantities = await queryRows<{
+      trade_id: string;
+      quantity: string;
+      activity: number;
+    }>(
+      tx,
+      sql`SELECT l.trade_id,
+        COALESCE(sum(CASE WHEN e.id IS NULL THEN 0 WHEN e.side='buy' THEN i.quantity ELSE -i.quantity END),0)::text AS quantity,
+        count(e.id)::integer AS activity
+      FROM app.trade_legs l LEFT JOIN app.allocation_items i ON i.workspace_id=l.workspace_id AND i.trade_leg_id=l.id
+      LEFT JOIN app.allocation_sets s ON s.workspace_id=i.workspace_id AND s.id=i.allocation_set_id
+      LEFT JOIN app.executions e ON e.workspace_id=s.workspace_id AND e.id=s.execution_id
+        AND i.quantity>0
+        AND NOT EXISTS (SELECT 1 FROM app.allocation_sets newer WHERE newer.workspace_id=s.workspace_id
+          AND newer.execution_id=s.execution_id AND newer.version>s.version)
+        AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions correction WHERE correction.workspace_id=e.workspace_id
+          AND correction.original_execution_id=e.id)
+      WHERE l.workspace_id=${workspaceId} AND l.trade_id=ANY(ARRAY[${sql.join(
+        closedIds.map((id) => sql`${id}::uuid`),
+        sql`, `,
+      )}])
+      GROUP BY l.trade_id,l.id`,
+    );
+    const active = new Set(quantities.filter((row) => row.activity > 0).map((row) => row.trade_id));
+    for (const id of closedIds) if (!active.has(id)) needsReview.add(id);
+    for (const row of quantities) if (decimal(row.quantity) !== '0') needsReview.add(row.trade_id);
+    const obligations = await queryRows<{ trade_id: string }>(
+      tx,
+      sql`WITH assigned AS (
+        SELECT DISTINCT l.trade_id,e.id FROM app.executions e
+        JOIN LATERAL (SELECT id FROM app.allocation_sets WHERE workspace_id=e.workspace_id AND execution_id=e.id
+          ORDER BY version DESC LIMIT 1) s ON true
+        JOIN app.allocation_items i ON i.workspace_id=e.workspace_id AND i.allocation_set_id=s.id AND i.quantity>0
+        JOIN app.trade_legs l ON l.workspace_id=i.workspace_id AND l.id=i.trade_leg_id
+        WHERE e.workspace_id=${workspaceId} AND l.trade_id=ANY(ARRAY[${sql.join(
+          closedIds.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )}])
+          AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions correction WHERE correction.workspace_id=e.workspace_id
+            AND correction.original_execution_id=e.id)
+      )
+      SELECT a.trade_id FROM assigned a JOIN app.ledger_events event ON event.workspace_id=${workspaceId}
+      LEFT JOIN app.fees fee ON fee.workspace_id=event.workspace_id AND fee.id=event.fee_id
+      JOIN app.postings p ON p.workspace_id=event.workspace_id AND p.ledger_event_id=event.id
+      JOIN app.cash_buckets bucket ON bucket.workspace_id=p.workspace_id AND bucket.id=p.cash_bucket_id AND bucket.category='unsettled'
+      WHERE event.execution_id=a.id OR fee.execution_id=a.id OR event.payload->>'executionId'=a.id::text
+      GROUP BY a.trade_id,a.id,p.cash_bucket_id HAVING sum(p.amount)<>0`,
+    );
+    for (const row of obligations) needsReview.add(row.trade_id);
+  }
+  return ids.map((id) => ({ ...byId.get(id)!, closureReviewRequired: needsReview.has(id) }));
+}
+
 async function insertSettings(
   tx: DbTransaction,
   context: AuthorizationContext,
