@@ -87,7 +87,7 @@ No financial examples are seeded automatically. The [manual paper-account API ex
 corepack pnpm user:create --email you@example.com --reset-password
 ```
 
-Recovery revokes prior sessions. There is no public recovery, invitation, or signup endpoint. Authenticated API foundations include safe session inspection/list/revocation and a fresh-session password change. Login limits are persisted across replicas: 100 shared ingress attempts per 15 minutes and ten attempts per email bucket, including successful logins. Client-forwarded IP headers are not trusted. Auth auditing records identifiers/actions only; library credential/session writes and the subsequent auth audit insert are separate operations. Tenant preference updates and their audit are atomic.
+Recovery revokes prior sessions. There is no public recovery, invitation, or signup endpoint. Authenticated API foundations include safe session inspection/list/revocation and a fresh-session password change. Login limits persist independently per normalized email across replicas: ten attempts per 15 minutes, including successful logins. A four-handler per-process gate bounds login-counter and credential work without queuing; temporary capacity rejection does not create a shared fixed-window login lockout. Client-forwarded IP headers are not trusted. Auth auditing records identifiers/actions only; library credential/session writes and the subsequent auth audit insert are separate operations. Tenant preference updates and their audit are atomic.
 
 ## Runtime and configuration
 

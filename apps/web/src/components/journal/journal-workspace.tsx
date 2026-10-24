@@ -1,4 +1,5 @@
 'use client';
+import { useDisplayViews } from '../display-views/use-display-views';
 
 import './journal-ux.css';
 
@@ -15,6 +16,10 @@ import {
   strategyListResponseSchema,
   strategyVersionListResponseSchema,
   type JournalCreateInput,
+  type StrategyResponse,
+  type StrategyListResponse,
+  type StrategyVersionResponse,
+  type StrategyVersionListResponse,
   type WorkspaceResponse,
 } from '@journal/contracts';
 import { Badge, Button, Panel } from '@journal/ui';
@@ -30,6 +35,12 @@ import { ConfirmDialog } from '../ux/confirm-dialog';
 import { useJournalNavigationGuard } from './journal-navigation';
 import { dashboardDatePreset, inclusiveDateRange } from '../dashboard/dashboard-time';
 import { journalValidationMessage } from './journal-validation';
+import {
+  CatalogPager,
+  arrayCatalogPage,
+  objectCatalogPage,
+  pinCatalogPage,
+} from '../record/catalog-page';
 
 function stateLabel(status: string) {
   return status.replaceAll('_', ' ');
@@ -91,6 +102,28 @@ export function JournalWorkspace({
   const [planId, setPlanId] = useState('');
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [discardAction, setDiscardAction] = useState<{ tradeId: string | null } | null>(null);
+  const displayViews = useDisplayViews({
+    workspaceId: workspace.id,
+    screen: 'journal',
+    filters: {
+      search,
+      status,
+      includeArchived: String(includeArchived),
+      period,
+      from: fromDate,
+      to: toDate,
+      accountId,
+    },
+    onApply: (filters) => {
+      setSearch(filters.search!);
+      setStatus(filters.status!);
+      setIncludeArchived(filters.includeArchived === 'true');
+      setPeriod(filters.period as typeof period);
+      setFromDate(filters.from!);
+      setToDate(filters.to!);
+      setAccountId(filters.accountId!);
+    },
+  });
   const createForm = useRef<HTMLFormElement>(null);
   const createDirty =
     creating &&
@@ -524,6 +557,7 @@ export function JournalWorkspace({
               </Button>
             </div>
           )}
+          {displayViews.controls}
           <div className="journal-trade-list" aria-busy={list.isFetching}>
             {trades.map((trade) => (
               <button
@@ -533,17 +567,24 @@ export function JournalWorkspace({
                 onClick={() => choose(trade.id)}
               >
                 <div>
-                  <Badge variant={trade.status === 'closed' ? 'success' : 'neutral'}>
-                    {stateLabel(trade.status)}
-                  </Badge>
-                  <span>
-                    {trade.classification === 'investing' ? 'Investing' : 'Active trading'}
-                  </span>
+                  {displayViews.columns.includes('status') && (
+                    <Badge variant={trade.status === 'closed' ? 'success' : 'neutral'}>
+                      {stateLabel(trade.status)}
+                    </Badge>
+                  )}
+                  {displayViews.columns.includes('classification') && (
+                    <span>
+                      {trade.classification === 'investing' ? 'Investing' : 'Active trading'}
+                    </span>
+                  )}
                 </div>
                 <strong>{trade.title}</strong>
                 <small>
-                  {trade.strategyVersionId ? 'Strategy version pinned' : 'Unclassified strategy'}
-                  {trade.archivedAt ? ' · Archived' : ''}
+                  {displayViews.columns.includes('strategy') &&
+                    (trade.strategyVersionId ? 'Strategy version pinned' : 'Unclassified strategy')}
+                  {displayViews.columns.includes('archived') && trade.archivedAt
+                    ? ' · Archived'
+                    : ''}
                 </small>
               </button>
             ))}
@@ -609,6 +650,129 @@ export function JournalWorkspace({
                 Start with an idea, or link instrument legs from your existing catalogs. Executions
                 and cash economics remain in the ledger.
               </p>
+              <details>
+                <summary>Search and browse all reference records</summary>
+                {catalogs.data && (
+                  <>
+                    <CatalogPager
+                      label="accounts"
+                      endpoint={`${prefix}/financial/accounts`}
+                      items={catalogs.data.accounts}
+                      load={arrayCatalogPage(accountResponseSchema.array())}
+                      disabled={busy}
+                      onPage={(rows) =>
+                        client.setQueryData<typeof catalogs.data>(
+                          ['journal-catalogs', workspace.id],
+                          (current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  accounts: pinCatalogPage(
+                                    current.accounts,
+                                    rows,
+                                    createInput.legs.map((leg) => leg.accountId),
+                                  ),
+                                }
+                              : current,
+                        )
+                      }
+                    />
+                    <CatalogPager
+                      label="instruments"
+                      endpoint={`${prefix}/financial/instruments`}
+                      items={catalogs.data.instruments}
+                      load={arrayCatalogPage(instrumentResponseSchema.array())}
+                      disabled={busy}
+                      onPage={(rows) =>
+                        client.setQueryData<typeof catalogs.data>(
+                          ['journal-catalogs', workspace.id],
+                          (current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  instruments: pinCatalogPage(
+                                    current.instruments,
+                                    rows,
+                                    createInput.legs.map((leg) => leg.instrumentVersionId),
+                                    (item) => item.versionId,
+                                  ),
+                                }
+                              : current,
+                        )
+                      }
+                    />
+                    <CatalogPager
+                      label="currencies"
+                      endpoint={`${prefix}/financial/currencies`}
+                      items={catalogs.data.currencies}
+                      load={arrayCatalogPage(currencyResponseSchema.array())}
+                      disabled={busy}
+                      onPage={(rows) =>
+                        client.setQueryData<typeof catalogs.data>(
+                          ['journal-catalogs', workspace.id],
+                          (current) => (current ? { ...current, currencies: rows } : current),
+                        )
+                      }
+                    />
+                  </>
+                )}
+                {strategies.data && (
+                  <CatalogPager
+                    label="strategies"
+                    endpoint={`${prefix}/strategies`}
+                    items={strategies.data.strategies}
+                    pageSize={100}
+                    cursorName="cursor"
+                    load={objectCatalogPage<StrategyResponse>(
+                      strategyListResponseSchema,
+                      'strategies',
+                    )}
+                    disabled={busy}
+                    onPage={(rows) =>
+                      client.setQueryData<StrategyListResponse>(
+                        ['journal-strategies', workspace.id],
+                        (current) =>
+                          current
+                            ? {
+                                ...current,
+                                strategies: pinCatalogPage(current.strategies, rows, [strategyId]),
+                              }
+                            : current,
+                      )
+                    }
+                  />
+                )}
+                {strategyId && createVersions.data && (
+                  <CatalogPager
+                    key={strategyId}
+                    label="strategy versions"
+                    endpoint={`${prefix}/strategies/${strategyId}/versions`}
+                    items={createVersions.data.versions}
+                    pageSize={100}
+                    cursorName="cursor"
+                    search={false}
+                    load={objectCatalogPage<StrategyVersionResponse>(
+                      strategyVersionListResponseSchema,
+                      'versions',
+                    )}
+                    disabled={busy}
+                    onPage={(rows) =>
+                      client.setQueryData<StrategyVersionListResponse>(
+                        ['journal-create-versions', workspace.id, strategyId],
+                        (current) =>
+                          current
+                            ? {
+                                ...current,
+                                versions: pinCatalogPage(current.versions, rows, [
+                                  createInput.strategyVersionId ?? '',
+                                ]),
+                              }
+                            : current,
+                      )
+                    }
+                  />
+                )}
+              </details>
               <form ref={createForm} onSubmit={(event) => void create(event)}>
                 <fieldset className="journal-fieldset" disabled={busy}>
                   <legend>Trade identity</legend>

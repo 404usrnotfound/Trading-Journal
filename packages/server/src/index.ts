@@ -55,3 +55,29 @@ export { createImportTemplates } from './imports/templates.js';
 export { createImportApi } from './imports/api.js';
 export { ImportAdapterRegistry, genericCsvAdapter } from './imports/adapters/registry.js';
 export type { ImportAdapter, ParsedImportRow } from './imports/adapters/registry.js';
+
+export { createReconciliationServices } from './reconciliation/service.js';
+
+export { createReconciliationApi } from './reconciliation/api.js';
+
+export { createRiskServices } from './risk/service.js';
+
+export { createRiskApi } from './risk/api.js';
+
+export { createPortabilityServices } from './portability/service.js';
+
+export { createPortabilityApi } from './portability/api.js';
+
+export { createPeriodReviewServices } from './reviews/service.js';
+
+export { createPeriodReviewApi } from './reviews/api.js';
+
+export { createSuppliedComponents } from './supplied/service.js';
+
+export { createNativeSnapshotServices } from './accounting/native-snapshot.js';
+
+export { createSuppliedApi } from './supplied/api.js';
+
+export { createDisplayViewServices } from './display-views/service.js';
+
+export { createDisplayViewApi } from './display-views/api.js';

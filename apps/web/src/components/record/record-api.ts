@@ -20,6 +20,16 @@ export async function recordRead<Value>(url: string, schema: { parse(value: unkn
   return schema.parse(await response.json());
 }
 
+export class FinancialWriteError extends Error {
+  constructor(
+    message: string,
+    readonly outcome: 'rejected' | 'unknown',
+  ) {
+    super(message);
+    this.name = 'FinancialWriteError';
+  }
+}
+
 export async function recordWrite<Value>(
   url: string,
   body: unknown,
@@ -36,6 +46,11 @@ export async function recordWrite<Value>(
       'Idempotency-Key': commandId,
     },
     body: JSON.stringify(body),
+  }).catch(() => {
+    throw new FinancialWriteError(
+      'The response was interrupted. Keep this page open and retry the same record; its command identifiers are retained.',
+      'unknown',
+    );
   });
   if (!response.ok) {
     if (response.status === 401)
@@ -60,11 +75,19 @@ export async function recordWrite<Value>(
         'The source values or instrument conventions do not permit this operation. Check the fields and selected account.',
       );
     }
-    throw new Error(
+    throw new FinancialWriteError(
       'The response was interrupted. Keep this page open and retry the same record; its command identifiers are retained.',
+      response.status >= 500 || response.status === 408 ? 'unknown' : 'rejected',
     );
   }
-  return schema.parse(await response.json());
+  try {
+    return schema.parse(await response.json());
+  } catch {
+    throw new FinancialWriteError(
+      'The record response was incomplete. Keep this page open and retry the same record before entering another.',
+      'unknown',
+    );
+  }
 }
 
 /** The same logical command retains its identity after a lost response. */

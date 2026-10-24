@@ -823,7 +823,6 @@ export const executions = app
       check('executions_source_revision_check', sql.raw('source_revision > 0')),
       check('executions_side_check', sql.raw("side IN ('buy','sell')")),
       check('executions_quantity_check', sql.raw('quantity > 0')),
-      check('executions_price_check', sql.raw('price >= 0')),
       check('executions_principal_check', sql.raw('principal >= 0')),
       foreignKey({
         name: 'executions_workspace_id_command_id_fkey',
@@ -919,7 +918,6 @@ export const openingLots = app
       check('opening_lots_source_revision_check', sql.raw('source_revision > 0')),
       check('opening_lots_quantity_check', sql.raw('quantity > 0')),
       check('opening_lots_direction_check', sql.raw("direction IN ('long','short')")),
-      check('opening_lots_price_check', sql.raw('price >= 0')),
       check('opening_lots_principal_check', sql.raw('principal >= 0')),
       foreignKey({
         name: 'opening_lots_workspace_id_command_id_fkey',
@@ -1894,7 +1892,6 @@ export const priceObservations = app
         'price_observations_origin_check',
         sql`${table.origin} IN ('manual','import','broker','provider','calculated')`,
       ),
-      check('price_observations_price_check', sql.raw('price >= 0')),
       foreignKey({
         name: 'price_observations_workspace_id_instrument_version_id_fkey',
         columns: [table.workspaceId, table.instrumentVersionId],

@@ -2,7 +2,7 @@ import { configure } from '@testing-library/react';
 import { writeFile } from 'node:fs/promises';
 import { afterAll as restoreAfterAll } from 'vitest';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import {
@@ -186,6 +186,22 @@ function response(filters: unknown = {}, empty = false) {
   };
 }
 let requests: Record<string, unknown>[] = [];
+function auxiliaryRead(url: unknown) {
+  if (String(url).includes('/display-views/'))
+    return new Response(
+      JSON.stringify({
+        revision: 0,
+        settings: {
+          screen: 'dashboard',
+          columns: ['title', 'status', 'netPnl', 'originalR', 'coverage'],
+          views: [],
+        },
+      }),
+    );
+  if (String(url).includes('/supplied-components/observations?'))
+    return new Response(JSON.stringify({ sourceRevision: '0', items: [], nextCursor: null }));
+  return null;
+}
 restoreAfterAll(() => configure({ asyncUtilTimeout: 1000 }));
 beforeEach(() => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -195,6 +211,8 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (_url: string, init?: RequestInit) => {
+      const auxiliary = auxiliaryRead(_url);
+      if (auxiliary) return auxiliary;
       if (!init?.body) return new Response(JSON.stringify(catalog), { status: 200 });
       const body = JSON.parse(String(init.body));
       requests.push(body);
@@ -212,8 +230,16 @@ function mount() {
   );
 }
 describe('dashboard UI generation and financial display', () => {
+  it('carries reviewed supplied lifetime results from its URL into the single dashboard report request', async () => {
+    navigation.params.set('suppliedCampaignResultIds', uuid(99));
+    mount();
+    await waitFor(() => expect(requests.length).toBeGreaterThan(0));
+    expect(requests[0]?.suppliedCampaignResultIds).toEqual([uuid(99)]);
+  });
   it('measures chart subtree renders during local search and draft changes without changing the financial generation', async () => {
     vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const auxiliary = auxiliaryRead(_url);
+      if (auxiliary) return auxiliary;
       if (!init?.body) return new Response(JSON.stringify(catalog));
       const body = JSON.parse(String(init.body));
       requests.push(body);
@@ -308,6 +334,8 @@ describe('dashboard UI generation and financial display', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_url: string, init?: RequestInit) => {
+        const auxiliary = auxiliaryRead(_url);
+        if (auxiliary) return auxiliary;
         if (!init?.body)
           return new Response(
             JSON.stringify({
@@ -334,6 +362,48 @@ describe('dashboard UI generation and financial display', () => {
     const linked = new URL(link.getAttribute('href')!, 'https://journal.test');
     expect(linked.searchParams.get('accountIds')).toBe(`${uuid(2)},${uuid(8)}`);
     expect(linked.searchParams.has('portfolioVersionId')).toBe(false);
+  });
+  it('searches assets outside the first catalog page without disabling a small dashboard', async () => {
+    const firstPage: DashboardCatalog = {
+      ...catalog,
+      assets: Array.from({ length: 200 }, (_, index) => ({
+        ...option(uuid(1000 + index), `Asset ${index}`),
+        assetClass: 'stock',
+      })),
+      pageCursors: { assets: uuid(1199), strategyVersions: uuid(2200) },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.includes('/catalog?resource=assets'))
+          return Response.json({
+            ...catalog,
+            assets: [{ ...option(uuid(1501), 'Late asset 501'), assetClass: 'stock' }],
+            pageCursors: { assets: null },
+          });
+        if (!init?.body) return Response.json(firstPage);
+        const body = JSON.parse(String(init.body));
+        requests.push(body);
+        return Response.json(response(body.filters));
+      }),
+    );
+    mount();
+    await screen.findByText('Closed net P&L', { exact: true });
+    fireEvent.click(
+      screen.getByText('Search and browse all filter choices', { selector: 'summary' }),
+    );
+    const browse = screen.getByRole('group', { name: 'Browse assets' });
+    fireEvent.change(within(browse).getByLabelText('Search assets'), {
+      target: { value: 'Late asset 501' },
+    });
+    fireEvent.click(within(browse).getByRole('button', { name: 'Search assets' }));
+    await screen.findByRole('option', { name: 'Late asset 501' });
+    fireEvent.change(screen.getByLabelText('Asset', { exact: true }), {
+      target: { value: uuid(1501) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await waitFor(() => expect(requests.at(-1)?.filters).toMatchObject({ assetIds: [uuid(1501)] }));
+    expect(await screen.findByText('Closed net P&L', { exact: true })).toBeInTheDocument();
   });
   it('shows tested metrics with samples, explicit infinity and useful missing-equity explanation', async () => {
     mount();
@@ -367,7 +437,9 @@ describe('dashboard UI generation and financial display', () => {
   it('does not show cached metrics under a failed new filter generation', async () => {
     mount();
     await screen.findByText('Closed net P&L', { exact: true });
-    vi.mocked(fetch).mockImplementation(async () => new Response('{}', { status: 409 }));
+    vi.mocked(fetch).mockImplementation(
+      async (url) => auxiliaryRead(url) ?? new Response('{}', { status: 409 }),
+    );
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2029-12-01' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
     await screen.findByRole('alert');
@@ -375,7 +447,8 @@ describe('dashboard UI generation and financial display', () => {
   });
   it('provides an empty-account path without invented summary numbers or a report request', async () => {
     vi.mocked(fetch).mockImplementation(
-      async () => new Response(JSON.stringify({ ...catalog, accounts: [] })),
+      async (url) =>
+        auxiliaryRead(url) ?? new Response(JSON.stringify({ ...catalog, accounts: [] })),
     );
     mount();
     await screen.findByRole('heading', { name: 'Your performance starts with financial records' });
@@ -517,7 +590,9 @@ describe('dashboard UI generation and financial display', () => {
   });
   it('shows a meaningful empty-period and supporting-trade state without inventing metrics', async () => {
     vi.mocked(fetch).mockImplementation(
-      async (_url, init) => new Response(JSON.stringify(init?.body ? response({}, true) : catalog)),
+      async (_url, init) =>
+        auxiliaryRead(_url) ??
+        new Response(JSON.stringify(init?.body ? response({}, true) : catalog)),
     );
     mount();
     await screen.findByRole('heading', { name: 'No completed trades in this period' });
@@ -530,13 +605,15 @@ describe('dashboard UI generation and financial display', () => {
   });
   it('shows loading feedback while an applied generation waits, then displays its tested metrics', async () => {
     let finish: ((value: Response) => void) | undefined;
-    vi.mocked(fetch).mockImplementation(async (_url, init) =>
-      init?.body
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const auxiliary = auxiliaryRead(_url);
+      if (auxiliary) return auxiliary;
+      return init?.body
         ? new Promise<Response>((resolve) => {
             finish = resolve;
           })
-        : new Response(JSON.stringify(catalog)),
-    );
+        : new Response(JSON.stringify(catalog));
+    });
     mount();
     await screen.findByText('Updating all metrics and charts for the active filters…');
     expect(screen.queryByRole('button', { name: /Closed net P&L/ })).not.toBeInTheDocument();
@@ -548,6 +625,8 @@ describe('dashboard UI generation and financial display', () => {
     let catalogAttempts = 0,
       reportAttempts = 0;
     vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const auxiliary = auxiliaryRead(_url);
+      if (auxiliary) return auxiliary;
       if (init?.body) {
         reportAttempts++;
         return new Response(JSON.stringify(response()));

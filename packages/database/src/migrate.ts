@@ -109,6 +109,21 @@ export async function provisionRuntimeRoles(
     await client.query('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA queue TO journal_jobs');
     await client.query('REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA queue FROM PUBLIC, journal_jobs');
     await client.query('GRANT EXECUTE ON FUNCTION queue.job_now() TO journal_jobs');
+    // Explicit system-native projection boundary. Never grant arbitrary queue
+    // functions or raw tenant-table access to runtime worker credentials.
+    for (const signature of [
+      'queue.claim_financial_outbox(integer)',
+      'queue.prepare_native_financial_snapshot(uuid,uuid)',
+      'queue.publish_native_financial_snapshot(uuid,uuid)',
+      'queue.fail_financial_outbox(uuid,uuid,text)',
+    ]) {
+      const present = await client.query<{ present: string | null }>(
+        'SELECT to_regprocedure($1)::text AS present',
+        [signature],
+      );
+      if (present.rows[0]?.present)
+        await client.query(`GRANT EXECUTE ON FUNCTION ${signature} TO journal_jobs`);
+    }
     await client.query(
       'ALTER DEFAULT PRIVILEGES IN SCHEMA queue GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO journal_jobs',
     );

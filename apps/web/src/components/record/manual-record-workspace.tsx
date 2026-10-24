@@ -1,5 +1,7 @@
 'use client';
 
+import { CatalogPager, arrayCatalogPage, objectCatalogPage, pinCatalogPage } from './catalog-page';
+
 import * as c from '@journal/contracts';
 import { Button, Panel } from '@journal/ui';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -168,11 +170,21 @@ export function ManualRecordWorkspace({
   const sourceExecution = executions.data?.pages
     .flat()
     .find((item) => item.id === draft.executionId);
-  const instrument = catalogs.data?.instruments.find(
-    (item) =>
-      item.versionId ===
-      (mode === 'existing' ? sourceExecution?.instrumentVersionId : draft.instrumentVersionId),
+  const selectedVersionId =
+    mode === 'existing' ? sourceExecution?.instrumentVersionId : draft.instrumentVersionId;
+  const currentInstrument = catalogs.data?.instruments.find(
+    (item) => item.versionId === selectedVersionId,
   );
+  const historicalInstrument = useQuery({
+    queryKey: ['record-instrument-version', workspace.id, selectedVersionId],
+    enabled: !!selectedVersionId && !currentInstrument,
+    queryFn: () =>
+      recordRead(
+        `${financial}/instrument-versions/${selectedVersionId}`,
+        c.instrumentResponseSchema,
+      ),
+  });
+  const instrument = currentInstrument ?? historicalInstrument.data;
   const account = catalogs.data?.accounts.find((item) => item.id === draft.accountId);
   const native = !!account && !!instrument && usesNativeBooking(account, instrument);
   const selectedLegs =
@@ -253,7 +265,7 @@ export function ManualRecordWorkspace({
     setFailure(null);
     if (!account || !instrument) {
       setFailure(
-        'Choose an account and a current instrument version before continuing. Older instrument versions require a reviewed allocation through the financial API.',
+        'Choose an available account and instrument version before continuing. Historical versions are loaded from the recorded source; retry if their reference could not be loaded.',
       );
       return;
     }
@@ -275,7 +287,7 @@ export function ManualRecordWorkspace({
         if (native) c.positiveFinancialDecimalSchema.parse(draft.price);
         if (account.inventoryMethod === 'specific')
           throw new Error(
-            'This account uses specific lots. Record the source with explicit lot selections through the financial API. This form will not silently switch its inventory policy.',
+            'This account uses specific lots. Use Advanced financial entry to select the source lots explicitly.',
           );
         if (!native && !draft.noManualCash) {
           if (!draft.cashEffects.length)
@@ -302,7 +314,7 @@ export function ManualRecordWorkspace({
         );
         if (allocations.allocations.some((item) => item.tradeLegId !== null))
           throw new Error(
-            'This execution is already attributed to a trade. Open its existing journal or review the complete allocation through the financial API; this form will not replace another trade’s allocation.',
+            'This execution is already attributed to a trade. Open its journal or use Advanced financial entry to review the complete allocation.',
           );
         sourceAllocationVersion = allocations.version;
       }
@@ -494,7 +506,7 @@ export function ManualRecordWorkspace({
           );
           if (allocation.allocations.some((item) => item.tradeLegId !== null))
             throw new Error(
-              'This execution was attributed elsewhere while recording. Its existing allocation is preserved; review the complete allocation through the financial API.',
+              'This execution was attributed elsewhere while recording. Its allocation is preserved; use Advanced financial entry to review it.',
             );
           version = allocation.version;
         }
@@ -693,6 +705,9 @@ export function ManualRecordWorkspace({
         <div>
           <span className="eyebrow">Execution and journal</span>
           <h1>Record a trade</h1>
+          <a href={'/record?workspace=' + workspace.id + '&mode=advanced'}>
+            Advanced financial entry
+          </a>
           <p>Record source facts once, then connect the execution to your trading review.</p>
         </div>
       </div>
@@ -734,17 +749,168 @@ export function ManualRecordWorkspace({
               />
             </Panel>
           )}
-          {[
-            catalogs.data.accounts,
-            catalogs.data.instruments,
-            catalogs.data.currencies,
-            catalogs.data.trades,
-          ].some((items) => items.length === 200) && (
-            <p role="status">
-              This form lists up to 200 current reference records per type. Use the financial API
-              for records beyond this selection.
+          <details className="record-catalog-browser">
+            <summary>Search and browse all reference records</summary>
+            <p>
+              Each search or page loads a bounded set of choices. Explicit selections are retained
+              when browsing another page.
             </p>
-          )}
+            <CatalogPager
+              label="accounts"
+              endpoint={`${financial}/accounts`}
+              items={catalogs.data.accounts}
+              load={arrayCatalogPage(c.accountResponseSchema.array())}
+              disabled={locked}
+              onPage={(rows) =>
+                client.setQueryData<typeof catalogs.data>(
+                  ['record-catalogs', workspace.id],
+                  (current) =>
+                    current
+                      ? {
+                          ...current,
+                          accounts: pinCatalogPage(current.accounts, rows, [draft.accountId]),
+                        }
+                      : current,
+                )
+              }
+            />
+            <CatalogPager
+              label="instruments"
+              endpoint={`${financial}/instruments`}
+              items={catalogs.data.instruments}
+              load={arrayCatalogPage(c.instrumentResponseSchema.array())}
+              disabled={locked}
+              onPage={(rows) =>
+                client.setQueryData<typeof catalogs.data>(
+                  ['record-catalogs', workspace.id],
+                  (current) =>
+                    current
+                      ? {
+                          ...current,
+                          instruments: pinCatalogPage(
+                            current.instruments,
+                            rows,
+                            [draft.instrumentVersionId],
+                            (item) => item.versionId,
+                          ),
+                        }
+                      : current,
+                )
+              }
+            />
+            <CatalogPager
+              label="currencies"
+              endpoint={`${financial}/currencies`}
+              items={catalogs.data.currencies}
+              load={arrayCatalogPage(c.currencyResponseSchema.array())}
+              disabled={locked}
+              onPage={(rows) =>
+                client.setQueryData<typeof catalogs.data>(
+                  ['record-catalogs', workspace.id],
+                  (current) =>
+                    current
+                      ? {
+                          ...current,
+                          currencies: pinCatalogPage(current.currencies, rows, [
+                            draft.fee.currencyId,
+                            ...draft.cashEffects.map((row) => row.currencyId),
+                          ]),
+                        }
+                      : current,
+                )
+              }
+            />
+            <CatalogPager
+              label="brokers"
+              endpoint={`${financial}/brokers`}
+              items={catalogs.data.brokers}
+              load={arrayCatalogPage(c.brokerResponseSchema.array())}
+              disabled={locked}
+              onPage={(rows) =>
+                client.setQueryData<typeof catalogs.data>(
+                  ['record-catalogs', workspace.id],
+                  (current) => (current ? { ...current, brokers: rows } : current),
+                )
+              }
+            />
+            <CatalogPager
+              label="trades"
+              endpoint={`${financial}/trades`}
+              items={catalogs.data.trades}
+              load={arrayCatalogPage(c.tradeResponseSchema.array())}
+              disabled={locked}
+              onPage={(rows) =>
+                client.setQueryData<typeof catalogs.data>(
+                  ['record-catalogs', workspace.id],
+                  (current) =>
+                    current
+                      ? {
+                          ...current,
+                          trades: pinCatalogPage(current.trades, rows, [draft.targetTradeId]),
+                        }
+                      : current,
+                )
+              }
+            />
+            {strategies.data && (
+              <CatalogPager
+                label="strategies"
+                endpoint={`${prefix}/strategies`}
+                items={strategies.data.strategies}
+                pageSize={100}
+                cursorName="cursor"
+                load={objectCatalogPage<c.StrategyResponse>(
+                  c.strategyListResponseSchema,
+                  'strategies',
+                )}
+                disabled={locked}
+                onPage={(rows) =>
+                  client.setQueryData<c.StrategyListResponse>(
+                    ['record-strategies', workspace.id],
+                    (current) =>
+                      current
+                        ? {
+                            ...current,
+                            strategies: pinCatalogPage(current.strategies, rows, [
+                              draft.strategyId,
+                            ]),
+                          }
+                        : current,
+                  )
+                }
+              />
+            )}
+            {draft.strategyId && versions.data && (
+              <CatalogPager
+                key={draft.strategyId}
+                label="strategy versions"
+                endpoint={`${prefix}/strategies/${draft.strategyId}/versions`}
+                items={versions.data.versions}
+                pageSize={100}
+                cursorName="cursor"
+                search={false}
+                load={objectCatalogPage<c.StrategyVersionResponse>(
+                  c.strategyVersionListResponseSchema,
+                  'versions',
+                )}
+                disabled={locked}
+                onPage={(rows) =>
+                  client.setQueryData<c.StrategyVersionListResponse>(
+                    ['record-strategy-versions', workspace.id, draft.strategyId],
+                    (current) =>
+                      current
+                        ? {
+                            ...current,
+                            versions: pinCatalogPage(current.versions, rows, [
+                              draft.strategyVersionId,
+                            ]),
+                          }
+                        : current,
+                  )
+                }
+              />
+            )}
+          </details>
           <Panel>
             <form onSubmit={(event) => void preview(event)}>
               <fieldset disabled={!canEdit || locked || !!pending}>
@@ -815,6 +981,19 @@ export function ManualRecordWorkspace({
                           }
                         >
                           <option value="">Choose instrument…</option>
+                          {target.data?.financial.legs
+                            .filter(
+                              (leg) =>
+                                leg.accountId === draft.accountId &&
+                                !catalogs.data!.instruments.some(
+                                  (item) => item.versionId === leg.instrumentVersionId,
+                                ),
+                            )
+                            .map((leg) => (
+                              <option key={leg.instrumentVersionId} value={leg.instrumentVersionId}>
+                                {leg.instrumentName} · historical version for this trade
+                              </option>
+                            ))}
                           {catalogs.data.instruments.map((item) => (
                             <option key={item.versionId} value={item.versionId}>
                               {item.name} · v{item.version} ·{' '}
@@ -884,7 +1063,7 @@ export function ManualRecordWorkspace({
                         help={
                           native
                             ? 'Exact source price per instrument unit. The ledger applies its validated cash settlement rule.'
-                            : 'Source quote only; leave unknown prices empty. Negative prices are not currently supported.'
+                            : 'Source quote only; leave unknown prices empty. Signed manual quotes are retained under the instrument convention.'
                         }
                       />
                       <RecordInput
@@ -1276,13 +1455,19 @@ export function ManualRecordWorkspace({
                   </p>
                 )}
                 <div className="record-actions">
-                  <Button type="submit">
+                  <Button
+                    type="submit"
+                    disabled={!!selectedVersionId && !instrument && historicalInstrument.isPending}
+                  >
                     Preview {mode === 'existing' ? 'attribution' : 'record'}
                   </Button>
                   <a href={`/imports?workspace=${workspace.id}`}>Import a file instead</a>
                 </div>
               </fieldset>
             </form>
+            {!!selectedVersionId && !currentInstrument && historicalInstrument.isPending && (
+              <p role="status">Loading pinned instrument conventions…</p>
+            )}
             {failure && <p role="alert">{failure}</p>}
           </Panel>
           {pending && (

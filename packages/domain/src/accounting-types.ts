@@ -52,6 +52,24 @@ export type AccountingCashPosting = Readonly<{
   reportingFx?: PinnedInventoryRate;
 }>;
 export type AccountingMark = Readonly<{ id: string; price: string; observedAt: string }>;
+export type AccountingSuppliedValue = Readonly<{
+  id: string;
+  kind: 'position-equity';
+  amount: string;
+  currencyId: string;
+  observedAt: string;
+  source: string;
+  sourceReference: string;
+  quality: 'broker-reported' | 'manually-verified';
+  definitionVersion: 'residual-position-equity/1';
+  basisRevision: string;
+  sourceRevision: string;
+  signedQuantity: string;
+  cashExcluded: true;
+  collateralExcluded: true;
+  settledPnlExcluded: true;
+  unsettledCashExcluded: true;
+}>;
 export type AccountingBook = Readonly<{
   id: string;
   accountId: string;
@@ -63,6 +81,9 @@ export type AccountingBook = Readonly<{
   closingInventory: InventoryReplayResult;
   openingMark: AccountingMark | null;
   closingMark: AccountingMark | null;
+  allowSupplied?: boolean;
+  openingSuppliedValue?: AccountingSuppliedValue;
+  closingSuppliedValue?: AccountingSuppliedValue;
 }>;
 export type AccountingHoldingTransfer = Readonly<{
   id: string;
@@ -107,6 +128,11 @@ export type AccountingConversion = Readonly<{
   economicAt: string;
 }>;
 export type AccountingInput = Readonly<{
+  suppliedPositionIds?: readonly string[];
+  /** Summary totals retain complete arithmetic; dependency evidence is retrieved in bounded pages. */
+  detail?: 'full' | 'summary';
+  dependencyPage?: Readonly<{ kind: 'fx' | 'prices' | 'sourceIds'; offset: number; limit: number }>;
+  fullDetailLimit?: number;
   accountIds: readonly string[];
   portfolioVersionId?: string;
   reportingCurrencyId: string;
@@ -148,6 +174,7 @@ export type AccountingSnapshot = Readonly<{
 }>;
 export type AccountingReport = Readonly<{
   context: Readonly<{
+    suppliedPositionIds?: readonly string[];
     accountIds: readonly string[];
     portfolioVersionId?: string;
     reportingCurrencyId: string;
@@ -190,6 +217,19 @@ export type AccountingReport = Readonly<{
     roundingResidual: AccountingMetric;
   }>;
   dependencies: Readonly<{
+    suppliedValues?: readonly AccountingSuppliedValue[];
+    coverage?: Readonly<{
+      mode: 'summary' | 'page';
+      fxCount: number;
+      priceCount: number;
+      sourceIdCount: number;
+      page: Readonly<{
+        kind: 'fx' | 'prices' | 'sourceIds';
+        offset: number;
+        limit: number;
+        nextOffset: number | null;
+      }> | null;
+    }>;
     fx: readonly Readonly<{ componentId: string; selection: FxRateSelection }>[];
     prices: readonly Readonly<{
       componentId: string;

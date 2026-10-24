@@ -4,7 +4,7 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { databaseSchema } from './schema.js';
 
-export { verifyDatabaseSchema } from './readiness.js';
+export { DATABASE_SCHEMA_VERSION, verifyDatabaseSchema } from './readiness.js';
 export { eq, sql } from 'drizzle-orm';
 
 export type Database = {

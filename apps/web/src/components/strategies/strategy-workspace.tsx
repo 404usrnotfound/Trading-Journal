@@ -1,4 +1,5 @@
 'use client';
+import { useDisplayViews } from '../display-views/use-display-views';
 
 import {
   strategyListResponseSchema,
@@ -33,10 +34,9 @@ import {
   strategyWrite,
 } from './strategy-api';
 import { StrategyEditor, strategyNarrativeFields } from './strategy-editor';
+import { formatJournalTimestamp } from '../journal/journal-time';
+import { CatalogPager, arrayCatalogPage, pinCatalogPage } from '../record/catalog-page';
 
-function formatDate(instant: string): string {
-  return new Date(instant).toLocaleString();
-}
 function title(value: string): string {
   return `${value[0]?.toUpperCase()}${value.slice(1)}`;
 }
@@ -225,6 +225,16 @@ export function StrategyWorkspace({
   const [tradeId, setTradeId] = useState(initialTradeId ?? '');
   const [linkReason, setLinkReason] = useState('');
   const [comparisonId, setComparisonId] = useState('');
+  const displayViews = useDisplayViews({
+    workspaceId: workspace.id,
+    screen: 'strategies',
+    filters: { search, status, includeArchived: String(includeArchived) },
+    onApply: (filters) => {
+      setSearch(filters.search!);
+      setStatus(filters.status!);
+      setIncludeArchived(filters.includeArchived === 'true');
+    },
+  });
   const [editorDirty, setEditorDirty] = useState(false);
   const navigationApproved = useRef(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
@@ -351,8 +361,20 @@ export function StrategyWorkspace({
     enabled: canEdit && selectedId !== null && editing === null,
     queryFn: () =>
       strategyRead(
-        `/api/v1/workspaces/${workspace.id}/financial/trades?limit=200`,
+        `/api/v1/workspaces/${workspace.id}/financial/trades?limit=200&unclassified=true`,
         tradeResponseSchema.array(),
+      ),
+  });
+  const requestedTrade = useQuery({
+    queryKey: ['strategy-requested-trade', workspace.id, initialTradeId],
+    enabled:
+      !!initialTradeId &&
+      unclassified.isSuccess &&
+      !unclassified.data.some((trade) => trade.id === initialTradeId),
+    queryFn: () =>
+      strategyRead(
+        `/api/v1/workspaces/${workspace.id}/financial/trades/${initialTradeId}`,
+        tradeResponseSchema,
       ),
   });
   const strategy = detail.data;
@@ -365,10 +387,13 @@ export function StrategyWorkspace({
     ? (history.find((version) => version.id === versionId) ?? pinnedVersion.data)
     : strategy?.currentVersion;
   const comparisonVersion = history.find((version) => version.id === comparisonId);
-  const availableTrades =
-    unclassified.data?.filter(
-      (trade) => trade.strategyVersionId === null && trade.archivedAt === null,
-    ) ?? [];
+  const loadedTrades = unclassified.data ?? [];
+  const availableTrades = [
+    ...loadedTrades,
+    ...(requestedTrade.data && !loadedTrades.some((trade) => trade.id === requestedTrade.data.id)
+      ? [requestedTrade.data]
+      : []),
+  ].filter((trade) => trade.strategyVersionId === null && trade.archivedAt === null);
 
   function choose(id: string) {
     setSelectedId(id);
@@ -617,6 +642,7 @@ export function StrategyWorkspace({
           Include archived
         </label>
       </div>
+      {displayViews.controls}
       <div className="strategy-split">
         <section aria-label="Strategy list" className="strategy-list">
           {list.isPending && <p role="status">Loading strategies…</p>}
@@ -634,21 +660,30 @@ export function StrategyWorkspace({
               <button
                 className="strategy-card"
                 key={entry.id}
-                aria-label={`${entry.currentVersion.definition.name} · ${entry.archivedAt ? 'Archived' : title(entry.currentVersion.definition.status)} · Version ${entry.currentVersion.version}`}
+                aria-label={`${entry.currentVersion.definition.name}${displayViews.columns.includes('status') ? ` · ${entry.archivedAt ? 'Archived' : title(entry.currentVersion.definition.status)}` : ''}${displayViews.columns.includes('version') ? ` · Version ${entry.currentVersion.version}` : ''}`}
                 aria-current={entry.id === selectedId ? 'true' : undefined}
                 onClick={() => protectNavigation(() => choose(entry.id))}
               >
                 <div className="strategy-row-title">
                   <strong>{entry.currentVersion.definition.name}</strong>
-                  <Badge>
-                    {entry.archivedAt ? 'Archived' : title(entry.currentVersion.definition.status)}
-                  </Badge>
+                  {displayViews.columns.includes('status') && (
+                    <Badge>
+                      {entry.archivedAt
+                        ? 'Archived'
+                        : title(entry.currentVersion.definition.status)}
+                    </Badge>
+                  )}
                 </div>
-                <p>{entry.currentVersion.definition.description || 'No description yet.'}</p>
+                {displayViews.columns.includes('description') && (
+                  <p>{entry.currentVersion.definition.description || 'No description yet.'}</p>
+                )}
                 <small>
-                  Version {entry.currentVersion.version} ·{' '}
-                  {entry.currentVersion.definition.assetClasses.join(', ') ||
-                    'Asset classes not set'}
+                  {displayViews.columns.includes('version') && (
+                    <>Version {entry.currentVersion.version} </>
+                  )}
+                  {displayViews.columns.includes('assetClasses') &&
+                    (entry.currentVersion.definition.assetClasses.join(', ') ||
+                      'Asset classes not set')}
                 </small>
               </button>
             ))}
@@ -756,13 +791,14 @@ export function StrategyWorkspace({
               </div>
               {strategy.archivedAt && (
                 <p className="strategy-inline-notice">
-                  Archived {formatDate(strategy.archivedAt)}. {strategy.archiveReason} Existing
-                  versions and trade associations remain available.
+                  Archived {formatJournalTimestamp(strategy.archivedAt, workspace.timezone)}.{' '}
+                  {strategy.archiveReason} Existing versions and trade associations remain
+                  available.
                 </p>
               )}
               <p className="strategy-history-note">
-                Effective {formatDate(selectedVersion.effectiveAt)} · Recorded{' '}
-                {formatDate(selectedVersion.createdAt)}
+                Effective {formatJournalTimestamp(selectedVersion.effectiveAt, workspace.timezone)}{' '}
+                · Recorded {formatJournalTimestamp(selectedVersion.createdAt, workspace.timezone)}
                 <br />
                 Reason: {selectedVersion.changeReason}
               </p>
@@ -962,7 +998,8 @@ export function StrategyWorkspace({
                     {unclassified.isPending && <p role="status">Loading unclassified trades…</p>}
                     {unclassified.isSuccess && availableTrades.length === 0 && (
                       <p className="strategy-inline-notice">
-                        No unclassified trades are available in the recent trade list.{' '}
+                        No unclassified trades match this page. Search or browse the remaining
+                        records below.{' '}
                         <a href={`/journal?workspace=${encodeURIComponent(workspace.id)}`}>
                           Open the trade journal
                         </a>{' '}
@@ -977,8 +1014,8 @@ export function StrategyWorkspace({
                       unclassified.isSuccess &&
                       !availableTrades.some((trade) => trade.id === initialTradeId) && (
                         <p role="status">
-                          The requested trade is already classified or is outside the 200 recent
-                          trades shown here.
+                          The requested trade is already classified or unavailable to this
+                          workspace.
                         </p>
                       )}
                     <div className="strategy-field">
@@ -996,9 +1033,24 @@ export function StrategyWorkspace({
                         ))}
                       </select>
                       <small>
-                        Showing up to 200 recent workspace trades with no strategy assignment.
+                        Choices are unclassified trades. Search or page through all matching records
+                        below.
                       </small>
                     </div>
+                    {unclassified.data && (
+                      <CatalogPager
+                        label="unclassified trades"
+                        endpoint={`/api/v1/workspaces/${workspace.id}/financial/trades?unclassified=true`}
+                        items={unclassified.data}
+                        load={arrayCatalogPage(tradeResponseSchema.array())}
+                        onPage={(rows) =>
+                          client.setQueryData<typeof unclassified.data>(
+                            ['strategy-unclassified-trades', workspace.id],
+                            (current) => pinCatalogPage(current ?? [], rows, [tradeId]),
+                          )
+                        }
+                      />
+                    )}
                     <div className="strategy-field">
                       <label htmlFor="strategy-link-reason">
                         Reason for retrospective assignment

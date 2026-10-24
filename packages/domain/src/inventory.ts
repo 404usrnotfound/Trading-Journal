@@ -1439,6 +1439,7 @@ export function valueInventory(
   const hasReplay =
     result.grossBasis.status !== 'unsupported' &&
     result.openQuantity.status === 'available' &&
+    (result.status === 'available' || result.lots.length > 0 || result.matches.length > 0) &&
     !result.reasons.includes('ambiguous_chronology');
   const noMark = open && (!input.mark || input.mark.eligible === false);
   let markedValue: InventoryMetric;

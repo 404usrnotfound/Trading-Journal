@@ -1,0 +1,75 @@
+.risk-workspace {
+  display: grid;
+  gap: 1.25rem;
+}
+.risk-tabs {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.risk-workspace fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  min-width: 0;
+}
+.risk-workspace legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.risk-field {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+.risk-field label {
+  display: grid;
+  gap: 0.4rem;
+}
+.risk-field input,
+.risk-field select {
+  min-width: 0;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  border-radius: 6px;
+}
+.risk-field small {
+  line-height: 1.5;
+}
+.risk-result {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+}
+.risk-workspace pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+.risk-workspace details {
+  margin: 1rem 0;
+}
+.risk-workspace summary {
+  cursor: pointer;
+}
+.risk-workspace :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .risk-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -12,6 +12,12 @@ Every report supplies `reportingCurrencyId`, `from`, `to`, price source/freshnes
 
 The result retains account IDs, portfolio version, boundaries, source revision, calculation manifest, policies, source identities and selected price/FX dependencies. Replaying requires the same source revision, definition and calculation version; exporting or storing an archived report is a later workflow.
 
+Reports accept `detail: "summary"` for complete monetary results with bounded evidence transport. This changes no accounting population or formula. `dependencies.coverage` gives the full FX, price and source-identity counts; empty arrays explicitly represent unrequested evidence. To recover evidence, repeat the same request at the returned `sourceRevision` with `detail: "summary"` and `dependencyPage: { "kind": "fx", "offset": 0, "limit": 200 }`. Kinds are `fx`, `prices` and `sourceIds`; follow `coverage.page.nextOffset` until null. A page must pin its revision and cannot exceed 200 items. Dashboard samples retain their coverage and replay request. Unpaged full detail remains available for bounded reports, with a 4,000 FX/price dependency budget and four MiB response bound; larger detail returns an explicit instruction to use complete summary totals and bounded evidence pages. No totals or evidence are silently truncated.
+
+FX source loading selects only native/reporting and fee/native pairs actually required by the selected financial population, including inverse direction and the requested providers. Unrelated workspace FX history does not consume a report's evidence budget. Source-pinned historical translations and compatible observation supersessions retain their original rules.
+
+The asynchronous [native cash/holdings snapshot](financial-outbox.md) is a separate, generation-labelled read projection. It does not replace this dated accounting calculation.
+
 ## Money, assets and availability
 
 Authoritative amounts are decimal strings with 42 integral and 36 significant fractional digits. PostgreSQL validates canonical source text before generating `NUMERIC(78,36)` values. The isolated Decimal.js context works at 160 digits and quantizes derived outputs at scale 36 with HALF_EVEN rounding. Money is never calculated through JavaScript `Number`.

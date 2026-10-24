@@ -1,6 +1,7 @@
 import { sql, type DbTransaction } from '@journal/database';
 import {
   calculateAccounting,
+  AccountingDetailLimitError,
   decimal,
   instantNanoseconds,
   replayInventory,
@@ -9,7 +10,7 @@ import {
   type AccountingHoldingOpening,
   type AccountingHoldingTransfer,
   type AccountingMark,
-  type FxObservation,
+  type AccountingSuppliedValue,
   type InventoryTransferredSlice,
   type PinnedInventoryRate,
 } from '@journal/domain';
@@ -17,7 +18,15 @@ import { accountingReportRequestSchema, type AccountingReportRequest } from '@jo
 import type { AuthorizationContext } from '../services.js';
 import { inaccessible } from '../errors.js';
 import { replayBookAt } from '../financial/ledger.js';
+import { readReportFxEvidence } from '../financial/fx-evidence.js';
+import {
+  choosePositionComponent,
+  componentReference,
+  selectComponents,
+} from '../supplied/selection.js';
 import { canonicalFinancialInstant } from '../financial/observations.js';
+import { compatiblePriceConventions } from '../financial/price-conventions.js';
+import type { AccountReference, InstrumentVersionReference } from '../financial/catalog-types.js';
 import {
   financialConflict,
   financialInvalid,
@@ -36,6 +45,8 @@ type ReportInput = AccountingReportRequest;
 type PriceRow = {
   id: string;
   instrument_version_id: string;
+  reference_version_ids: string[];
+  convention_effective_at: string;
   price_raw: string;
   observed_at: string;
   source: string;
@@ -113,6 +124,7 @@ function classification(row: PostingRow): AccountingCashPosting['classification'
     case 'account-expense':
       return 'expense';
     case 'execution-principal':
+    case 'manual-settlement':
       return 'trade-principal';
     case 'fx-source':
     case 'fx-destination':
@@ -136,7 +148,8 @@ function chooseMark(
   const maximumAge = BigInt(input.priceMaxAgeMilliseconds) * 1_000_000n;
   const eligible = prices.filter(
     (price) =>
-      price.instrument_version_id === instrumentVersionId &&
+      price.reference_version_ids.includes(instrumentVersionId) &&
+      instantNanoseconds(price.convention_effective_at) <= instant &&
       input.priceSourcePriority.includes(price.source) &&
       instantNanoseconds(price.observed_at) <= instant &&
       instant - instantNanoseconds(price.observed_at) <= maximumAge,
@@ -260,37 +273,39 @@ export function createAccountingReports(platform: FinancialPlatform) {
           throw financialInvalid(
             'Live and paper accounts require separate accounting populations.',
           );
-        const selected = arrayBinding(accountIds);
-        const fxRows = bounded(
-          await queryRows<{
-            id: string;
-            base_currency_id: string;
-            quote_currency_id: string;
-            rate_raw: string;
-            observed_at: string;
-            source: string;
-          }>(
-            tx,
-            sql`SELECT o.id,o.base_currency_id,o.quote_currency_id,o.rate_raw,
-              to_char(o.observed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at,o.source
-            FROM app.fx_observations o WHERE o.workspace_id=${context.workspaceId}::uuid
-              AND o.observed_at<=${input.to}::timestamptz
-              AND COALESCE((o.payload->>'sourceRevision')::numeric,0)<=${revision}::integer
-              AND NOT EXISTS (SELECT 1 FROM app.fx_observations newer
-                WHERE newer.workspace_id=o.workspace_id AND newer.supersedes_id=o.id
-                  AND COALESCE((newer.payload->>'sourceRevision')::numeric,0)<=${revision}::integer)
-            ORDER BY o.observed_at,o.id LIMIT 10001`,
-          ),
-          10000,
+        const accountReferences = new Map<string, AccountReference>(
+          accounts.map((account) => [`${account.id}|${input.to}`, account]),
         );
-        const fxObservations: FxObservation[] = fxRows.map((row) => ({
-          id: row.id,
-          baseCurrencyId: row.base_currency_id,
-          quoteCurrencyId: row.quote_currency_id,
-          rate: row.rate_raw,
-          observedAt: row.observed_at,
-          source: row.source,
-        }));
+        const instrumentReferences = new Map<string, InstrumentVersionReference>();
+        async function accountReference(accountId: string, asOf: string) {
+          const key = `${accountId}|${asOf}`;
+          let value = accountReferences.get(key);
+          if (!value) {
+            value = await requireAccount(tx, context.workspaceId, accountId, false, asOf);
+            accountReferences.set(key, value);
+          }
+          return value;
+        }
+        async function instrumentReference(versionId: string) {
+          let value = instrumentReferences.get(versionId);
+          if (!value) {
+            value = await requireInstrumentVersion(tx, context.workspaceId, versionId, false);
+            instrumentReferences.set(versionId, value);
+          }
+          return value;
+        }
+        const selected = arrayBinding(accountIds);
+        const supplied = await selectComponents(
+          tx,
+          context,
+          input.suppliedPositionIds,
+          revision,
+          'position-equity',
+        );
+        if (supplied.some((value) => !accountIds.includes(value.accountId!)))
+          throw financialInvalid(
+            'A selected supplied position must belong to the report account scope.',
+          );
         const bookRows = bounded(
           await queryRows<BookRow>(
             tx,
@@ -372,9 +387,23 @@ export function createAccountingReports(platform: FinancialPlatform) {
           await queryRows<PriceRow>(
             tx,
             sql`SELECT o.id,o.instrument_version_id,o.price_raw,
-              to_char(o.observed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at,o.source
-            FROM app.price_observations o WHERE o.workspace_id=${context.workspaceId}::uuid
-              AND o.instrument_version_id=ANY(${arrayBinding(instrumentVersionIds)}::uuid[])
+              to_char(o.observed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at,o.source,
+              to_char(candidate.effective_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS convention_effective_at,
+              compatible.reference_version_ids
+            FROM app.price_observations o
+            JOIN app.instrument_versions candidate ON candidate.workspace_id=o.workspace_id AND candidate.id=o.instrument_version_id
+            JOIN LATERAL (
+              SELECT array_agg(reference.id) AS reference_version_ids FROM app.instrument_versions reference
+              WHERE reference.workspace_id=o.workspace_id AND reference.id=ANY(${arrayBinding(instrumentVersionIds)}::uuid[])
+                AND ${compatiblePriceConventions('candidate', 'reference')}
+            ) compatible ON compatible.reference_version_ids IS NOT NULL
+            WHERE o.workspace_id=${context.workspaceId}::uuid
+              AND candidate.instrument_id IN (
+                SELECT instrument_id FROM app.instrument_versions
+                WHERE workspace_id=${context.workspaceId}::uuid
+                  AND id=ANY(${arrayBinding(instrumentVersionIds)}::uuid[])
+              )
+              AND candidate.effective_at<=${input.to}::timestamptz
               AND o.observed_at<=${input.to}::timestamptz
               AND COALESCE((o.payload->>'sourceRevision')::numeric,0)<=${revision}::integer
               AND NOT EXISTS (SELECT 1 FROM app.price_observations newer
@@ -386,18 +415,14 @@ export function createAccountingReports(platform: FinancialPlatform) {
         );
         const books: AccountingBook[] = [];
         for (const book of bookRows) {
-          const instrument = await requireInstrumentVersion(
-            tx,
-            context.workspaceId,
-            book.instrument_version_id,
-            false,
-          );
+          const instrument = await instrumentReference(book.instrument_version_id);
           const closingInventory = await replayBookAt(
             tx,
             context,
             { accountId: book.account_id, instrumentVersionId: book.instrument_version_id },
             input.to,
             revision,
+            { account: await accountReference(book.account_id, input.to), instrument },
           );
           // No effective holding source existed at the opening boundary. Derive an
           // empty population without pretending later account settings existed then.
@@ -411,6 +436,10 @@ export function createAccountingReports(platform: FinancialPlatform) {
                 },
                 input.from,
                 revision,
+                {
+                  account: await accountReference(book.account_id, input.from),
+                  instrument: await instrumentReference(book.opening_instrument_version_id),
+                },
               )
             : replayInventory({
                 scope: closingInventory.scope,
@@ -425,6 +454,33 @@ export function createAccountingReports(platform: FinancialPlatform) {
                 sources: [],
                 sourceRevision: revision,
               });
+          const suppliedAt = (
+            asOf: string,
+            inventory: typeof closingInventory,
+          ): AccountingSuppliedValue | undefined => {
+            const value = choosePositionComponent(supplied, {
+              accountId: book.account_id,
+              instrumentId: book.instrument_id,
+              inventory,
+              capability: instrument.capability,
+              asOf,
+              maxAgeMilliseconds: input.priceMaxAgeMilliseconds,
+            });
+            return value
+              ? {
+                  ...componentReference(value),
+                  kind: 'position-equity',
+                  definitionVersion: 'residual-position-equity/1',
+                  signedQuantity: value.signedQuantity!,
+                  cashExcluded: true,
+                  collateralExcluded: true,
+                  settledPnlExcluded: true,
+                  unsettledCashExcluded: true,
+                }
+              : undefined;
+          };
+          const openingSuppliedValue = suppliedAt(input.from, openingInventory),
+            closingSuppliedValue = suppliedAt(input.to, closingInventory);
           books.push({
             id: book.id,
             accountId: book.account_id,
@@ -434,6 +490,9 @@ export function createAccountingReports(platform: FinancialPlatform) {
             multiplier: instrument.multiplier,
             openingInventory,
             closingInventory,
+            allowSupplied: instrument.capability === 'manual',
+            ...(openingSuppliedValue ? { openingSuppliedValue } : {}),
+            ...(closingSuppliedValue ? { closingSuppliedValue } : {}),
             openingMark: book.opening_instrument_version_id
               ? chooseMark(prices, book.opening_instrument_version_id, input.from, input)
               : null,
@@ -442,12 +501,7 @@ export function createAccountingReports(platform: FinancialPlatform) {
         }
         const holdingTransfers: AccountingHoldingTransfer[] = [];
         for (const transfer of holdingTransferRows) {
-          const instrument = await requireInstrumentVersion(
-            tx,
-            context.workspaceId,
-            transfer.instrument_version_id,
-            false,
-          );
+          const instrument = await instrumentReference(transfer.instrument_version_id);
           holdingTransfers.push({
             id: transfer.id,
             sourceAccountId: transfer.source_account_id,
@@ -461,19 +515,8 @@ export function createAccountingReports(platform: FinancialPlatform) {
         }
         const holdingOpenings: AccountingHoldingOpening[] = [];
         for (const opening of openingRows) {
-          const instrument = await requireInstrumentVersion(
-            tx,
-            context.workspaceId,
-            opening.instrument_version_id,
-            false,
-          );
-          const account = await requireAccount(
-            tx,
-            context.workspaceId,
-            opening.account_id,
-            false,
-            opening.economic_at,
-          );
+          const instrument = await instrumentReference(opening.instrument_version_id);
+          const account = await accountReference(opening.account_id, opening.economic_at);
           holdingOpenings.push({
             id: opening.id,
             accountId: opening.account_id,
@@ -563,6 +606,10 @@ export function createAccountingReports(platform: FinancialPlatform) {
             FROM app.cash_transfers t LEFT JOIN app.cash_transfer_receipts r
               ON r.workspace_id=t.workspace_id AND r.transfer_id=t.id AND r.source_revision<=${revision}::integer
             WHERE t.workspace_id=${context.workspaceId}::uuid AND t.source_revision<=${revision}::integer
+              AND NOT EXISTS (SELECT 1 FROM app.ledger_events e JOIN app.ledger_events reversed
+                ON reversed.workspace_id=e.workspace_id AND reversed.reversal_of_id=e.id
+                WHERE e.workspace_id=t.workspace_id AND e.cash_transfer_id=t.id
+                  AND reversed.source_revision<=${revision}::integer)
               AND t.economic_at<=${input.to}::timestamptz
               AND (t.source_account_id=ANY(${selected}::uuid[]) OR t.destination_account_id=ANY(${selected}::uuid[]))
             ORDER BY t.economic_at,t.id LIMIT 10001`,
@@ -604,15 +651,34 @@ export function createAccountingReports(platform: FinancialPlatform) {
           destinationAmount: decimal(row.destination_amount_raw),
           economicAt: row.economic_at,
         }));
-        const instrumentIds = [...new Set(bookRows.map((book) => book.instrument_id))];
+        // Transfer descendants can refer to an acquisition in another account.
+        // Select their actual source identities, rather than loading every fill
+        // in the workspace that happens to use a selected instrument.
+        const dependencySourceIds = [
+          ...new Set([
+            ...books.flatMap((book) =>
+              [book.openingInventory, book.closingInventory].flatMap((inventory) => [
+                ...inventory.lots.map((lot) => lot.sourceId),
+                ...inventory.matches.flatMap((match) => [
+                  match.openingSourceId,
+                  match.closingSourceId,
+                ]),
+              ]),
+            ),
+            ...holdingTransfers.flatMap((transfer) =>
+              transfer.slices.map((slice) => slice.sourceId),
+            ),
+            ...holdingOpenings.map((opening) => opening.id),
+          ]),
+        ];
         const sourceRows = bounded(
           await queryRows<{ id: string; economic_at: string }>(
             tx,
             sql`SELECT e.id,${sourceInstant} AS economic_at FROM (
               SELECT workspace_id,id,instrument_version_id,economic_at,source_revision FROM app.executions
               UNION ALL SELECT workspace_id,id,instrument_version_id,economic_at,source_revision FROM app.opening_lots
-            ) e JOIN app.instrument_versions v ON v.workspace_id=e.workspace_id AND v.id=e.instrument_version_id
-            WHERE e.workspace_id=${context.workspaceId}::uuid AND v.instrument_id=ANY(${arrayBinding(instrumentIds)}::uuid[])
+            ) e
+            WHERE e.workspace_id=${context.workspaceId}::uuid AND e.id=ANY(${arrayBinding(dependencySourceIds)}::uuid[])
               AND e.source_revision<=${revision}::integer AND e.economic_at<=${input.to}::timestamptz
             ORDER BY e.economic_at,e.id LIMIT 50001`,
           ),
@@ -621,30 +687,72 @@ export function createAccountingReports(platform: FinancialPlatform) {
         const sourceInstants = Object.fromEntries(
           sourceRows.map((row) => [row.id, row.economic_at]),
         );
-        const result = calculateAccounting({
+        const openingCash = await balances(
+          tx,
+          context.workspaceId,
           accountIds,
-          ...(input.portfolioVersionId ? { portfolioVersionId: input.portfolioVersionId } : {}),
-          reportingCurrencyId: input.reportingCurrencyId,
+          input.from,
+          revision,
+        );
+        const closingCash = await balances(tx, context.workspaceId, accountIds, input.to, revision);
+        const currencies = new Set([
+          ...supplied.map((value) => value.currencyId),
+          ...openingCash.filter((row) => /[1-9]/u.test(row.amount)).map((row) => row.currencyId),
+          ...closingCash.filter((row) => /[1-9]/u.test(row.amount)).map((row) => row.currencyId),
+          ...cashPostings.map((row) => row.currencyId),
+          ...books.map((book) => book.currencyId),
+          ...holdingTransfers.map((row) => row.currencyId),
+          ...holdingOpenings.map((row) => row.currencyId),
+          ...cashTransfers.map((row) => row.currencyId),
+          ...conversions.flatMap((row) => [row.sourceCurrencyId, row.destinationCurrencyId]),
+        ]);
+        const fxObservations = await readReportFxEvidence(tx, context, {
+          pairs: [...currencies].map((currency) => [currency, input.reportingCurrencyId] as const),
+          asOf: input.to,
           sourceRevision: revision,
-          from: input.from,
-          to: input.to,
-          fxPolicy: input.fxPolicy,
-          pricePolicy: {
-            maxAgeMilliseconds: input.priceMaxAgeMilliseconds,
-            sourcePriority: input.priceSourcePriority,
-          },
-          fxObservations,
-          sourceInstants,
-          openingCash: await balances(tx, context.workspaceId, accountIds, input.from, revision),
-          closingCash: await balances(tx, context.workspaceId, accountIds, input.to, revision),
-          cashPostings,
-          books,
-          cashTransfers,
-          holdingTransfers,
-          holdingOpenings,
-          conversions,
+          sourcePriority: input.fxPolicy.sourcePriority,
+          scopeError: 'ACCOUNTING_SCOPE_TOO_LARGE',
         });
-        return {
+        let result;
+        try {
+          result = calculateAccounting({
+            ...(input.detail ? { detail: input.detail } : {}),
+            ...(input.dependencyPage ? { dependencyPage: input.dependencyPage } : {}),
+            fullDetailLimit: 4000,
+            accountIds,
+            ...(input.portfolioVersionId ? { portfolioVersionId: input.portfolioVersionId } : {}),
+            reportingCurrencyId: input.reportingCurrencyId,
+            sourceRevision: revision,
+            ...(input.suppliedPositionIds
+              ? { suppliedPositionIds: input.suppliedPositionIds }
+              : {}),
+            from: input.from,
+            to: input.to,
+            fxPolicy: input.fxPolicy,
+            pricePolicy: {
+              maxAgeMilliseconds: input.priceMaxAgeMilliseconds,
+              sourcePriority: input.priceSourcePriority,
+            },
+            fxObservations,
+            sourceInstants,
+            openingCash,
+            closingCash,
+            cashPostings,
+            books,
+            cashTransfers,
+            holdingTransfers,
+            holdingOpenings,
+            conversions,
+          });
+        } catch (error) {
+          if (error instanceof AccountingDetailLimitError)
+            throw financialConflict(
+              'ACCOUNTING_DETAIL_TOO_LARGE',
+              'Request detail summary for complete totals, then retrieve dependency pages at the returned source revision.',
+            );
+          throw error;
+        }
+        const response = {
           ...result,
           context: {
             ...result.context,
@@ -653,6 +761,12 @@ export function createAccountingReports(platform: FinancialPlatform) {
             portfolioVersion,
           },
         };
+        if (Buffer.byteLength(JSON.stringify(response), 'utf8') > 4_194_304)
+          throw financialConflict(
+            'ACCOUNTING_DETAIL_TOO_LARGE',
+            'Request detail summary for complete totals and bounded dependency pages.',
+          );
+        return response;
       },
       { isolationLevel: 'repeatable read', accessMode: 'read only' },
     );

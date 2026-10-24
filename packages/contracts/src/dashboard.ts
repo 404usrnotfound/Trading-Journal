@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { analyticsReportRequestSchema, analyticsReportResponseSchema } from './analytics.js';
-import { accountingMetricSchema } from './accounting.js';
+import {
+  accountingMetricSchema,
+  accountingReportRequestSchema,
+  accountingReportResponseSchema,
+} from './accounting.js';
 import { financialDecimalSchema, financialIdSchema, financialInstantSchema } from './financial.js';
 
 const ids = financialIdSchema
@@ -29,6 +33,7 @@ export const dashboardFiltersSchema = z.strictObject({
 const base = analyticsReportRequestSchema.shape;
 export const dashboardRequestSchema = z
   .strictObject({
+    suppliedCampaignResultIds: base.suppliedCampaignResultIds,
     reportingCurrencyId: base.reportingCurrencyId,
     from: base.from,
     to: base.to,
@@ -66,7 +71,27 @@ const option = z.strictObject({
   label: z.string(),
   parentId: financialIdSchema.nullable(),
 });
+export const dashboardCatalogResources = [
+  'accounts',
+  'brokers',
+  'currencies',
+  'portfolios',
+  'strategies',
+  'strategyVersions',
+  'assets',
+  'tags',
+  'priceSources',
+  'fxSources',
+] as const;
+export const dashboardCatalogQuerySchema = z.strictObject({
+  resource: z.enum(dashboardCatalogResources).optional(),
+  afterId: z.string().min(1).max(256).optional(),
+  search: z.string().trim().min(1).max(160).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(200),
+});
+export type DashboardCatalogQuery = z.input<typeof dashboardCatalogQuerySchema>;
 export const dashboardCatalogSchema = z.strictObject({
+  accountChoicesComplete: z.boolean().optional(),
   accounts: option
     .extend({ environment: z.enum(['live', 'paper']) })
     .array()
@@ -87,6 +112,7 @@ export const dashboardCatalogSchema = z.strictObject({
   tags: z.string().array().max(500),
   priceSources: z.string().array().max(64),
   fxSources: z.string().array().max(64),
+  pageCursors: z.partialRecord(z.enum(dashboardCatalogResources), z.string().nullable()).optional(),
 });
 const bucket = z.strictObject({
   key: z.string(),
@@ -128,6 +154,8 @@ export const dashboardResponseSchema = z.strictObject({
         sourceIds: z.string().array(),
         priceObservationIds: financialIdSchema.array(),
         fxObservationIds: financialIdSchema.array(),
+        dependencyCoverage: accountingReportResponseSchema.shape.dependencies.shape.coverage,
+        dependencyReport: accountingReportRequestSchema.optional(),
       })
       .array()
       .max(13),

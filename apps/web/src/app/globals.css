@@ -157,7 +157,6 @@ p {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  transition: background 140ms ease;
 }
 .button-primary {
   color: var(--surface);

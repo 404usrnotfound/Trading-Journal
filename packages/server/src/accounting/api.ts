@@ -4,6 +4,9 @@ import { readBoundedJson } from '../security.js';
 import type { ServerServices } from '../services.js';
 import { createAccountingServices } from './service.js';
 import { createAccountingReports } from './report.js';
+import { createAccountingCorrections } from './corrections.js';
+import { createNativeSnapshotServices } from './native-snapshot.js';
+import { createAccountPerformance } from './performance.js';
 
 export function createAccountingApi(
   platform: Pick<
@@ -13,6 +16,9 @@ export function createAccountingApi(
 ) {
   const accounting = createAccountingServices(platform);
   const reports = createAccountingReports(platform);
+  const corrections = createAccountingCorrections(platform);
+  const snapshots = createNativeSnapshotServices(platform);
+  const performance = createAccountPerformance(platform);
   return async function handleAccountingRequest(
     request: Request,
     workspaceId: string,
@@ -26,7 +32,10 @@ export function createAccountingApi(
         'Use GET or POST for accounting resources.',
       );
     // A report is a bounded, read-only query. It never creates commands or advances revisions.
-    const reporting = request.method === 'POST' && path.length === 1 && path[0] === 'reports';
+    const reporting =
+      request.method === 'POST' &&
+      path.length === 1 &&
+      ['reports', 'performance'].includes(path[0] ?? '');
     const writing = request.method === 'POST' && !reporting;
     if (writing) await platform.requireMutationSession(request);
     const context = await platform.authorizeWorkspace(
@@ -39,9 +48,33 @@ export function createAccountingApi(
       contract.financialIdSchema.parse(request.headers.get('idempotency-key')).toLowerCase();
     const body = () => readBoundedJson(request, 262_144);
     let value: unknown;
-    if (reporting)
+    if (reporting && path[0] === 'performance')
+      value = contract.accountPerformanceResponseSchema.parse(
+        await performance(context, contract.accountPerformanceRequestSchema.parse(await body())),
+      );
+    else if (reporting)
       value = contract.accountingReportResponseSchema.parse(
         await reports.report(context, contract.accountingReportRequestSchema.parse(await body())),
+      );
+    else if (path.length === 1 && path[0] === 'native-snapshot' && request.method === 'GET')
+      value = contract.nativeSnapshotStatusSchema.parse(await snapshots.status(context));
+    else if (path.length === 2 && path[0] === 'native-snapshot' && path[1] === 'refresh' && writing)
+      value = contract.accountingMutationResponseSchema.parse(
+        await snapshots.refresh(context, await body(), commandId()),
+      );
+    else if (path.length === 1 && path[0] === 'corrections' && request.method === 'GET')
+      value = contract.accountingCorrectionSourcesResponseSchema.parse(
+        await corrections.sources(
+          context,
+          contract.accountingCorrectionSourcesQuerySchema.parse(query()),
+        ),
+      );
+    else if (path.length === 3 && path[0] === 'corrections' && path[2] === 'reverse' && writing)
+      value = contract.accountingMutationResponseSchema.parse(
+        await corrections.reverse(context, contract.financialIdSchema.parse(path[1]), {
+          ...contract.reverseAccountingSourceRequestSchema.parse(await body()),
+          commandId: commandId(),
+        }),
       );
     else if (path.length === 1 && path[0] === 'portfolios') {
       if (request.method === 'GET')

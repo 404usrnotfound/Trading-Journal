@@ -147,6 +147,12 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: RequestInit) => {
+      if (url.includes('/supplied-components/observations?'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ sourceRevision: '0', items: [], nextCursor: null }),
+        };
       if (url.endsWith('/catalog'))
         return {
           ok: failCatalog === null,
@@ -169,6 +175,12 @@ afterEach(() => {
 });
 
 describe('Account performance workspace', () => {
+  it('carries explicit supplied source selections from the report URL into the authoritative request', async () => {
+    navigation.params.set('suppliedPositionIds', uuid(99));
+    mount();
+    await screen.findByText('1100.000000001 EUR');
+    expect(requests[0]?.suppliedPositionIds).toEqual([uuid(99)]);
+  });
   it('shows exact report values and separates deposits, income and costs from trading performance for viewers', async () => {
     mount();
     expect(await screen.findByText('1100.000000001 EUR')).toBeInTheDocument();
@@ -341,6 +353,52 @@ describe('Account performance workspace', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/Too small|at least/i);
   });
 
+  it('browses a late account and requires explicit scope instead of reporting a truncated account page', async () => {
+    currentCatalog = {
+      ...catalog,
+      accountChoicesComplete: false,
+      accounts: Array.from({ length: 200 }, (_, index) => ({
+        ...option(1000 + index, `Account ${index}`),
+        environment: 'live' as const,
+      })),
+      pageCursors: { accounts: uuid(1199) },
+    };
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.includes('/catalog?resource=accounts'))
+          return Response.json({
+            ...catalog,
+            accounts: [{ ...option(1501, 'Late account 501'), environment: 'live' }],
+            accountChoicesComplete: false,
+            pageCursors: { accounts: null },
+          });
+        return originalFetch(url, init);
+      }),
+    );
+    mount();
+    expect(
+      await screen.findByText(/This reference page does not contain every account/),
+    ).toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+    fireEvent.click(
+      screen.getByText('Search and browse all filter choices', { selector: 'summary' }),
+    );
+    const browse = screen.getByRole('group', { name: 'Browse accounts' });
+    fireEvent.change(within(browse).getByLabelText('Search accounts'), {
+      target: { value: 'Late account 501' },
+    });
+    fireEvent.click(within(browse).getByRole('button', { name: 'Search accounts' }));
+    await screen.findByRole('option', { name: 'Late account 501' });
+    const select = screen.getByRole('listbox', { name: 'Accounts' }) as HTMLSelectElement;
+    for (const option of select.options) option.selected = option.value === uuid(1501);
+    fireEvent.change(select);
+    fireEvent.click(screen.getByRole('button', { name: 'Apply report settings' }));
+    await screen.findByText('1100.000000001 EUR');
+    expect(requests.at(-1)?.accountIds).toEqual([uuid(1501)]);
+    expect(requests.at(-1)?.detail).toBe('summary');
+  });
   it('offers a setup path rather than a made-up zero account report', async () => {
     currentCatalog = { ...catalog, accounts: [], portfolios: [] };
     mount();

@@ -1,5 +1,21 @@
 # Phase 15: performance
 
+## Post-audit reporting remediation
+
+The [retained remediation evidence](reporting-remediation-evidence.json) records new comparisons from 23 October 2026. This section describes partial improvements; the historical Phase 15 report below retains its original measurements. **FA-04 remains open for full capacity verification.** Million-fill reporting, ten concurrent readers, asynchronous large reports and the proposed latency budgets have not been demonstrated.
+
+The accounting engine now shares the existing tested FX evidence index instead of repeatedly validating/scanning the complete rate history for every component. Reference reads are cached within the same authorized repeatable-read transaction, keyed by account plus economic boundary and instrument version. Source-time lookup uses actual lot/match/transfer dependencies. A conservative cohort proof removes only validated, historically closed native-flat campaigns before expensive analytics replay; open, recent, unsupported, inconsistent and multi-leg incomplete campaigns remain eligible for the ordinary engine and its explanations.
+
+| Measured scope                                                                          | Original                                             | Remediated                                          | Financial comparison                                                                      |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Pure accounting: 10,000 round trips, 20,000 fills, 30,000 postings, 50 books, 365 rates | 50,152.90 ms                                         | 553.26 ms full; 601.50 ms summary                   | Full DTO hash identical; independent EUR performance 72,000 and variance zero             |
+| Same pure response                                                                      | 18,814,281 bytes                                     | 5,554 bytes summary                                 | All financial totals unchanged; explicit complete evidence counts and bounded pages       |
+| PostgreSQL: 1,200 campaigns, 2,400 fills, 100 accounts, 500 books                       | 15,793.45 ms; 4,613 statements; 6,925,944 bytes full | 4,690.25 ms; 3,118 statements; 11,027 bytes summary | Identical financial-only DTO hash; source generation and coverage retained                |
+| Recent 200-campaign cohort in that 1,200-campaign history                               | `ANALYTICS_SCOPE_TOO_LARGE` before cohort selection  | 1,089.02 ms; 1,005,013 bytes                        | New successful scope; no completed broad baseline DTO claimed                             |
+| Comparable bounded recent cohort                                                        | 322.95 ms                                            | 385.33 ms                                           | Full DTO hash identical after excluding the response clock; no timing improvement claimed |
+
+These are single measured sequential calls, with concurrent local verification and natural cache/heap variation. They are not p95 estimates or a concurrency benchmark. Source-only original accounting/analytics factories and the original kernel were retained from the reviewed HEAD; both paths used the same owned PostgreSQL fixture, roles, facts and unchanged SQL timeouts. The final query counts are actual executed statements, not distinct query shapes. The summary/page path bounds evidence transport without silently truncating totals. Remaining per-book source reads and broad-scope fact guards are explicit limitations rather than solved scaling problems.
+
 Phase 15 profiles the delivered application at the merged Phase 14 baseline,
 `8359d63e26e700764b07b5ce312f1f60b584cafe`. Current `origin/main` was fetched and
 verified to contain that commit before creating `perf/phase-15-profiling`. The

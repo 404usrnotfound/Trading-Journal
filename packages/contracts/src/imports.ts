@@ -293,7 +293,8 @@ export const importBatchDetailSchema = z.strictObject({
     .max(100),
 });
 export const importHistoryResponseSchema = z.strictObject({
-  items: importBatchResponseSchema.array().max(50),
+  // History is metadata; selecting a batch loads its persisted review separately.
+  items: importBatchResponseSchema.omit({ preview: true }).strip().array().max(50),
   nextCursor: financial.financialIdSchema.nullable(),
 });
 export const importTemplateResponseSchema = z.strictObject({

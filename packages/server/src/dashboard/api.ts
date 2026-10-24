@@ -1,4 +1,8 @@
-import { dashboardRequestSchema, financialIdSchema } from '@journal/contracts';
+import {
+  dashboardRequestSchema,
+  dashboardCatalogQuerySchema,
+  financialIdSchema,
+} from '@journal/contracts';
 import type { ServerServices } from '../services.js';
 import { ApplicationError, inaccessible } from '../errors.js';
 import { readBoundedJson } from '../security.js';
@@ -15,7 +19,11 @@ export function createDashboardApi(
     );
     let result: unknown;
     if (path.length !== 1) throw inaccessible();
-    if (path[0] === 'catalog' && request.method === 'GET') result = await service.catalog(context);
+    if (path[0] === 'catalog' && request.method === 'GET')
+      result = await service.catalog(
+        context,
+        dashboardCatalogQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams)),
+      );
     else if (path[0] === 'reports' && request.method === 'POST')
       result = await service.report(
         context,

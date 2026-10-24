@@ -21,6 +21,11 @@ const destinations = [
   { id: 'strategies', path: '/strategies', label: 'Strategies', icon: Layers },
   { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'accounts', path: '/accounts', label: 'Accounts', icon: Wallet },
+  { id: 'risk', path: '/risk', label: 'Risk & sizing', icon: Layers },
+  { id: 'reconciliation', path: '/reconciliation', label: 'Reconciliation', icon: Wallet },
+  { id: 'portability', path: '/portability', label: 'Data & backups', icon: FileInput },
+  { id: 'reviews', path: '/reviews', label: 'Period reviews', icon: BookOpen },
+  { id: 'supplied-values', path: '/supplied-values', label: 'Supplied values', icon: Layers },
 ] as const;
 export type ApplicationDestination = (typeof destinations)[number]['id'];
 

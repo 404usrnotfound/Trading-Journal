@@ -59,9 +59,11 @@ export function createAuthentication(
       modelName: 'rateLimit',
       window: 60,
       max: 100,
-      // The gateway adds a separate persisted per-account limit. With no trusted
-      // proxy configured, this ceiling deliberately applies to the shared ingress.
-      customRules: { '/sign-in/email': { window: 15 * 60, max: 100 } },
+      // Public sign-in already has atomic persisted per-identity limits and
+      // bounded credential admission in the gateway. All callers have the same
+      // untrusted-IP fallback, so another IP quota would lock every user out.
+      // Other library endpoint limits remain enabled.
+      customRules: { '/sign-in/email': false },
     },
     logger: { disabled: true },
   });

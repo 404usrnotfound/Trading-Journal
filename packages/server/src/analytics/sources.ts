@@ -4,6 +4,7 @@ import type {
   AnalyticsReportRequest,
   JournalPlanDefinition,
   JournalDocument,
+  SuppliedReference,
 } from '@journal/contracts';
 import {
   allocateDecimal,
@@ -14,13 +15,13 @@ import {
   InventoryError,
   originalRiskR,
   quantizeDecimal,
+  translateAmount,
   replayCampaignInventory,
   sumDecimals,
   valueInventory,
   type AnalyticsCampaign,
   type AnalyticsDimensionValue,
   type AnalyticsSourceMetric,
-  type FxObservation,
   type InventoryCampaignAllocation,
   type InventoryCost,
   type InventoryMetric,
@@ -28,11 +29,14 @@ import {
   type PinnedInventoryRate,
 } from '@journal/domain';
 import type { AuthorizationContext } from '../services.js';
-import { financialConflict, queryRows } from '../financial/repository.js';
+import { financialConflict, financialInvalid, queryRows } from '../financial/repository.js';
+import { componentReference, selectComponents } from '../supplied/selection.js';
 import { canonicalFinancialInstant } from '../financial/observations.js';
 import { financialInstantMicros } from '../financial/reference-data.js';
 import { journalRiskCurrencyResult } from '../journal/financial.js';
 import { createAnalyticsFxSelector } from './fx.js';
+import { analyticsCohort } from './cohort.js';
+import { readReportFxEvidence } from '../financial/fx-evidence.js';
 
 type LegRow = {
   id: string;
@@ -124,6 +128,7 @@ type PriceRow = {
   version_metadata: Record<string, unknown>;
 };
 export type AnalyticsProvenance = {
+  suppliedResult?: SuppliedReference;
   originalPlanId: string | null;
   originalPlanHash: string | null;
   metadataPlanId: string | null;
@@ -319,6 +324,7 @@ function feeMetric(
       costs.map((cost) => cost.id),
     );
   const translated = costs.map((cost) => {
+    if (decimalValue(cost.amount).isZero()) return available('0');
     const rate = sourceRate(cost.reportingFx, cost.currencyId, currency);
     return rate === null
       ? unavailable(['missing_fee_fx'], [cost.id])
@@ -380,7 +386,7 @@ export async function readAnalyticsSources(
   },
 ): Promise<AnalyticsSourceRecord[]> {
   const { query, sourceRevision: revision, metadataAsOf, timezone } = input;
-  const legs = bounded(
+  let legs = bounded(
     await queryRows<LegRow>(
       tx,
       sql`
@@ -436,11 +442,10 @@ export async function readAnalyticsSources(
     ),
     20000,
   );
-  const campaignIds = unique(legs.map((leg) => leg.trade_id));
-  bounded(campaignIds, 1000);
+  let campaignIds = unique(legs.map((leg) => leg.trade_id));
   if (!campaignIds.length) return [];
-  const legIds = idsBinding(legs.map((leg) => leg.id));
-  const fills = bounded(
+  let legIds = idsBinding(legs.map((leg) => leg.id));
+  let fills = bounded(
     await queryRows<FillRow>(
       tx,
       sql`
@@ -462,6 +467,27 @@ export async function readAnalyticsSources(
     ),
     50000,
   );
+  const cohort = analyticsCohort(
+    legs,
+    fills,
+    query.from,
+    (leg, fill) =>
+      leg.capability === 'native-linear' &&
+      leg.holding_mode === 'netted' &&
+      (leg.direction === 'long' || leg.family !== 'crypto_spot') &&
+      (!fill ||
+        (fill.capability === 'native-linear' &&
+          fill.price_raw !== null &&
+          fill.multiplier_raw !== null &&
+          compatibleVersion(fill, leg))),
+  );
+  legs = legs.filter((leg) => cohort.has(leg.trade_id));
+  campaignIds = unique(legs.map((leg) => leg.trade_id));
+  bounded(campaignIds, 1000);
+  if (!campaignIds.length) return [];
+  const selectedLegs = new Set(legs.map((leg) => leg.id));
+  fills = fills.filter((fill) => selectedLegs.has(fill.leg_id));
+  legIds = idsBinding([...selectedLegs]);
   const fallbackSetIds = unique(
     fills
       .filter((fill) => fill.allocated_principal === null && fill.principal_raw !== null)
@@ -537,20 +563,35 @@ export async function readAnalyticsSources(
     }>(
       tx,
       sql`
-    SELECT f.id,f.account_id,${instantSql('f.economic_at')} AS economic_at,
-      CASE WHEN attributed.instrument_id IS NULL THEN NULL ELSE ARRAY[attributed.instrument_id] END AS instrument_ids,
-      (sum(coalesce(jsonb_array_length(attributed.allocations),0)) OVER ())::text AS nested_allocation_count,
-      CASE WHEN sum(coalesce(jsonb_array_length(attributed.allocations),0)) OVER ()<=${remainingFactBudget}
-        THEN attributed.allocations ELSE NULL END AS allocations
-    FROM app.fees f LEFT JOIN LATERAL (SELECT v.instrument_id,ev.payload->'allocations' AS allocations
-      FROM app.inventory_events ev JOIN app.instrument_versions v ON v.workspace_id=ev.workspace_id AND v.id=ev.instrument_version_id
-      WHERE ev.workspace_id=f.workspace_id AND ev.kind='cost-attribution' AND ev.payload->'cost'->>'id'=f.id::text
-        AND ev.source_revision<=${revision}::integer AND ev.economic_at<=${query.to}::timestamptz
-      ORDER BY ev.source_revision DESC LIMIT 1) attributed ON true
-    WHERE f.workspace_id=${context.workspaceId}::uuid AND f.execution_id IS NULL
-      AND f.account_id=ANY(${idsBinding(unique(legs.map((leg) => leg.account_id)))}::uuid[])
-      AND f.source_revision<=${revision}::integer AND f.economic_at<=${query.to}::timestamptz
-      AND f.amount<>0 ORDER BY f.id LIMIT 10001`,
+    WITH charges AS (
+      SELECT f.id,f.account_id,f.economic_at,
+        CASE WHEN attributed.instrument_id IS NULL THEN NULL ELSE ARRAY[attributed.instrument_id] END AS instrument_ids,
+        attributed.allocations
+      FROM app.fees f LEFT JOIN LATERAL (SELECT v.instrument_id,ev.payload->'allocations' AS allocations
+        FROM app.inventory_events ev JOIN app.instrument_versions v ON v.workspace_id=ev.workspace_id AND v.id=ev.instrument_version_id
+        WHERE ev.workspace_id=f.workspace_id AND ev.kind='cost-attribution' AND ev.payload->'cost'->>'id'=f.id::text
+          AND ev.source_revision<=${revision}::integer AND ev.economic_at<=${query.to}::timestamptz
+        ORDER BY ev.source_revision DESC LIMIT 1) attributed ON true
+      WHERE f.workspace_id=${context.workspaceId}::uuid AND f.execution_id IS NULL
+        AND f.account_id=ANY(${idsBinding(unique(legs.map((leg) => leg.account_id)))}::uuid[])
+        AND f.source_revision<=${revision}::integer AND f.economic_at<=${query.to}::timestamptz AND f.amount<>0
+      UNION ALL
+      SELECT c.id,c.account_id,c.economic_at,NULL::uuid[],NULL::jsonb
+      FROM app.account_cash_events c
+      WHERE c.workspace_id=${context.workspaceId}::uuid
+        AND c.account_id=ANY(${idsBinding(unique(legs.map((leg) => leg.account_id)))}::uuid[])
+        AND c.source_revision<=${revision}::integer AND c.economic_at<=${query.to}::timestamptz
+        AND c.kind IN ('financing','interest-expense') AND c.amount<>0
+        AND NOT EXISTS (SELECT 1 FROM app.ledger_events e JOIN app.ledger_events r
+          ON r.workspace_id=e.workspace_id AND r.reversal_of_id=e.id
+          WHERE e.workspace_id=c.workspace_id AND e.account_cash_event_id=c.id
+            AND r.source_revision<=${revision}::integer)
+    )
+    SELECT id,account_id,${instantSql('economic_at')} AS economic_at,instrument_ids,
+      (sum(coalesce(jsonb_array_length(allocations),0)) OVER ())::text AS nested_allocation_count,
+      CASE WHEN sum(coalesce(jsonb_array_length(allocations),0)) OVER ()<=${remainingFactBudget}
+        THEN allocations ELSE NULL END AS allocations
+    FROM charges ORDER BY id LIMIT 10001`,
     ),
     10000,
   );
@@ -605,34 +646,31 @@ export async function readAnalyticsSources(
     ),
     10000,
   );
-  const fxRows = bounded(
-    await queryRows<{
-      id: string;
-      base_currency_id: string;
-      quote_currency_id: string;
-      rate_raw: string;
-      observed_at: string;
-      source: string;
-    }>(
-      tx,
-      sql`
-    SELECT o.id,o.base_currency_id,o.quote_currency_id,o.rate_raw,${instantSql('o.observed_at')} AS observed_at,o.source
-    FROM app.fx_observations o WHERE o.workspace_id=${context.workspaceId}::uuid AND o.observed_at<=${query.to}::timestamptz
-      AND COALESCE((o.payload->>'sourceRevision')::numeric,0)<=${revision}::integer
-      AND NOT EXISTS (SELECT 1 FROM app.fx_observations newer WHERE newer.workspace_id=o.workspace_id
-        AND newer.supersedes_id=o.id AND COALESCE((newer.payload->>'sourceRevision')::numeric,0)<=${revision}::integer)
-    ORDER BY o.observed_at,o.id LIMIT 10001`,
-    ),
-    10000,
+  const legCurrencies = new Map(legs.map((leg) => [leg.id, leg.settlement_currency_id]));
+  const suppliedResults = await selectComponents(
+    tx,
+    context,
+    query.suppliedCampaignResultIds,
+    revision,
+    'campaign-net-result',
   );
-  const fxObservations: FxObservation[] = fxRows.map((row) => ({
-    id: row.id,
-    baseCurrencyId: row.base_currency_id,
-    quoteCurrencyId: row.quote_currency_id,
-    rate: row.rate_raw,
-    observedAt: row.observed_at,
-    source: row.source,
-  }));
+  const fxObservations = await readReportFxEvidence(tx, context, {
+    pairs: [
+      ...suppliedResults.map((value) => [value.currencyId, query.reportingCurrencyId] as const),
+      ...legs.map((leg) => [leg.settlement_currency_id, query.reportingCurrencyId] as const),
+      ...fees.flatMap(
+        (fee) =>
+          [
+            [fee.currency_id, query.reportingCurrencyId],
+            [fee.currency_id, legCurrencies.get(fee.leg_id) ?? null],
+          ] as const,
+      ),
+    ],
+    asOf: query.to,
+    sourceRevision: revision,
+    sourcePriority: query.fxPolicy.sourcePriority,
+    scopeError: 'ANALYTICS_SCOPE_TOO_LARGE',
+  });
   if (
     fills.length +
       fallbackWeights.length +
@@ -641,7 +679,7 @@ export async function readAnalyticsSources(
       standaloneAllocationFacts +
       obligations.length +
       prices.length +
-      fxRows.length >
+      fxObservations.length >
     50000
   )
     throw financialConflict(
@@ -1165,6 +1203,67 @@ export async function readAnalyticsSources(
         fxObservationIds: unique(fxIds),
       },
     });
+  }
+  const suppliedTradeIds = new Set<string>();
+  for (const source of suppliedResults) {
+    if (suppliedTradeIds.has(source.tradeId!))
+      throw financialInvalid('Select one supplied net result per campaign.');
+    suppliedTradeIds.add(source.tradeId!);
+    const index = records.findIndex((record) => record.id === source.tradeId);
+    if (index < 0)
+      throw financialInvalid(
+        'The selected supplied campaign must belong to this analytics cohort.',
+      );
+    const record = records[index]!;
+    if (record.exclusionReasons.includes('partial_campaign_scope'))
+      throw financialInvalid(
+        'A supplied lifetime result requires the complete campaign account scope.',
+      );
+    if (
+      financialInstantMicros(source.observedAt) > financialInstantMicros(query.to) ||
+      financialInstantMicros(query.to) - financialInstantMicros(source.observedAt) >
+        BigInt(query.priceMaxAgeMilliseconds) * 1000n
+    )
+      throw financialConflict(
+        'STALE_SUPPLIED_COMPONENT',
+        'The supplied campaign result must be current at the analytics boundary.',
+      );
+    const rate = selectDisplayFx(source.currencyId, query.reportingCurrencyId, source.observedAt);
+    const translated = translateAmount(
+      { amount: source.amount, currencyId: source.currencyId },
+      query.reportingCurrencyId,
+      rate,
+    );
+    const net =
+      translated.state === 'available'
+        ? available(translated.value.amount)
+        : unavailable(translated.reasons, translated.missingReferences);
+    const complete =
+      source.sourceInput.kind === 'campaign-net-result' &&
+      source.sourceInput.resultDefinition === 'completed-realized-net';
+    const status = complete ? 'completed' : record.status;
+    const unknown = unavailable(['supplied_result_decomposition_unavailable'], [source.id]);
+    records[index] = {
+      ...record,
+      status,
+      closedAt: complete
+        ? (fillsByCampaign.get(record.id)?.at(-1)?.economic_at ?? record.closedAt)
+        : record.closedAt,
+      netPnl: net,
+      realizedPnl: complete ? net : unknown,
+      unrealizedPnl: complete ? available('0') : unknown,
+      grossPnl: unknown,
+      fees: unknown,
+      rMultiple: unavailable(['supplied_result_original_risk_not_recomputed'], [source.id]),
+      provenance: {
+        ...record.provenance,
+        fxObservationIds: unique([
+          ...record.provenance.fxObservationIds,
+          ...(rate.state === 'available' ? rate.value.observationIds : []),
+        ]),
+        suppliedResult: componentReference(source),
+      },
+    };
   }
   return records;
 }

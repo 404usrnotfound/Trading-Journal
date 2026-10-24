@@ -1,0 +1,72 @@
+.review-workspace {
+  display: grid;
+  gap: 1.25rem;
+}
+.review-workspace nav {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.review-workspace fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  min-width: 0;
+}
+.review-workspace legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.review-field {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+}
+.review-field input,
+.review-field textarea,
+.review-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+}
+.review-field textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+.review-field small {
+  line-height: 1.5;
+}
+.review-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.review-check {
+  display: block;
+  margin: 0.7rem 0;
+}
+.review-workspace details {
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+}
+.review-workspace :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .review-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -225,6 +225,8 @@ const archiveInputSchema = z.strictObject({
 const queryFilterSchema = z.strictObject({
   includeArchived: z.boolean().optional(),
   limit: z.number().int().min(1).max(200).optional(),
+  afterId: financialUuid.optional(),
+  search: z.string().trim().min(1).max(160).optional(),
 });
 
 async function readCurrency(
@@ -273,12 +275,14 @@ async function readInstrument(
   tx: DbTransaction,
   workspaceId: string,
   id: string,
+  versionId?: string,
 ): Promise<InstrumentDto> {
   const rows = await queryRows<{ id: string; name: string; revision: number; version_id: string }>(
     tx,
     sql`SELECT i.id,i.name,i.revision,v.id AS version_id FROM app.instruments i
       JOIN LATERAL (SELECT id FROM app.instrument_versions WHERE workspace_id=i.workspace_id
-        AND instrument_id=i.id ORDER BY version DESC LIMIT 1) v ON true
+        AND instrument_id=i.id AND (${versionId ?? null}::uuid IS NULL OR id=${versionId ?? null}::uuid)
+        ORDER BY version DESC LIMIT 1) v ON true
       WHERE i.workspace_id=${workspaceId} AND i.id=${id}`,
   );
   const row = rows[0];
@@ -1187,11 +1191,18 @@ export function createCatalogServices(platform: FinancialPlatform) {
     workspaceId: string,
     table: string,
     filter: QueryFilter,
+    unclassified = false,
   ): Promise<string[]> {
+    const relation = sql`${sql.identifier('app')}.${sql.identifier(table)}`;
+    const label = sql.identifier(table === 'trades' ? 'title' : 'name');
     const rows = await queryRows<{ id: string }>(
       tx,
-      sql`SELECT id FROM ${sql.identifier('app')}.${sql.identifier(table)}
+      sql`SELECT id FROM ${relation}
       WHERE workspace_id=${workspaceId} AND (${filter.includeArchived ?? false} OR archived_at IS NULL)
+      AND (${filter.afterId ?? null}::uuid IS NULL OR (created_at,id) >
+        (SELECT created_at,id FROM ${relation} WHERE workspace_id=${workspaceId} AND id=${filter.afterId ?? null}::uuid))
+      AND (${filter.search ?? null}::text IS NULL OR ${label} ILIKE ${`%${filter.search?.replace(/[\\%_]/gu, '\\$&') ?? ''}%`})
+      AND (${!unclassified} OR NOT EXISTS(SELECT 1 FROM app.trade_strategy_links l WHERE l.workspace_id=${workspaceId} AND l.trade_id=${relation}.id))
       ORDER BY created_at,id LIMIT ${filter.limit ?? 100}`,
     );
     return rows.map((row) => row.id);
@@ -1224,6 +1235,16 @@ export function createCatalogServices(platform: FinancialPlatform) {
       platform.withWorkspaceContext(context, (tx) =>
         readInstrument(tx, context.workspaceId, financialUuid.parse(id)),
       ),
+    getInstrumentVersion: (context: AuthorizationContext, versionId: string) =>
+      platform.withWorkspaceContext(context, async (tx) => {
+        const version = await requireInstrumentVersion(
+          tx,
+          context.workspaceId,
+          financialUuid.parse(versionId),
+          false,
+        );
+        return readInstrument(tx, context.workspaceId, version.instrumentId, version.id);
+      }),
     getOrder: (context: AuthorizationContext, id: string) =>
       platform.withWorkspaceContext(context, (tx) =>
         readOrder(tx, context.workspaceId, financialUuid.parse(id)),
@@ -1279,8 +1300,7 @@ export function createCatalogServices(platform: FinancialPlatform) {
       platform.withWorkspaceContext(context, async (tx) => {
         const { environment, ...rest } = z
           .strictObject({
-            includeArchived: z.boolean().optional(),
-            limit: z.number().int().min(1).max(200).optional(),
+            ...queryFilterSchema.shape,
             environment: z.enum(['live', 'paper']).optional(),
           })
           .parse(filter);
@@ -1289,6 +1309,9 @@ export function createCatalogServices(platform: FinancialPlatform) {
           sql`SELECT id FROM app.accounts WHERE workspace_id=${context.workspaceId}
         AND (${rest.includeArchived ?? false} OR archived_at IS NULL)
         AND (${environment ?? null}::text IS NULL OR environment=${environment ?? null})
+        AND (${rest.afterId ?? null}::uuid IS NULL OR (created_at,id) >
+          (SELECT created_at,id FROM app.accounts WHERE workspace_id=${context.workspaceId} AND id=${rest.afterId ?? null}::uuid))
+        AND (${rest.search ?? null}::text IS NULL OR name ILIKE ${`%${rest.search?.replace(/[\\%_]/gu, '\\$&') ?? ''}%`})
         ORDER BY created_at,id LIMIT ${rest.limit ?? 100}`,
         );
         const result = [];
@@ -1316,14 +1339,22 @@ export function createCatalogServices(platform: FinancialPlatform) {
             sql`SELECT jsonb_build_object('id',id,'name',name,
         'sourceNamespace',source_namespace,'revision',revision,'archivedAt',archived_at) AS data
         FROM app.brokers WHERE workspace_id=${context.workspaceId} AND (${parsed.includeArchived ?? false} OR archived_at IS NULL)
+        AND (${parsed.afterId ?? null}::uuid IS NULL OR (created_at,id) >
+          (SELECT created_at,id FROM app.brokers WHERE workspace_id=${context.workspaceId} AND id=${parsed.afterId ?? null}::uuid))
+        AND (${parsed.search ?? null}::text IS NULL OR name ILIKE ${`%${parsed.search?.replace(/[\\%_]/gu, '\\$&') ?? ''}%`})
         ORDER BY created_at,id LIMIT ${parsed.limit ?? 100}`,
           )
         ).map((row) => row.data);
       }),
-    listTrades: (context: AuthorizationContext, filter: QueryFilter = {}) =>
+    listTrades: (
+      context: AuthorizationContext,
+      filter: QueryFilter & { unclassified?: boolean | undefined } = {},
+    ) =>
       platform.withWorkspaceContext(context, async (tx) => {
-        const parsed = queryFilterSchema.parse(filter);
-        const ids = await listIds(tx, context.workspaceId, 'trades', parsed);
+        const { unclassified, ...parsed } = queryFilterSchema
+          .extend({ unclassified: z.boolean().optional() })
+          .parse(filter);
+        const ids = await listIds(tx, context.workspaceId, 'trades', parsed, unclassified);
         const result = [];
         for (const id of ids) result.push(await readTrade(tx, context.workspaceId, id));
         return result;

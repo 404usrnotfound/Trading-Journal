@@ -1,0 +1,192 @@
+{
+  "date": "2026-10-24",
+  "status": "measured-partial-remediation-capacity-gate-open",
+  "domain": {
+    "scenario": "10,000 completed round trips / 20,000 fills / 30,000 cash postings / 50 books / 365 FX observations; independent EUR performance 72,000 and zero variance",
+    "before": {
+      "label": "complete-baseline",
+      "calculateMilliseconds": 50152.897265,
+      "jsonBytes": 18814281,
+      "sha256": "4f339b7eb3054d073ff6a8cfce6cd01dc3a4ba84063b5d0bec84df7f13c4da95",
+      "heapBefore": 94926376,
+      "heapAfter": 229451568,
+      "reportingPerformance": {
+        "state": "available",
+        "value": "72000",
+        "knownSubtotal": "72000",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "variance": {
+        "state": "available",
+        "value": "0",
+        "knownSubtotal": "0",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "fxDependencies": 70004
+    },
+    "afterFull": {
+      "label": "complete-after",
+      "calculateMilliseconds": 553.258165,
+      "jsonBytes": 18814281,
+      "sha256": "4f339b7eb3054d073ff6a8cfce6cd01dc3a4ba84063b5d0bec84df7f13c4da95",
+      "heapBefore": 67779816,
+      "heapAfter": 130367568,
+      "reportingPerformance": {
+        "state": "available",
+        "value": "72000",
+        "knownSubtotal": "72000",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "variance": {
+        "state": "available",
+        "value": "0",
+        "knownSubtotal": "0",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "fxDependencies": 70004
+    },
+    "afterSummary": {
+      "label": "complete-summary",
+      "calculateMilliseconds": 601.4967529999999,
+      "jsonBytes": 5554,
+      "sha256": "a740d3addc56d9a688606239bfaff5cbbcdc603955415171155a17fab3fd506b",
+      "heapBefore": 68191776,
+      "heapAfter": 95411216,
+      "reportingPerformance": {
+        "state": "available",
+        "value": "72000",
+        "knownSubtotal": "72000",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "variance": {
+        "state": "available",
+        "value": "0",
+        "knownSubtotal": "0",
+        "currencyId": "EUR",
+        "reasons": [],
+        "missingReferences": []
+      },
+      "fxDependencies": 0
+    },
+    "fullDtoEquality": true,
+    "sampling": "one fresh process per measurement, no tail-latency claim"
+  },
+  "postgres": {
+    "fixture": {
+      "trades": 1200,
+      "executions": 2400,
+      "accounts": 100,
+      "books": 500,
+      "fxObservations": 365,
+      "seed": "phase-15-v1"
+    },
+    "observations": [
+      {
+        "name": "original-accounting-full",
+        "state": "computed",
+        "milliseconds": 15793.445465,
+        "queries": 4613,
+        "sqlMilliseconds": 3322.706409999977,
+        "jsonBytes": 6925944,
+        "heapBefore": 50918912,
+        "heapAfter": 133049592
+      },
+      {
+        "name": "current-accounting-summary",
+        "state": "computed",
+        "milliseconds": 4690.247316999998,
+        "queries": 3118,
+        "sqlMilliseconds": 4240.004225999892,
+        "jsonBytes": 11027,
+        "heapBefore": 133052048,
+        "heapAfter": 187076464
+      },
+      {
+        "name": "current-accounting-fx-page",
+        "state": "computed",
+        "milliseconds": 7081.905882999999,
+        "queries": 3118,
+        "sqlMilliseconds": 6555.990525000045,
+        "jsonBytes": 104708,
+        "heapBefore": 187102624,
+        "heapAfter": 242937832
+      },
+      {
+        "name": "original-analytics-recent-all",
+        "state": "failed",
+        "milliseconds": 292.66604200000074,
+        "code": "ANALYTICS_SCOPE_TOO_LARGE"
+      },
+      {
+        "name": "current-analytics-recent-all",
+        "state": "computed",
+        "milliseconds": 1089.0187369999985,
+        "queries": 12,
+        "sqlMilliseconds": 716.6687060000004,
+        "jsonBytes": 1005013,
+        "heapBefore": 64916712,
+        "heapAfter": 80679640
+      },
+      {
+        "name": "original-analytics-recent-bounded",
+        "state": "computed",
+        "milliseconds": 322.9491240000025,
+        "queries": 12,
+        "sqlMilliseconds": 308.7336040000009,
+        "jsonBytes": 31538,
+        "heapBefore": 80681624,
+        "heapAfter": 90137832
+      },
+      {
+        "name": "current-analytics-recent-bounded",
+        "state": "computed",
+        "milliseconds": 385.3292250000013,
+        "queries": 12,
+        "sqlMilliseconds": 376.0843119999954,
+        "jsonBytes": 31538,
+        "heapBefore": 90139416,
+        "heapAfter": 94581632
+      }
+    ],
+    "accountingFinancialHash": "f5856b3ed88577c95488f6927ce4a527a53d57e48a1b67da7a758deb4dc42cd4",
+    "boundedAnalyticsHash": "dc3732009fa51aed069c98b65c25d92b95219663d8300c7b969a93fc34e2055c",
+    "recentCampaigns": 200,
+    "sourceRevision": "1179",
+    "summaryCoverage": {
+      "mode": "summary",
+      "fxCount": 15904,
+      "priceCount": 500,
+      "sourceIdCount": 7900,
+      "page": null
+    },
+    "limitations": [
+      "One measured sequential request per scope; no p95 or ten-reader capacity claim.",
+      "Original factories/kernel are readonly copies from HEAD before remediation; current schema/roles/shared unaffected dependencies are used.",
+      "No guards, indices or timeouts changed for the benchmark.",
+      "Million-fill/bulk processing and bounded server CPU over all histories remain unestablished."
+    ]
+  },
+  "regressionCoverage": [
+    "summary preserves all totals and every dependency can be recovered with pinned bounded pages",
+    "source-revision races and current tenant authorization remain enforced",
+    "closed historical native-flat cohort proof retains open, recent, multi-leg, unsupported and inconsistent histories",
+    "unrelated 10,001-observation FX test is tracked in tests/integration/report-fx-scope.test.ts"
+  ],
+  "limits": [
+    "The initial SQL experiment accidentally counted query shapes; this final artifact uses instrument.snapshot().businessQueries, actual statement count.",
+    "Final PostgreSQL pair includes reference caching: 4,613 to 3,118 statements. Remaining per-book source loads are not solved.",
+    "SQL timings reflect concurrent local verification and cache/host variation, not isolated workload or production p95.",
+    "Full-history reports over the existing leg/fact guards, million-fill capacity, ten concurrent readers, asynchronous large-report execution and published latency budgets remain unproven.",
+    "Explicit summary/page transport is a working bounded result path, not a higher timeout/cap or silent truncation."
+  ]
+}

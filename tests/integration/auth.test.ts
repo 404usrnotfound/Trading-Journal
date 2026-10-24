@@ -846,29 +846,77 @@ describe('real database authentication and tenant boundaries', () => {
     }
   }, 60_000);
 
-  it('checks persisted ingress limits before allocating varied-email buckets and bounds expiry cleanup', async () => {
+  it('keeps unrelated valid users available after repeated and varied-email attacks across replicas', async () => {
     await administrator.pool.query('DELETE FROM auth.rate_limit');
+    // A previous release's exhausted shared bucket must not deny any identity.
     await administrator.pool.query(
       'INSERT INTO auth.rate_limit(id,key,count,last_request) VALUES ($1,$2,100,floor(extract(epoch FROM clock_timestamp())*1000)::bigint)',
       [randomUUID(), 'journal:login:ingress'],
     );
-    for (let index = 0; index < 5; index += 1) {
-      const response = await services.handleAuthRequest(
+    const replica = createServerServices(
+      parseServerConfig({
+        NODE_ENV: 'test',
+        APP_ORIGIN: origin,
+        DATABASE_URL: process.env.TEST_APP_DATABASE_URL,
+        AUTH_DATABASE_URL: process.env.TEST_AUTH_DATABASE_URL,
+        JOB_DATABASE_URL: process.env.TEST_JOB_DATABASE_URL,
+        BETTER_AUTH_SECRET: 'integration-test-secret-of-at-least-32-characters',
+        LOG_LEVEL: 'silent',
+      }),
+    );
+    try {
+      const unknownEmail = `missing-${randomUUID()}@example.test`;
+      for (let index = 0; index < 100; index += 1) {
+        const response = await services.handleAuthRequest(
+          request('/api/auth/sign-in/email', 'POST', { email: unknownEmail, password }),
+        );
+        expect(response.status).toBe(index < 10 ? 401 : 429);
+      }
+      const replicaDenial = await replica.handleAuthRequest(
         request('/api/auth/sign-in/email', 'POST', {
-          email: `spray-${randomUUID()}@example.test`,
+          email: unknownEmail.toUpperCase(),
           password,
         }),
       );
-      expect(response.status).toBe(429);
+      expect(replicaDenial.status).toBe(429);
+      expect(replicaDenial.headers.get('retry-after')).toBe('900');
+      // More than 100 real library admissions also catch an accidental second
+      // shared quota in Better Auth's fallback-IP limiter.
+      for (let index = 0; index < 101; index += 1) {
+        const handler = index % 2 === 0 ? services : replica;
+        const response = await handler.handleAuthRequest(
+          request('/api/auth/sign-in/email', 'POST', {
+            email: `spray-${randomUUID()}@example.test`,
+            password,
+          }),
+        );
+        expect(response.status).toBe(401);
+      }
+      const valid = await replica.handleAuthRequest(
+        request('/api/auth/sign-in/email', 'POST', { email: second.user.email, password }),
+      );
+      expect(valid.status).toBe(200);
+      expect(await valid.json()).toEqual({ ok: true });
+      expect(
+        await services.getSafeSession(
+          request('/api/auth/session', 'GET', undefined, cookiesFrom(valid)),
+        ),
+      ).toMatchObject({ user: { id: second.user.id } });
+      const rows = await administrator.pool.query<{ key: string }>(
+        'SELECT key FROM auth.rate_limit',
+      );
+      expect(rows.rows).toHaveLength(104);
+      expect(rows.rows.filter((row) => row.key.startsWith('journal:login:account:'))).toHaveLength(
+        103,
+      );
+    } finally {
+      await replica.close();
     }
-    const rejectedRows = await administrator.pool.query<{ count: number }>(
-      'SELECT count(*)::int AS count FROM auth.rate_limit',
-    );
-    expect(rejectedRows.rows[0]?.count).toBe(1);
-    await administrator.pool.query(
-      "UPDATE auth.rate_limit SET last_request=floor(extract(epoch FROM clock_timestamp())*1000)::bigint-900001 WHERE key='journal:login:ingress'",
-    );
-    for (let index = 0; index < 3; index += 1)
+  }, 60_000);
+
+  it('prunes expired identity counters in bounded batches and allows their next window', async () => {
+    await administrator.pool.query('DELETE FROM auth.rate_limit');
+    for (let index = 0; index < 120; index += 1)
       await administrator.pool.query(
         'INSERT INTO auth.rate_limit(id,key,count,last_request) VALUES ($1,$2,1,floor(extract(epoch FROM clock_timestamp())*1000)::bigint-900001)',
         [randomUUID(), `journal:login:expired-${index}`],
@@ -877,6 +925,15 @@ describe('real database authentication and tenant boundaries', () => {
     const expired = await administrator.pool.query<{ count: number }>(
       "SELECT count(*)::int AS count FROM auth.rate_limit WHERE key LIKE 'journal:login:expired-%'",
     );
-    expect(expired.rows[0]?.count).toBe(0);
+    expect(expired.rows[0]?.count).toBe(20);
+    await signIn(second.user.email);
+    const remaining = await administrator.pool.query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM auth.rate_limit WHERE key LIKE 'journal:login:expired-%'",
+    );
+    expect(remaining.rows[0]?.count).toBe(0);
+    await administrator.pool.query(
+      "UPDATE auth.rate_limit SET count=11,last_request=floor(extract(epoch FROM clock_timestamp())*1000)::bigint-900001 WHERE key LIKE 'journal:login:account:%'",
+    );
+    await signIn(second.user.email);
   });
 });

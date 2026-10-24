@@ -1,4 +1,5 @@
 import { ApplicationShell, WorkspaceAccessNotice } from '@/components/application-shell';
+import { AdvancedRecordWorkspace } from '@/components/record/advanced-record-workspace';
 import { ManualRecordWorkspace } from '@/components/record/manual-record-workspace';
 import { loadWorkspacePage } from '@/lib/workspace-page';
 import { notFound } from 'next/navigation';
@@ -20,7 +21,7 @@ export default async function RecordPage({
   if (Array.isArray(parameters.trade)) notFound();
   if (
     Array.isArray(parameters.mode) ||
-    (parameters.mode && !['record', 'existing'].includes(parameters.mode))
+    (parameters.mode && !['record', 'existing', 'advanced'].includes(parameters.mode))
   )
     notFound();
   return (
@@ -30,7 +31,9 @@ export default async function RecordPage({
       active="record"
       className="record-main"
     >
-      {workspace ? (
+      {workspace && parameters.mode === 'advanced' ? (
+        <AdvancedRecordWorkspace key={workspace.id} workspace={workspace} />
+      ) : workspace ? (
         <ManualRecordWorkspace
           key={workspace.id}
           workspace={workspace}

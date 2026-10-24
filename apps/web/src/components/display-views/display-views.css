@@ -1,0 +1,36 @@
+.saved-display-views {
+  margin-block: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+.saved-display-views summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.saved-display-views fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-block: 0.8rem;
+}
+.saved-display-views label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.saved-display-views input:not([type='checkbox']),
+.saved-display-views select {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  max-width: 100%;
+}
+.saved-display-views input:focus-visible,
+.saved-display-views select:focus-visible,
+.saved-display-views summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

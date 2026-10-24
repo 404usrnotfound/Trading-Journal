@@ -621,6 +621,17 @@ export function createAccountingServices(platform: FinancialPlatform) {
       },
       async (tx, state) => {
         const transfer = await readTransfer(tx, context.workspaceId, id);
+        const reversed = await queryRows(
+          tx,
+          sql`SELECT r.id FROM app.ledger_events e
+          JOIN app.ledger_events r ON r.workspace_id=e.workspace_id AND r.reversal_of_id=e.id
+          WHERE e.workspace_id=${context.workspaceId}::uuid AND e.cash_transfer_id=${id}::uuid`,
+        );
+        if (reversed.length)
+          throw financialConflict(
+            'TRANSFER_REVERSED',
+            'A historically reversed transfer cannot receive a receipt.',
+          );
         if (transfer.receipt)
           throw financialConflict(
             'TRANSFER_ALREADY_RECEIVED',
@@ -730,7 +741,10 @@ export function createAccountingServices(platform: FinancialPlatform) {
       async (tx) => {
         const rows = await queryRows<{ id: string }>(
           tx,
-          sql`SELECT id FROM app.cash_transfers WHERE workspace_id=${context.workspaceId}::uuid
+          sql`SELECT id FROM app.cash_transfers t WHERE workspace_id=${context.workspaceId}::uuid
+          AND NOT EXISTS (SELECT 1 FROM app.ledger_events e JOIN app.ledger_events r
+            ON r.workspace_id=e.workspace_id AND r.reversal_of_id=e.id
+            WHERE e.workspace_id=t.workspace_id AND e.cash_transfer_id=t.id)
           AND (${filter.cursor ?? null}::uuid IS NULL OR id>${filter.cursor ?? null}::uuid)
           AND (${filter.asOf ?? null}::timestamptz IS NULL OR economic_at<=${filter.asOf ?? null}::timestamptz)
           ORDER BY id LIMIT ${filter.limit + 1}`,

@@ -1,0 +1,59 @@
+.supplied-values {
+  display: grid;
+  gap: 1.25rem;
+}
+.supplied-values fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.supplied-values fieldset > p,
+.supplied-values fieldset > button,
+.supplied-values fieldset > label {
+  grid-column: 1 / -1;
+}
+.supplied-values fieldset > div {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+.supplied-values input:not([type='checkbox']),
+.supplied-values select,
+.supplied-values textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+}
+.supplied-values label {
+  line-height: 1.5;
+}
+.supplied-values textarea {
+  min-height: 6rem;
+}
+.supplied-values pre,
+.supplied-values td {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.supplied-values table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.supplied-values th,
+.supplied-values td {
+  padding: 0.7rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.supplied-values small {
+  display: block;
+}
+@media (max-width: 720px) {
+  .supplied-values fieldset {
+    grid-template-columns: 1fr;
+  }
+}

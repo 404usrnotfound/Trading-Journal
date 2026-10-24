@@ -362,6 +362,29 @@ describe('strategy history view', () => {
     return v2;
   }
 
+  it('displays strategy history in the workspace timezone instead of browser-local dates', async () => {
+    historyFetch();
+    const browserFormat = vi
+      .spyOn(Date.prototype, 'toLocaleString')
+      .mockReturnValue('browser-only-time');
+    try {
+      withQueries(
+        <StrategyWorkspace
+          workspace={{ ...workspace, timezone: 'Europe/Madrid' }}
+          workspaces={[workspace]}
+          initialStrategyId={strategyId}
+        />,
+      );
+      await screen.findByRole('heading', { name: 'RSI pullback refined', level: 2 });
+      const note = screen.getByText(/Effective .*Recorded/u);
+      expect(note).toHaveTextContent('Europe/Madrid');
+      expect(note).toHaveTextContent('01:00:00');
+      expect(note).not.toHaveTextContent('browser-only-time');
+    } finally {
+      browserFormat.mockRestore();
+    }
+  });
+
   it('browses immutable historical rules and compares changed fields without invented performance', async () => {
     const v2 = historyFetch();
     withQueries(

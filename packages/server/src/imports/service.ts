@@ -37,6 +37,9 @@ type Claim = {
 const batchColumns = sql.raw(
   `id,account_id AS "accountId",namespace,filename,file_hash AS "fileHash",adapter_id AS "adapterId",adapter_version AS "adapterVersion",revision,state,row_count AS "rowCount",to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "createdAt",preview,mapping,source_text AS "sourceText"`,
 );
+const batchHistoryColumns = sql.raw(
+  `id,account_id AS "accountId",namespace,filename,file_hash AS "fileHash",adapter_id AS "adapterId",adapter_version AS "adapterVersion",revision,state,row_count AS "rowCount",to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "createdAt"`,
+);
 const rowColumns = sql.raw(
   `id,row_number AS "rowNumber",source_key AS "sourceKey",group_key AS "groupKey",source_id AS "sourceId",record_kind AS kind,raw_fields AS raw,payload,errors,warnings,status,result,identity_key AS "identityKey",payload_hash AS "payloadHash",command_id AS "commandId",recorded_command_id AS "recordedCommandId"`,
 );
@@ -830,12 +833,12 @@ export function createImportServices(
     return platform.withWorkspaceContext(
       context,
       async (tx) => {
-        const rows = await queryRows<Batch>(
+        const rows = await queryRows<Omit<c.ImportBatchResponse, 'preview'>>(
           tx,
-          sql`SELECT ${batchColumns} FROM app.import_batches WHERE workspace_id=${context.workspaceId}::uuid ${cursor ? sql`AND (created_at,id)<(SELECT created_at,id FROM app.import_batches WHERE workspace_id=${context.workspaceId}::uuid AND id=${cursor}::uuid)` : sql``} ORDER BY created_at DESC,id DESC LIMIT 51`,
+          sql`SELECT ${batchHistoryColumns} FROM app.import_batches WHERE workspace_id=${context.workspaceId}::uuid ${cursor ? sql`AND (created_at,id)<(SELECT created_at,id FROM app.import_batches WHERE workspace_id=${context.workspaceId}::uuid AND id=${cursor}::uuid)` : sql``} ORDER BY created_at DESC,id DESC LIMIT 51`,
         );
         return c.importHistoryResponseSchema.parse({
-          items: rows.slice(0, 50).map((row) => c.importBatchResponseSchema.strip().parse(row)),
+          items: rows.slice(0, 50),
           nextCursor: rows.length > 50 ? rows[49]!.id : null,
         });
       },

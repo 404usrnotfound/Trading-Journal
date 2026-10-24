@@ -2,11 +2,11 @@
 
 ## Authority, scope, and status
 
-Design version: `domain-v1`. This is the approved Phase 2 design, governing later financial implementation. The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative; [Phase 0 requirements](requirements-analysis.md) supply stable requirement and acceptance identifiers. The approved [Phase 1 architecture](architecture.md), particularly ADRs [0004](decisions/0004-financial-kernel-and-ledger.md), [0005](decisions/0005-versioned-domain-and-multicurrency.md), and [0006](decisions/0006-postgres-drizzle-and-migrations.md), sets the technical boundaries.
+Design version: `domain-v1`. This approved Phase 2 design governs the implemented financial foundation and remaining capability gates. Implementation-status review: 2026-10-24. The [product specification](../Trading_Journal_Codex_Prompt.md) is authoritative; [Phase 0 requirements](requirements-analysis.md) supply stable requirement and acceptance identifiers. The approved [architecture](architecture.md), particularly ADRs [0004](decisions/0004-financial-kernel-and-ledger.md), [0005](decisions/0005-versioned-domain-and-multicurrency.md), and [0006](decisions/0006-postgres-drizzle-and-migrations.md), sets the technical boundaries.
 
-The earlier Phase 3 scaffold was reverted at the user's request. The newly authorized Phase 3 supplies platform persistence and infrastructure only; the financial schema and calculations below remain unimplemented. No native instrument capability is validated by the existence of this design.
+The initial scaffold rollback and replacement Phase 3 platform-only scope are historical checkpoints. Financial SQL migrations, pure domain calculations and authorized application services now exist in `packages/database`, `packages/domain` and `packages/server`; the web app exposes their supported workflows. [Audit remediation](audit-remediation.md) records current defects, changes and executed checks. This logical model covers the full intended scope; an entity or rule below is not by itself proof of an implemented workflow or a validated native instrument capability.
 
-Read this model with the normative [calculation contracts](financial-calculations.md), [instrument capability design](instrument-capabilities.md), and [independent examples and planned tests](financial-fixtures.md). The model defines logical entities, relationships, states, and invariants. Future reviewed Drizzle/SQL migrations implement these constraints; this document does not create a database.
+Read this model with the normative [calculation contracts](financial-calculations.md), [instrument capability design](instrument-capabilities.md), and [independent examples and test obligations](financial-fixtures.md). The model defines logical entities, relationships, states, and invariants. Reviewed Drizzle/SQL migrations and executable tests provide implementation evidence; this document does not replace their inspection.
 
 ## The twelve concepts that must remain distinct
 
@@ -321,7 +321,7 @@ Available values carry unit/currency, gross/net, realized/unrealized, source rev
 
 Ordinary isolation is READ COMMITTED with stable aggregate locks and revision checks; predicates that cannot be protected use SERIALIZABLE. Bounded deadlock/serialization retries preserve the idempotency identity. No financial transaction holds locks during provider requests, human review, file parsing, or broad analytics.
 
-Persistence requires composite tenant FKs, scoped source/effect/idempotency uniqueness, positive quantity/rate and valid discriminants, precision-before-cast validation, append-only source/version permissions, balanced posted events, and allocation/transfer conservation. Row checks alone cannot enforce cross-row sums; future SQL uses deferred constraint triggers or restricted mutation functions plus locking. Runtime roles are non-owner, no bypass-RLS; transaction-local context denies access when absent. Auth/queue/migration privileges are separate.
+Persistence requires composite tenant FKs, scoped source/effect/idempotency uniqueness, positive quantity/rate and valid discriminants, precision-before-cast validation, append-only source/version permissions, balanced posted events, and allocation/transfer conservation. Row checks alone cannot enforce cross-row sums; reviewed SQL uses deferred constraint triggers or restricted mutation functions plus locking. Runtime roles are non-owner, no bypass-RLS; transaction-local context denies access when absent. Auth/queue/migration privileges are separate.
 
 Indexes begin with workspace and relevant account/book/instrument, then economic ordering plus ID; add source identity, event/posting, campaign allocation, version and projection-context indexes. Keyset-paginated histories and bounded aggregates avoid loading the full ledger into the browser. Physical partitioning is deferred until measured need.
 
@@ -358,13 +358,13 @@ Workspace backup contains canonical sources, IDs/relationships, original precisi
 | INV-15 | Core manual workflows have no external provider dependency and persist | Restart and provider-absent journeys; AC-16 |
 | INV-16 | Closure and statistical populations follow explicit evidence, not sale counts | Multi-leg obligations, closed-incomplete, risk and partial cases; AC-02/03/12/13 |
 
-The [fixture catalogue](financial-fixtures.md) maps all AC-01–AC-16 to expected examples and future unit/property/integration/journey checks. Design arithmetic validation does not mean these application tests have run. Phase 0 and Phase 1 consistency checks are recorded with Phase 2 in the [validation report](phase-2-validation.md).
+The [fixture catalogue](financial-fixtures.md) maps all AC-01–AC-16 to expected examples and required unit/property/integration/journey checks. Design arithmetic validation does not mean every application scenario has passed. Phase 0 and Phase 1 consistency checks remain recorded with Phase 2 in the historical [validation report](phase-2-validation.md); current release execution belongs in [audit remediation](audit-remediation.md).
 
-## Decisions and gates before implementation
+## Design decisions and continuing implementation gates
 
 This v1 design resolves core entity boundaries, ownership, source-versus-derived authority, netted inventory default, campaign/account attribution separation, postings, precision, signed shorts, principal-versus-quote basis, settlement identity, transit ownership, immutable corrections, historical FX dependencies, original-risk history and unsupported-operation behavior. ADRs 0004–0006 remain the architectural authority; this document supplies their domain detail without adding a new service or changing the approved stack.
 
-The following are concrete implementation gates rather than permission to defer mandatory product scope:
+The following checklist was established before financial implementation. Phase 3/4 references describe that delivery sequence, not the current absence of those modules. Each gate continues to apply when extending or changing its capability; historical results do not certify a new release:
 
 1. Review the Phase 2 model and its calculation/fixture contracts before financial implementation. Physical schema/migrations must independently enforce the stated tenant, append-only, precision, posting, conservation and idempotency constraints.
 2. In Phase 3, verify exact supported dependency patches and auth gateway behavior, create the lockfile/platform harness, and pass all eight clean-environment scaffold checks. The previous scaffold was reverted; its historical results cannot certify a new checkout.

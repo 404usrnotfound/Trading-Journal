@@ -1,6 +1,7 @@
 import { PgBoss } from 'pg-boss';
 
 import { HEALTH_PROBE_QUEUE, JOB_SCHEMA } from './queue';
+import { FINANCIAL_OUTBOX_QUEUE } from './financial-outbox';
 
 /** Only the explicit one-shot migration command may use a migration connection. */
 export async function migrateJobs(databaseUrl: string): Promise<void> {
@@ -27,6 +28,14 @@ export async function migrateJobs(databaseUrl: string): Promise<void> {
       retryBackoff: true,
       expireInSeconds: 30,
       retentionSeconds: 3_600,
+      deleteAfterSeconds: 300,
+    });
+    await boss.createQueue(FINANCIAL_OUTBOX_QUEUE, {
+      retryLimit: 4,
+      retryDelay: 2,
+      retryBackoff: true,
+      expireInSeconds: 60,
+      retentionSeconds: 3600,
       deleteAfterSeconds: 300,
     });
   } finally {

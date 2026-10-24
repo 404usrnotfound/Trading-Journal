@@ -36,3 +36,11 @@ export * from './accounting.js';
 export * from './analytics-types.js';
 export * from './analytics.js';
 export * from './dashboard.js';
+
+export * from './risk.js';
+
+export * from './risk-types.js';
+
+export * from './period-reviews.js';
+
+export * from './account-performance.js';

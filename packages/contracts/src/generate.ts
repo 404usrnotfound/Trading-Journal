@@ -30,6 +30,13 @@ import * as accounting from './accounting.js';
 import * as analytics from './analytics.js';
 import * as dashboard from './dashboard.js';
 import * as imports from './imports.js';
+import * as risk from './risk.js';
+import * as reconciliation from './reconciliation.js';
+import * as portability from './portability.js';
+import * as periodReviews from './period-reviews.js';
+import * as supplied from './supplied.js';
+import * as outbox from './outbox.js';
+import * as displayViews from './display-views.js';
 
 const registry = new OpenAPIRegistry();
 function registerSharedSchema(name: string, schema: z.ZodType): void {
@@ -81,7 +88,19 @@ for (const [name, schema] of Object.entries(journal.journalSchemaComponents))
   registerSharedSchema(name, schema);
 for (const [name, schema] of Object.entries(accounting.accountingSchemaComponents))
   registerSharedSchema(name, schema);
-for (const collection of [strategies, strategyAttachments, journal, accounting])
+for (const collection of [
+  strategies,
+  strategyAttachments,
+  journal,
+  accounting,
+  risk,
+  periodReviews,
+  supplied,
+  outbox,
+  displayViews,
+  reconciliation,
+  portability,
+])
   for (const [name, schema] of Object.entries(collection)) {
     if (name.endsWith('Schema') && schema instanceof z.ZodType && !name.endsWith('QuerySchema'))
       registerSharedSchema(
@@ -200,6 +219,7 @@ const strategyProblems = {
   500: problem,
 };
 for (const [suffix, params, query, output] of [
+  ['/native-snapshot', strategyCollectionParams, undefined, outbox.nativeSnapshotStatusSchema],
   [
     '',
     strategyCollectionParams,
@@ -458,6 +478,9 @@ const portfolioIdentityParams = strategyCollectionParams.extend({
 const cashTransferIdentityParams = strategyCollectionParams.extend({
   transferId: financial.financialIdSchema,
 });
+const accountingSourceIdentityParams = strategyCollectionParams.extend({
+  sourceId: financial.financialIdSchema,
+});
 for (const [suffix, params, query, output] of [
   [
     '/portfolios',
@@ -483,6 +506,12 @@ for (const [suffix, params, query, output] of [
     accounting.cashTransferListQuerySchema,
     accounting.cashTransferListResponseSchema,
   ],
+  [
+    '/corrections',
+    strategyCollectionParams,
+    accounting.accountingCorrectionSourcesQuerySchema,
+    accounting.accountingCorrectionSourcesResponseSchema,
+  ],
 ] as const)
   registry.registerPath({
     method: 'get',
@@ -494,6 +523,18 @@ for (const [suffix, params, query, output] of [
     responses: { 200: response(output), ...strategyProblems, 429: problem },
   });
 for (const [suffix, params, input, output] of [
+  [
+    '/native-snapshot/refresh',
+    strategyCollectionParams,
+    outbox.nativeSnapshotRefreshRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
+  [
+    '/corrections/{sourceId}/reverse',
+    accountingSourceIdentityParams,
+    accounting.reverseAccountingSourceRequestSchema,
+    accounting.accountingMutationResponseSchema,
+  ],
   [
     '/portfolios',
     strategyCollectionParams,
@@ -577,6 +618,49 @@ registry.registerPath({
     429: problem,
   },
 });
+registry.registerPath({
+  method: 'post',
+  path: accountingPrefix + '/performance',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Read-only account performance at explicit valuation checkpoints. Flow-adjusted changes and conditional TWR/MWR retain completeness and uniqueness requirements.',
+  request: {
+    params: strategyCollectionParams,
+    body: {
+      required: true,
+      content: { 'application/json': { schema: accounting.accountPerformanceRequestSchema } },
+    },
+  },
+  responses: {
+    200: response(accounting.accountPerformanceResponseSchema),
+    ...strategyProblems,
+    429: problem,
+  },
+});
+for (const method of ['get', 'post'] as const)
+  registry.registerPath({
+    method,
+    path: '/api/v1/workspaces/{workspaceId}/display-views/{screen}',
+    security: [{ sessionCookie: [] }],
+    description:
+      'Private per-member saved filters and column preferences. Workspace viewers may edit their own preferences. Optimistic revisions prevent overwriting another session.',
+    request: {
+      params: z.object({
+        workspaceId: financial.financialIdSchema,
+        screen: displayViews.displayViewScreenSchema,
+      }),
+      ...(method === 'post'
+        ? {
+            headers: z.object({ Origin: z.url(), 'X-CSRF-Token': z.string().min(1) }),
+            body: {
+              required: true,
+              content: { 'application/json': { schema: displayViews.displayViewWriteSchema } },
+            },
+          }
+        : {}),
+    },
+    responses: { 200: response(displayViews.displayViewResponseSchema), ...strategyProblems },
+  });
 const financialCommands = {
   currencies: [financial.currencyCreateSchema, financial.currencyResponseSchema],
   brokers: [financial.brokerCreateSchema, financial.brokerResponseSchema],
@@ -720,6 +804,7 @@ const financialReads = {
   'currencies/{id}': financial.currencyResponseSchema,
   'accounts/{id}': financial.accountResponseSchema,
   'instruments/{id}': financial.instrumentResponseSchema,
+  'instrument-versions/{id}': financial.instrumentResponseSchema,
   'orders/{id}': financial.orderResponseSchema,
   'trades/{id}/legs': financial.tradeLegResponseSchema.array(),
   'trades/{id}': financial.tradeResponseSchema,
@@ -733,7 +818,7 @@ const financialReadQueries: Record<string, z.ZodObject> = {
   accounts: financial.financialAccountQuerySchema,
   instruments: financial.financialCatalogQuerySchema,
   orders: financial.financialCatalogQuerySchema,
-  trades: financial.financialCatalogQuerySchema,
+  trades: financial.financialTradeQuerySchema,
   executions: financial.financialExecutionsQuerySchema,
   positions: financial.financialPositionsQuerySchema,
   'cash-balances': financial.financialCashBalancesQuerySchema,
@@ -996,6 +1081,191 @@ for (const [suffix, input, output, params] of [
       500: problem,
     },
   });
+
+const remediationParams = z.object({ workspaceId: financial.financialIdSchema });
+const remediationIdParams = remediationParams.extend({ id: financial.financialIdSchema });
+const commandHeaders = z.object({
+  Origin: z.url(),
+  'X-CSRF-Token': z.string().min(1),
+  'Idempotency-Key': financial.financialIdSchema,
+});
+for (const [path, input, output, writing] of [
+  [
+    '/supplied-components/observations',
+    supplied.suppliedComponentCreateSchema,
+    financial.financialMutationResponseSchema,
+    true,
+  ],
+  [
+    '/reviews/entries',
+    periodReviews.periodReviewWriteSchema,
+    periodReviews.periodReviewVersionSchema,
+    true,
+  ],
+  [
+    '/reviews/entries/{id}',
+    periodReviews.periodReviewWriteSchema,
+    periodReviews.periodReviewVersionSchema,
+    true,
+  ],
+  [
+    '/reviews/templates',
+    periodReviews.periodReviewTemplateWriteSchema,
+    periodReviews.periodReviewTemplateVersionSchema,
+    true,
+  ],
+  [
+    '/reviews/templates/{id}',
+    periodReviews.periodReviewTemplateWriteSchema,
+    periodReviews.periodReviewTemplateVersionSchema,
+    true,
+  ],
+  ['/risk/policies', risk.riskPolicyWriteSchema, risk.riskPolicyVersionSchema, true],
+  ['/risk/assessments', risk.riskAssessmentRequestSchema, risk.riskAssessmentResponseSchema, true],
+  ['/risk/sizing', risk.riskSizingRequestSchema, risk.riskSizingResponseSchema, false],
+  [
+    '/reconciliation/statements',
+    reconciliation.createStatementRequestSchema,
+    reconciliation.statementResponseSchema,
+    true,
+  ],
+  [
+    '/reconciliation/statements/{id}/evaluations',
+    reconciliation.evaluateStatementRequestSchema,
+    reconciliation.statementReconciliationResponseSchema,
+    true,
+  ],
+  [
+    '/portability/restore',
+    portability.portableRestoreRequestSchema,
+    portability.portableRestoreResponseSchema,
+    true,
+  ],
+] as const)
+  registry.registerPath({
+    method: 'post',
+    path: '/api/v1/workspaces/{workspaceId}' + path,
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: path.includes('{id}') ? remediationIdParams : remediationParams,
+      ...(writing ? { headers: commandHeaders } : {}),
+      body: { required: true, content: { 'application/json': { schema: input } } },
+    },
+    responses: {
+      [path === '/portability/restore' ? 201 : 200]: response(output),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      413: problem,
+      422: problem,
+      500: problem,
+    },
+  });
+for (const [path, output, query] of [
+  [
+    '/supplied-components/observations',
+    supplied.suppliedComponentListResponseSchema,
+    supplied.suppliedComponentListQuerySchema,
+  ],
+  [
+    '/reviews/entries',
+    periodReviews.periodReviewListSchema,
+    periodReviews.periodReviewListQuerySchema,
+  ],
+  ['/reviews/entries/{id}', periodReviews.periodReviewVersionSchema, z.object({})],
+  [
+    '/reviews/entries/{id}/history',
+    periodReviews.periodReviewHistorySchema,
+    z.object({ after: financial.financialIdSchema.optional() }),
+  ],
+  ['/reviews/entries/{id}/summary', periodReviews.periodReviewSummarySchema, z.object({})],
+  [
+    '/reviews/templates',
+    periodReviews.periodReviewTemplateListSchema,
+    z.object({ after: financial.financialIdSchema.optional() }),
+  ],
+  [
+    '/reviews/catalog',
+    periodReviews.periodReviewCatalogSchema,
+    periodReviews.periodReviewCatalogQuerySchema,
+  ],
+  [
+    '/risk/policies',
+    risk.riskPolicyListSchema,
+    z.object({
+      after: financial.financialIdSchema.optional(),
+      accountId: financial.financialIdSchema.optional(),
+      strategyId: financial.financialIdSchema.optional(),
+    }),
+  ],
+  ['/risk/catalog', risk.riskCatalogResponseSchema, risk.riskCatalogQuerySchema],
+  ['/risk/assessments/{id}', risk.riskAssessmentResponseSchema, z.object({})],
+  [
+    '/reconciliation/statements',
+    reconciliation.statementListResponseSchema,
+    reconciliation.statementListQuerySchema,
+  ],
+  ['/reconciliation/statements/{id}', reconciliation.statementResponseSchema, z.object({})],
+  [
+    '/reconciliation/statements/{id}/evaluations',
+    reconciliation.statementEvaluationListResponseSchema,
+    reconciliation.statementListQuerySchema,
+  ],
+  [
+    '/reconciliation/evaluations/{id}',
+    reconciliation.statementReconciliationResponseSchema,
+    z.object({}),
+  ],
+  ['/portability/backup', portability.portableArchiveSchema, z.object({})],
+] as const)
+  registry.registerPath({
+    method: 'get',
+    path: '/api/v1/workspaces/{workspaceId}' + path,
+    security: [{ sessionCookie: [] }],
+    request: { params: path.includes('{id}') ? remediationIdParams : remediationParams, query },
+    responses: {
+      200: response(output),
+      400: problem,
+      401: problem,
+      403: problem,
+      404: problem,
+      409: problem,
+      500: problem,
+    },
+  });
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/workspaces/{workspaceId}/portability/export',
+  security: [{ sessionCookie: [] }],
+  description:
+    'Authorized filtered JSON or spreadsheet-safe CSV. Source precision is retained in JSON; CSV is a protected presentation.',
+  request: {
+    params: remediationParams,
+    headers: commandHeaders,
+    body: {
+      required: true,
+      content: { 'application/json': { schema: portability.portableExportRequestSchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Filtered download',
+      content: {
+        'application/json': { schema: { type: 'string', format: 'binary' } },
+        'text/csv': { schema: { type: 'string', format: 'binary' } },
+      },
+    },
+    400: problem,
+    401: problem,
+    403: problem,
+    404: problem,
+    413: problem,
+    500: problem,
+  },
+});
+
 const document = new OpenApiGeneratorV31(registry.definitions).generateDocument({
   openapi: '3.1.0',
   info: { title: 'Trading Journal Foundation API', version: '0.1.0' },

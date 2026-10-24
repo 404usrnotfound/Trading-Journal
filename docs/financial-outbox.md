@@ -1,0 +1,25 @@
+# Financial outbox and native snapshots
+
+The worker consumes committed financial outbox intents and publishes a native cash/holdings read projection. Financial facts, postings, allocations and inventory history remain authoritative; this projection changes none of them. It is not an asynchronous accounting report, a valuation, account performance, or a consolidation of unlike currencies.
+
+`GET /api/v1/workspaces/{workspaceId}/accounting/native-snapshot` returns the latest source revision, processed revision, delivery status, attempts, a safe failure classification, and an optional snapshot. `current`, `stale`, `pending`, `empty` and `unavailable` are distinct. A retained older snapshot is never labelled current after another financial command. The snapshot's `economicScope: all-recorded-events` explicitly includes recorded future-dated activity; it is not a wall-clock as-of valuation. Cash amounts retain native currency/bucket identities and exact derived decimal text. Holdings preserve quantity availability/reasons, instrument/version, quantity unit and settlement currency. No price, FX, derivative notional or invented zero replaces missing inventory information.
+
+Editors can request another generation with a CSRF-protected `POST .../accounting/native-snapshot/refresh`, an `Idempotency-Key` UUID and `{ "reason": "Operator recovery completed" }`. This appends an audited idempotent command/outbox intent; it does not alter balances. Viewers can read status and snapshots but cannot request refresh. The ordinary workspace authorization and tenant RLS apply to every read.
+
+## Delivery and authorization
+
+`queue.claim_financial_outbox` leases at most two workspace generations per dispatcher tick (the database rejects batches over twenty). A latest source event coalesces earlier committed intents in the same workspace; publishing advances a high-water revision without deleting or rewriting original outbox rows. A stable random lease token is the pg-boss job ID. Uncertainty between claiming and queue submission is recovered after the sixty-second lease; duplicate delivery and old lease tokens cannot publish again.
+
+The purpose is internal repair of a workspace read projection. Current workspace-owner membership authorizes claim, preparation and publication; the original source actor remains provenance rather than perpetual job authority. Revoking that actor, or restoring records whose old actors lack membership, therefore does not permanently prevent repair for the current owner. This exception applies only to this fixed system projection. Future exports, notifications or other user-requested jobs must reauthorize their own requester and operation; the native projection grants no such capability.
+
+The queue role receives only four reviewed `SECURITY DEFINER` functions with a fixed search path and bounded inputs. It gains no raw `app`/`auth` table privileges. The application role can read its own projection/checkpoint under RLS but cannot invoke worker functions, mutate checkpoints or supply candidate financial JSON. Preparation builds candidate data from database facts and stores it privately; publication accepts only a workspace and lease token.
+
+Preparation requires the claimed revision still to be current. Publication checks the revision again under the financial-state lock and conditionally replaces only an older/equal snapshot. A command committed between claim and preparation, or between preparation and publication, produces an explicit stale retry. Event provenance and snapshot revision must match. A revoked/expired lease cannot publish another workspace's data.
+
+Failures use fixed classifications and exponential backoff; five failed attempts stop until newer activity or an authorized refresh. A workspace without a current owner is blocked. pg-boss retries may encounter an obsolete lease and safely finish as stale while the dispatcher issues the next durable lease. Job bodies/output contain only identity, generation and status, not snapshot money or source documents. Worker shutdown stops and awaits dispatch before draining the queue.
+
+## Bounds and verification
+
+Each generation supports at most 2,000 cash buckets and 2,000 holding books, with a one MiB candidate bound and existing queue SQL deadlines. Excessive scopes fail visibly rather than truncating balances/holdings. These bounds do not establish million-fill throughput, ten-reader reporting capacity, historical report rebuilding, import/export jobs or large-report execution. Those workflows remain separate.
+
+The real PostgreSQL suite in `tests/integration/financial-outbox.test.ts` checks exact native balances/quantities, duplicate delivery, coalescing, both revision races, leases, retry limits, current-owner repair after source-actor revocation, queue restart and role isolation. Its worker-process journey starts the actual worker with queue-only credentials, waits for the projection, records another command, observes the next generation and checks graceful shutdown. Existing worker lifecycle tests retain startup/shutdown coverage.

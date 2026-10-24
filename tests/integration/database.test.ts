@@ -897,11 +897,12 @@ describe('reviewed platform migration creation and upgrades', () => {
       const workspace = await createPersonalWorkspace(database, actor, {
         name: 'Preserved migration fixture',
       });
-      await database.db.insert(userPreferences).values({
-        workspaceId: workspace.id,
-        userId: actor,
-        theme: 'dark',
-      });
+      // This fixture is the original release, before later preference columns.
+      // Use that published column set rather than the current ORM's insert shape.
+      await database.pool.query(
+        'INSERT INTO app.user_preferences(workspace_id,user_id,theme) VALUES($1,$2,$3)',
+        [workspace.id, actor, 'dark'],
+      );
       await database.db.insert(session).values({
         id: `migration-session-${randomUUID()}`,
         token: `fixture-token-${randomUUID()}`,
@@ -917,7 +918,11 @@ describe('reviewed platform migration creation and upgrades', () => {
           )
         ).rows,
         memberships: await database.db.select().from(workspaceMemberships),
-        preferences: await database.db.select().from(userPreferences),
+        preferences: (
+          await database.pool.query(
+            'SELECT workspace_id,id,user_id,theme,timezone,created_at,updated_at FROM app.user_preferences ORDER BY id',
+          )
+        ).rows,
         audit: await database.db.select().from(auditEvents),
       });
       const before = await records();
@@ -925,6 +930,10 @@ describe('reviewed platform migration creation and upgrades', () => {
       await migrateDatabase(url);
       await verifyDatabaseSchema(database);
       expect(await records()).toEqual(before);
+      expect(
+        (await database.pool.query('SELECT saved_views,view_revision FROM app.user_preferences'))
+          .rows,
+      ).toEqual([{ saved_views: {}, view_revision: 0 }]);
       const version = await database.pool.query('SELECT version FROM app.schema_metadata');
       expect(version.rows).toEqual([{ version: DATABASE_SCHEMA_VERSION }]);
       const rls = await database.pool.query(

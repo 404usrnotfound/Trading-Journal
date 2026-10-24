@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { suppliedReferenceSchema } from './supplied-reference.js';
 import {
   financialDecimalSchema,
   financialIdSchema,
@@ -115,6 +116,34 @@ export const createCashTransferRequestSchema = z
   });
 export const receiveCashTransferRequestSchema = z.strictObject(economic);
 
+/** Correct an erroneous historical fact; a genuine later refund remains a new source fact. */
+export const reverseAccountingSourceRequestSchema = z.strictObject({
+  sourceType: z.enum(['cash-event', 'transfer']),
+  expectedSourceRevision: financialSourceRevisionSchema,
+  reason,
+});
+export const accountingCorrectionSourcesQuerySchema = z.strictObject({
+  cursor: id.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export const accountingCorrectionSourcesResponseSchema = z.strictObject({
+  sourceRevision: financialSourceRevisionSchema,
+  items: z
+    .strictObject({
+      id,
+      sourceType: z.enum(['cash-event', 'transfer']),
+      kind: z.string().min(1),
+      description: narrative,
+      economicAt: financialInstantSchema,
+      currencyId: id,
+      amount: financialDecimalSchema,
+      reversed: z.boolean(),
+    })
+    .array()
+    .max(100),
+  nextCursor: nullableId,
+});
+
 const priority = label
   .array()
   .min(1)
@@ -129,6 +158,7 @@ export const accountingFxPolicySchema = z.strictObject({
 export const accountingPricePolicySchema = accountingFxPolicySchema.omit({ id: true });
 export const accountingReportRequestSchema = z
   .strictObject({
+    suppliedPositionIds: id.array().max(100).optional(),
     accountIds: accountIds.optional(),
     portfolioVersionId: id.optional(),
     reportingCurrencyId: id,
@@ -138,8 +168,22 @@ export const accountingReportRequestSchema = z
     fxPolicy: accountingFxPolicySchema,
     priceMaxAgeMilliseconds: maximumAge,
     priceSourcePriority: priority,
+    detail: z.enum(['full', 'summary']).optional(),
+    dependencyPage: z
+      .strictObject({
+        kind: z.enum(['fx', 'prices', 'sourceIds']),
+        offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+        limit: z.number().int().min(1).max(200),
+      })
+      .optional(),
   })
   .superRefine((value, context) => {
+    if (value.dependencyPage && (value.detail !== 'summary' || value.sourceRevision === undefined))
+      context.addIssue({
+        code: 'custom',
+        path: ['dependencyPage'],
+        message: 'Dependency pages require summary detail and a pinned source revision.',
+      });
     if ((value.accountIds === undefined) === (value.portfolioVersionId === undefined))
       context.addIssue({
         code: 'custom',
@@ -162,6 +206,55 @@ export const accountingMutationResponseSchema = z.strictObject({
   id,
   commandId: id,
   sourceRevision: financialSourceRevisionSchema,
+});
+
+export const accountPerformanceRequestSchema = accountingReportRequestSchema.safeExtend({
+  /** Optional display samples; the server always includes every economic capital-flow instant. */
+  checkpoints: financialInstantSchema.array().max(24).optional(),
+});
+const returnMetric = z
+  .strictObject({
+    state: z.enum(['available', 'unavailable']),
+    value: financialDecimalSchema.nullable(),
+    reasons: z.string().min(1).array(),
+  })
+  .superRefine((value, context) => {
+    if (
+      (value.state === 'available') !== (value.value !== null) ||
+      (value.state === 'available' ? value.reasons.length !== 0 : value.reasons.length === 0)
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Return availability requires complete evidence or explicit reasons.',
+      });
+  });
+export const accountPerformanceResponseSchema = z.strictObject({
+  accountIds,
+  reportingCurrencyId: id,
+  sourceRevision: financialSourceRevisionSchema,
+  from: financialInstantSchema,
+  to: financialInstantSchema,
+  method: z.literal('exact-flow-boundaries/act-365/1'),
+  valuationPolicy: z.literal('report-price-and-fx-policy'),
+  twr: returnMetric,
+  mwr: returnMetric,
+  maximumDrawdown: returnMetric,
+  recoveryDurationMilliseconds: z
+    .string()
+    .regex(/^(0|[1-9]\d*)$/u)
+    .nullable(),
+  series: z
+    .strictObject({
+      at: financialInstantSchema,
+      nav: financialDecimalSchema.nullable(),
+      capitalFlow: financialDecimalSchema.nullable(),
+      unitIndex: financialDecimalSchema.nullable(),
+      drawdown: financialDecimalSchema.nullable(),
+      reasons: z.string().array(),
+    })
+    .array()
+    .min(2)
+    .max(33),
 });
 export const portfolioMutationResponseSchema = accountingMutationResponseSchema.extend({
   versionId: id,
@@ -324,6 +417,7 @@ export const accountingSnapshotSchema = z.strictObject({
 export const accountingReportResponseSchema = z
   .strictObject({
     context: z.strictObject({
+      suppliedPositionIds: id.array().max(100).optional(),
       accountIds,
       portfolioVersionId: id.optional(),
       portfolioId: nullableId,
@@ -369,6 +463,34 @@ export const accountingReportResponseSchema = z
       roundingResidual: accountingMetricSchema,
     }),
     dependencies: z.strictObject({
+      suppliedValues: suppliedReferenceSchema
+        .extend({
+          kind: z.literal('position-equity'),
+          definitionVersion: z.literal('residual-position-equity/1'),
+          signedQuantity: financialDecimalSchema,
+          cashExcluded: z.literal(true),
+          collateralExcluded: z.literal(true),
+          settledPnlExcluded: z.literal(true),
+          unsettledCashExcluded: z.literal(true),
+        })
+        .array()
+        .optional(),
+      coverage: z
+        .strictObject({
+          mode: z.enum(['summary', 'page']),
+          fxCount: z.number().int().min(0),
+          priceCount: z.number().int().min(0),
+          sourceIdCount: z.number().int().min(0),
+          page: z
+            .strictObject({
+              kind: z.enum(['fx', 'prices', 'sourceIds']),
+              offset: z.number().int().min(0),
+              limit: z.number().int().min(1).max(200),
+              nextOffset: z.number().int().min(0).nullable(),
+            })
+            .nullable(),
+        })
+        .optional(),
       fx: z
         .strictObject({
           componentId: z.string().min(1),
@@ -387,6 +509,42 @@ export const accountingReportResponseSchema = z
   })
   .superRefine((value, context) => {
     const scope = value.context;
+    const evidence = value.dependencies;
+    const coverage = evidence.coverage;
+    if (coverage) {
+      const counts = {
+        fx: coverage.fxCount,
+        prices: coverage.priceCount,
+        sourceIds: coverage.sourceIdCount,
+      };
+      const page = coverage.page;
+      if ((coverage.mode === 'page') !== (page !== null))
+        context.addIssue({
+          code: 'custom',
+          path: ['dependencies', 'coverage'],
+          message: 'Evidence coverage must identify its summary or bounded page.',
+        });
+      for (const kind of ['fx', 'prices', 'sourceIds'] as const) {
+        const expected =
+          page?.kind === kind ? Math.min(page.limit, Math.max(0, counts[kind] - page.offset)) : 0;
+        if (evidence[kind].length !== expected)
+          context.addIssue({
+            code: 'custom',
+            path: ['dependencies', kind],
+            message: 'Evidence arrays must match their declared coverage and page.',
+          });
+      }
+      if (
+        page &&
+        page.nextOffset !==
+          (page.offset + page.limit < counts[page.kind] ? page.offset + page.limit : null)
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['dependencies', 'coverage', 'page', 'nextOffset'],
+          message: 'The next page must follow the pinned evidence population.',
+        });
+    }
     const hasPortfolio = scope.portfolioVersionId !== undefined;
     if (
       hasPortfolio !== (scope.portfolioId !== null) ||

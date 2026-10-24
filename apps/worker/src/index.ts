@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { createLogger } from '@journal/server/logging';
 
 import { readWorkerConfiguration, WorkerConfigurationError } from './config';
+import { startFinancialOutbox } from './financial-outbox';
 import {
   createRuntimeQueue,
   HEALTH_PROBE_QUEUE,
@@ -48,6 +49,7 @@ async function main(): Promise<void> {
   boss.on('warning', () => logger.warn({ event: 'worker.queue.warning' }));
 
   let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let outbox: Awaited<ReturnType<typeof startFinancialOutbox>> | undefined;
   let shutdownPromise: Promise<void> | undefined;
   function shutdown(): Promise<void> {
     if (shutdownPromise) return shutdownPromise;
@@ -56,10 +58,13 @@ async function main(): Promise<void> {
     probeController.abort();
     if (heartbeat) clearInterval(heartbeat);
     logger.info({ event: 'worker.stopping' });
-    shutdownPromise = Promise.allSettled([
-      new Promise<void>((resolve) => healthServer.close(() => resolve())),
-      boss.stop({ graceful: true, timeout: 10_000 }),
-    ]).then((results) => {
+    shutdownPromise = (async () => {
+      await outbox?.stop();
+      return Promise.allSettled([
+        new Promise<void>((resolve) => healthServer.close(() => resolve())),
+        boss.stop({ graceful: true, timeout: 10_000 }),
+      ]);
+    })().then((results) => {
       if (results.some((result) => result.status === 'rejected')) {
         process.exitCode = 1;
         logger.error({ event: 'worker.shutdown.failed' });
@@ -81,6 +86,13 @@ async function main(): Promise<void> {
       for (const job of jobs) healthProbePayloadSchema.parse(job.data);
       return { status: 'ok' };
     });
+    outbox = await startFinancialOutbox(boss, () =>
+      logger.error({ event: 'worker.outbox.dispatch.failed' }),
+    );
+    if (stopping) {
+      await outbox.stop();
+      return void (await shutdown());
+    }
     if (stopping) return void (await shutdown());
     await verifyQueueRoundTrip(boss, probeController.signal);
     if (stopping) return void (await shutdown());

@@ -915,7 +915,7 @@ describe('asset-class boundaries against immutable financial facts in real Postg
     expect((await ledger.cashBalances(ctx(), { accountIds: [scope.id] }))[0]!.amount).toBe('100');
   });
 
-  it('negative futures prices are explicitly rejected, preserving the currently documented representation limit', async () => {
+  it('preserves negative manual futures quotes without enabling notional cash or automatic valuation and still rejects native negative prices', async () => {
     const scope = await account(),
       metadata = await instrument({
         family: 'future',
@@ -925,8 +925,43 @@ describe('asset-class boundaries against immutable financial facts in real Postg
         multiplier: '1000',
         metadata: { priceConvention: 'points', settlementStyle: 'variation-margin' },
       });
-    await expect(fill(scope, metadata, 'buy', '1', '-37.63', 2)).rejects.toThrow();
-    expect(await ledger.executions(ctx(), { accountId: scope.id })).toEqual([]);
+    const execution = await fill(scope, metadata, 'buy', '1', '-37.63', 2);
+    expect(execution.price).toBe('-37.63');
+    expect(await ledger.executions(ctx(), { accountId: scope.id })).toEqual([
+      expect.objectContaining({ id: execution.id, price: '-37.63', quantity: '1' }),
+    ]);
+    expect(await ledger.cashBalances(ctx(), { accountIds: [scope.id] })).toEqual([
+      expect.objectContaining({ amount: '0' }),
+    ]);
+    await mark(metadata, '-37.63');
+    const position = (await ledger.positions(ctx(), { accountId: scope.id }))[0]!;
+    expect(position.inventory.status).toBe('unsupported');
+    expect(position.inventory.openQuantity).toMatchObject({ status: 'available', value: '1' });
+    expect(position.inventory.realizedNet.value).toBeNull();
+    const context = query(scope);
+    const valuation = await observations.valuation(ctx(), {
+      accountIds: context.accountIds,
+      reportingCurrencyId: context.reportingCurrencyId,
+      asOf: context.to,
+      fxPolicy: context.fxPolicy,
+      priceMaxAgeMilliseconds: context.priceMaxAgeMilliseconds,
+      priceSourcePriority: context.priceSourcePriority,
+    });
+    expect(valuation.positions[0]?.valuation.markedValue.status).toBe('unsupported');
+    expect(valuation.nav.state).toBe('partial');
+    const report = await reports.report(ctx(), context);
+    money(report.closing.cash, '0');
+    expect(report.closing.holdings.value).toBeNull();
+    expect(report.closing.netLiquidationValue.value).toBeNull();
+
+    const native = await instrument();
+    await expect(fill(scope, native, 'buy', '1', '-37.63', 3)).rejects.toMatchObject({
+      code: 'INVALID_FINANCIAL_INPUT',
+    });
+    await expect(mark(native, '-37.63')).rejects.toMatchObject({
+      code: 'INVALID_FINANCIAL_INPUT',
+    });
+    expect(await ledger.executions(ctx(), { accountId: scope.id })).toHaveLength(1);
     expect(await ledger.cashBalances(ctx(), { accountIds: [scope.id] })).toEqual([
       expect.objectContaining({ amount: '0' }),
     ]);

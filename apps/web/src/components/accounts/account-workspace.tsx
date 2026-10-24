@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   accountingReportRequestSchema,
@@ -16,8 +16,16 @@ import { Button, Panel } from '@journal/ui';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboardDatePreset, inclusiveDateRange } from '../dashboard/dashboard-time';
 import './accounts.css';
+import {
+  DashboardCatalogBrowser,
+  mergeDashboardCatalogPage,
+} from '../dashboard/dashboard-catalog-browser';
+import { AccountCorrections } from './account-corrections';
+import { AccountReturnSeries } from './account-return-series';
+import { SuppliedValuePicker } from '../supplied/supplied-value-picker';
 
 type Form = {
+  suppliedPositionIds: string;
   from: string;
   to: string;
   currency: string;
@@ -92,6 +100,10 @@ function prepare(
     throw new Error('Choose Live or Paper accounts.');
   if (form.portfolioVersionId && form.explicitAccounts)
     throw new Error('Choose accounts or an immutable portfolio version, rather than both.');
+  if (!form.explicitAccounts && !form.portfolioVersionId && data.accountChoicesComplete === false)
+    throw new Error(
+      'Choose explicit accounts or a portfolio version. This reference page does not contain every account; no partial account total was requested.',
+    );
   const accounts = form.explicitAccounts
     ? split(form.accountIds)
     : data.accounts.filter((row) => row.environment === form.environment).map((row) => row.id);
@@ -129,6 +141,10 @@ function prepare(
       ? { portfolioVersionId: form.portfolioVersionId }
       : { accountIds: accounts }),
     reportingCurrencyId: currency,
+    ...(form.suppliedPositionIds
+      ? { suppliedPositionIds: split(form.suppliedPositionIds).filter(Boolean) }
+      : {}),
+    detail: 'summary',
     ...inclusiveDateRange(form.from, form.to, workspace.timezone),
     fxPolicy: {
       id: 'account-review-explicit-sources/1',
@@ -258,6 +274,7 @@ function AccountContent({
   workspace: WorkspaceResponse;
   workspaces: WorkspaceResponse[];
 }) {
+  const client = useQueryClient();
   const params = useSearchParams();
   const router = useRouter();
   const id = useId();
@@ -274,6 +291,7 @@ function AccountContent({
     explicitAccounts: params.has('accountIds'),
     priceSources: sourceFromUrl(params.get('priceSources')),
     fxSources: sourceFromUrl(params.get('fxSources')),
+    suppliedPositionIds: params.get('suppliedPositionIds') ?? '',
   }));
   const [applied, setApplied] = useState(form);
   const [failure, setFailure] = useState<string | null>(null);
@@ -364,7 +382,10 @@ function AccountContent({
       })
     : null;
   const setupUrl = `/record?workspace=${workspace.id}#catalog-setup`;
-  const noAccounts = data && !data.accounts.some((row) => row.environment === form.environment);
+  const noAccounts =
+    data &&
+    data.accountChoicesComplete !== false &&
+    !data.accounts.some((row) => row.environment === form.environment);
   return (
     <>
       <div className="page-heading">
@@ -405,6 +426,31 @@ function AccountContent({
             Retry loading accounts
           </Button>
         </Panel>
+      )}
+      {data && (
+        <DashboardCatalogBrowser
+          prefix={`${prefix}/dashboard`}
+          catalog={data}
+          onPage={(resource, next) =>
+            client.setQueryData<typeof data>(['dashboard-catalog', workspace.id], (current) =>
+              current
+                ? mergeDashboardCatalogPage(
+                    current,
+                    next,
+                    resource,
+                    [
+                      form.accountIds,
+                      form.portfolioVersionId,
+                      form.currency,
+                      applied.accountIds,
+                      applied.portfolioVersionId,
+                      applied.currency,
+                    ].flatMap((value) => value.split(',').filter(Boolean)),
+                  )
+                : current,
+            )
+          }
+        />
       )}
       {data && (
         <>
@@ -638,6 +684,12 @@ function AccountContent({
               </fieldset>
               <details className="account-policy">
                 <summary>Price and FX evidence policy</summary>
+                <SuppliedValuePicker
+                  workspaceId={workspace.id}
+                  kind="position-equity"
+                  value={form.suppliedPositionIds}
+                  onChange={(value) => change('suppliedPositionIds', value)}
+                />
                 <p>
                   The report selects existing observations in this priority order, within the
                   maximum age. Missing evidence leaves affected totals incomplete. Refreshing does
@@ -860,11 +912,28 @@ function AccountContent({
                   {response.context.fxPolicy.maxAgeMilliseconds} milliseconds.
                 </p>
                 <p>
-                  {response.dependencies.prices.length} selected price observations;{' '}
-                  {response.dependencies.fx.length} FX selections. Refresh may use a newer ledger
-                  revision.
+                  {response.dependencies.coverage?.priceCount ??
+                    response.dependencies.prices.length}{' '}
+                  selected price observations;{' '}
+                  {response.dependencies.coverage?.fxCount ?? response.dependencies.fx.length} FX
+                  selections. Dependency preview: {response.dependencies.prices.length} prices and{' '}
+                  {response.dependencies.fx.length} FX selections returned. Refresh may use a newer
+                  ledger revision.
                 </p>
                 <p className="account-reference">
+                  {response.dependencies.suppliedValues?.length ? (
+                    <span>
+                      Reviewed residual sources:{' '}
+                      {response.dependencies.suppliedValues
+                        .map(
+                          (source) =>
+                            `${source.source} · ${source.amount} · ${source.sourceReference} · ${source.definitionVersion}`,
+                        )
+                        .join('; ')}
+                      . Automatic trading and FX decomposition remains unavailable for these manual
+                      instruments.
+                    </span>
+                  ) : null}
                   Accounting policy: {response.context.accountingVersion}; calculation kernel:{' '}
                   {response.context.manifest.kernel}.
                 </p>
@@ -880,6 +949,16 @@ function AccountContent({
             </div>
           )}
         </>
+      )}
+      <AccountCorrections workspace={workspace} />
+      {response && request && !invalid && (
+        <AccountReturnSeries
+          key={JSON.stringify({ ...request, sourceRevision: response.context.sourceRevision })}
+          workspaceId={workspace.id}
+          timezone={workspace.timezone}
+          request={{ ...request, sourceRevision: response.context.sourceRevision }}
+          currency={currency}
+        />
       )}
     </>
   );

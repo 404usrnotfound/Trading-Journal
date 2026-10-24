@@ -116,8 +116,10 @@ export function createAuthGateway(auth: Authentication, database: Database, conf
   }
 
   async function consumeLoginLimits(email: string): Promise<boolean> {
-    // Check shared ingress before creating any attacker-chosen account bucket.
-    if (!(await consumeLoginBucket('journal:login:ingress', 100))) return false;
+    // Each identity has its own persisted budget across replicas. A shared
+    // fixed-window budget would let one caller lock every other identity out.
+    // This runs inside credential admission, bounding counter allocation and
+    // cleanup as well as native hash work, including for varied unknown emails.
     await database.pool.query(`WITH expired AS (
       SELECT id FROM auth.rate_limit WHERE key LIKE 'journal:login:%'
       AND last_request <= floor(extract(epoch FROM clock_timestamp())*1000)::bigint-900000
@@ -211,21 +213,10 @@ export function createAuthGateway(auth: Authentication, database: Database, conf
       const body = await readBoundedJson(request);
       let libraryBody: unknown;
       let libraryPath = path;
+      let loginEmail: string | undefined;
       if (path.endsWith('sign-in/email')) {
         const credentials = signInSchema.parse(body);
-        if (!(await consumeLoginLimits(credentials.email))) {
-          const limited = toProblemResponse(
-            new ApplicationError(
-              429,
-              'RATE_LIMITED',
-              'Too many requests',
-              'Wait before trying again.',
-            ),
-            requestId,
-          );
-          limited.headers.set('retry-after', '900');
-          return limited;
-        }
+        loginEmail = credentials.email;
         libraryBody = credentials;
       } else if (path.endsWith('change-password')) {
         libraryBody = { ...changePasswordSchema.parse(body), revokeOtherSessions: true };
@@ -264,11 +255,26 @@ export function createAuthGateway(auth: Authentication, database: Database, conf
         headers,
         body: JSON.stringify(libraryBody),
       });
-      const invoke = () => auth.handler(libraryRequest);
+      const invoke = async () => {
+        if (loginEmail !== undefined && !(await consumeLoginLimits(loginEmail))) {
+          const limited = toProblemResponse(
+            new ApplicationError(
+              429,
+              'RATE_LIMITED',
+              'Too many requests',
+              'Wait before trying again.',
+            ),
+            requestId,
+          );
+          limited.headers.set('retry-after', '900');
+          return limited;
+        }
+        return auth.handler(libraryRequest);
+      };
       const credentials =
         path === '/api/auth/sign-in/email' || path === '/api/auth/change-password';
-      // Origin, session/CSRF, body validation and persisted login limits have
-      // completed before reserving a slot. Slow bodies never hold credential work.
+      // Origin, session/CSRF and body validation precede admission. Slow bodies
+      // never hold a slot; rejected excess work cannot allocate login counters.
       const libraryResponse = credentials ? await admitCredentialHandler(invoke) : await invoke();
       if (!libraryResponse) {
         const busy = toProblemResponse(

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
   calculateAccounting,
+  AccountingDetailLimitError,
   decimalValue,
   FinancialArithmeticError,
   INVENTORY_CALCULATION_MANIFEST,
@@ -17,6 +18,66 @@ import {
   type InventoryReplayResult,
   type InventorySource,
 } from '../../packages/domain/src/index.js';
+
+describe('bounded accounting evidence without truncating financial totals', () => {
+  it('returns identical complete totals and recoverable pages for every dependency population', () => {
+    const input = base({
+      openingCash: [balance('A', 'USD', '0')],
+      closingCash: [balance('A', 'USD', '6')],
+      cashPostings: [
+        posting('1', at(1), '1', 'income', 'USD'),
+        posting('2', at(2), '2', 'income', 'USD'),
+        posting('3', at(3), '3', 'income', 'USD'),
+      ],
+      fxObservations: [observation('fx', from, '0.8')],
+    });
+    const full = calculateAccounting(input);
+    const summary = calculateAccounting({ ...input, detail: 'summary', fullDetailLimit: 1 });
+    const { dependencies: _fullEvidence, ...fullFinancial } = full;
+    const { dependencies: _summaryEvidence, ...summaryFinancial } = summary;
+    expect(summaryFinancial).toEqual(fullFinancial);
+    expect(summary.reconciliation.performance.value).toBe('4.8');
+    expect(summary.dependencies).toMatchObject({
+      fx: [],
+      prices: [],
+      sourceIds: [],
+      coverage: {
+        mode: 'summary',
+        fxCount: full.dependencies.fx.length,
+        priceCount: full.dependencies.prices.length,
+        sourceIdCount: full.dependencies.sourceIds.length,
+        page: null,
+      },
+    });
+    for (const kind of ['fx', 'prices', 'sourceIds'] as const) {
+      const recovered: unknown[] = [];
+      let offset = 0;
+      do {
+        const page = calculateAccounting({
+          ...input,
+          detail: 'summary',
+          dependencyPage: { kind, offset, limit: 2 },
+        });
+        expect({ ...page, dependencies: full.dependencies }).toEqual(full);
+        recovered.push(...page.dependencies[kind]);
+        const next = page.dependencies.coverage!.page!.nextOffset;
+        if (next === null) break;
+        offset = next;
+      } while (true);
+      expect(recovered).toEqual(full.dependencies[kind]);
+    }
+    expect(() => calculateAccounting({ ...input, fullDetailLimit: 1 })).toThrow(
+      AccountingDetailLimitError,
+    );
+    expect(() =>
+      calculateAccounting({
+        ...input,
+        detail: 'full',
+        dependencyPage: { kind: 'fx', offset: 0, limit: 1 },
+      }),
+    ).toThrow(FinancialArithmeticError);
+  });
+});
 
 const at = (second: number) => `2026-01-01T12:00:${String(second).padStart(2, '0')}Z`;
 const from = at(0);

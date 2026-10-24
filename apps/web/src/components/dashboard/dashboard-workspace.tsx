@@ -1,7 +1,8 @@
 'use client';
+import { useDisplayViews } from '../display-views/use-display-views';
 import { formatDashboardValue as format } from './dashboard-format';
 import { memo, useCallback, useId, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   dashboardCatalogSchema,
@@ -13,8 +14,10 @@ import {
 import { Button, Panel } from '@journal/ui';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { DashboardChart } from './dashboard-chart';
+import { DashboardCatalogBrowser, mergeDashboardCatalogPage } from './dashboard-catalog-browser';
 import { DashboardCalendar } from './dashboard-calendar';
 import { dashboardDatePreset, inclusiveDateRange } from './dashboard-time';
+import { SuppliedValuePicker } from '../supplied/supplied-value-picker';
 
 async function read<T>(
   url: string,
@@ -62,6 +65,7 @@ const labels = [
   'Tag',
 ];
 type Form = {
+  suppliedCampaignResultIds: string;
   from: string;
   to: string;
   currency: string;
@@ -330,11 +334,13 @@ function DashboardContent({
   workspace: WorkspaceResponse;
   workspaces: WorkspaceResponse[];
 }) {
+  const client = useQueryClient();
   const router = useRouter(),
     params = useSearchParams(),
     id = useId(),
     prefix = `/api/v1/workspaces/${workspace.id}/dashboard`;
   const defaults: Form = {
+    suppliedCampaignResultIds: '',
     ...dashboardDatePreset('last-30-days', workspace.timezone),
     currency: '',
     environment: 'live',
@@ -388,6 +394,14 @@ function DashboardContent({
     request = {
       ...inclusiveDateRange(applied.from, applied.to, workspace.timezone),
       reportingCurrencyId: currency,
+      ...(applied.suppliedCampaignResultIds
+        ? {
+            suppliedCampaignResultIds: applied.suppliedCampaignResultIds
+              .split(',')
+              .map((value) => value.trim())
+              .filter(Boolean),
+          }
+        : {}),
       environment: applied.environment,
       timezone: workspace.timezone,
       samples: 7,
@@ -424,12 +438,13 @@ function DashboardContent({
       !!data &&
       !!currency &&
       !invalid &&
-      data.accounts.some((account) => account.environment === applied.environment),
+      (data.accountChoicesComplete === false ||
+        data.accounts.some((account) => account.environment === applied.environment)),
     queryFn: ({ signal }) => read(`${prefix}/reports`, dashboardResponseSchema, request, signal),
     retry: false,
   });
   const apply = useCallback(
-    (next: Form) => {
+    (next: Form, nextView: DashboardView = tab) => {
       try {
         const range = inclusiveDateRange(next.from, next.to, workspace.timezone);
         if (next.from > next.to) throw new Error('From must be on or before Through.');
@@ -444,12 +459,24 @@ function DashboardContent({
       setDrill(null);
       setPage(0);
       setFailure(null);
-      const url = new URLSearchParams({ workspace: workspace.id, view: tab });
+      setViewSelection({ query: queryView, value: nextView });
+      const url = new URLSearchParams({ workspace: workspace.id, view: nextView });
       for (const [key, value] of Object.entries(next)) if (value) url.set(key, value);
       router.replace(`/dashboard?${url}`, { scroll: false });
     },
-    [router, workspace.id, workspace.timezone, tab],
+    [router, workspace.id, workspace.timezone, tab, queryView],
   );
+  const displayViews = useDisplayViews({
+    workspaceId: workspace.id,
+    screen: 'dashboard',
+    filters: { ...applied, search, view: tab, curve },
+    onApply: (filters) => {
+      const { search: savedSearch, view, curve: savedCurve, ...next } = filters;
+      apply({ ...defaults, ...next } as Form, view as DashboardView);
+      setSearch(savedSearch!);
+      setCurve(savedCurve!);
+    },
+  });
   function selectView(next: DashboardView) {
     setViewSelection({ query: queryView, value: next });
     const url = new URLSearchParams(params.toString());
@@ -527,7 +554,12 @@ function DashboardContent({
     environment: applied.environment,
     ...(applied.portfolioVersionId && !applied.accountIds && !applied.brokerIds
       ? { portfolioVersionId: applied.portfolioVersionId }
-      : { accountIds: selectedAccounts?.map((row) => row.id).join(',') ?? '' }),
+      : {
+          accountIds: (applied.accountIds
+            ? applied.accountIds.split(',').map((value) => value.trim())
+            : (analytics?.context.accountIds ?? selectedAccounts?.map((row) => row.id) ?? [])
+          ).join(','),
+        }),
   });
   return (
     <>
@@ -543,7 +575,8 @@ function DashboardContent({
           onClick={() => {
             if (
               currency &&
-              data?.accounts.some((account) => account.environment === applied.environment) &&
+              (data?.accountChoicesComplete === false ||
+                data?.accounts.some((account) => account.environment === applied.environment)) &&
               !invalid
             )
               void report.refetch();
@@ -555,6 +588,39 @@ function DashboardContent({
       </div>
       {workspaces.length > 1 && (
         <WorkspaceSwitcher selected={workspace.id} workspaces={workspaces} />
+      )}
+      {data && (
+        <DashboardCatalogBrowser
+          prefix={prefix}
+          catalog={data}
+          onPage={(resource, next) =>
+            client.setQueryData<typeof data>(['dashboard-catalog', workspace.id], (current) =>
+              current
+                ? mergeDashboardCatalogPage(
+                    current,
+                    next,
+                    resource,
+                    [
+                      form.accountIds,
+                      form.portfolioVersionId,
+                      form.brokerIds,
+                      form.strategyIds,
+                      form.strategyVersionIds,
+                      form.assetIds,
+                      form.tags,
+                      form.currency || currency,
+                      applied.accountIds,
+                      applied.portfolioVersionId,
+                      applied.strategyIds,
+                      applied.strategyVersionIds,
+                      applied.assetIds,
+                      applied.currency || currency,
+                    ].flatMap((value) => value.split(',').filter(Boolean)),
+                  )
+                : current,
+            )
+          }
+        />
       )}
       <Panel className="dashboard-filters">
         <div className="dashboard-review-shortcuts" aria-label="Review period shortcuts">
@@ -712,6 +778,12 @@ function DashboardContent({
             </div>
             <details className="dashboard-pricing-policy">
               <summary>Price and FX coverage policy</summary>
+              <SuppliedValuePicker
+                workspaceId={workspace.id}
+                kind="campaign-net-result"
+                value={form.suppliedCampaignResultIds}
+                onChange={(value) => setForm({ ...form, suppliedCampaignResultIds: value })}
+              />
               <div className="field">
                 <label htmlFor={`${id}-age`}>Maximum price / FX age</label>
                 <select
@@ -794,7 +866,9 @@ function DashboardContent({
       )}
       {!catalog.isPending &&
         data &&
-        (!currency || !data.accounts.some((row) => row.environment === applied.environment)) && (
+        (!currency ||
+          (data.accountChoicesComplete !== false &&
+            !data.accounts.some((row) => row.environment === applied.environment))) && (
           <Panel className="dashboard-message">
             <h2>Your performance starts with financial records</h2>
             <p>
@@ -1003,6 +1077,7 @@ function DashboardContent({
                 }}
               />
             </div>
+            {displayViews.controls}
             <div className="dashboard-table-scroll">
               <table>
                 <caption>
@@ -1011,16 +1086,16 @@ function DashboardContent({
                 <thead>
                   <tr>
                     <th scope="col">Trade</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Net P&L</th>
-                    <th scope="col">Original R</th>
-                    <th scope="col">Coverage</th>
+                    {displayViews.columns.includes('status') && <th scope="col">Status</th>}
+                    {displayViews.columns.includes('netPnl') && <th scope="col">Net P&L</th>}
+                    {displayViews.columns.includes('originalR') && <th scope="col">Original R</th>}
+                    {displayViews.columns.includes('coverage') && <th scope="col">Coverage</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {!rows.length && (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={displayViews.columns.length}>
                         {search
                           ? 'No supporting trades match this search. Try another title or clear the search.'
                           : drill
@@ -1036,16 +1111,28 @@ function DashboardContent({
                           {row.title}
                         </a>
                       </th>
-                      <td>{row.status}</td>
-                      <td>
-                        {row.netPnl.value === null ? 'Unavailable' : `${row.netPnl.value} ${money}`}
-                      </td>
-                      <td>{row.rMultiple.value ?? 'Unavailable'}</td>
-                      <td>
-                        {[...row.exclusionReasons, ...row.netPnl.reasons, ...row.rMultiple.reasons]
-                          .map((reason) => reason.replaceAll('_', ' '))
-                          .join('; ') || 'Complete'}
-                      </td>
+                      {displayViews.columns.includes('status') && <td>{row.status}</td>}
+                      {displayViews.columns.includes('netPnl') && (
+                        <td>
+                          {row.netPnl.value === null
+                            ? 'Unavailable'
+                            : `${row.netPnl.value} ${money}`}
+                        </td>
+                      )}
+                      {displayViews.columns.includes('originalR') && (
+                        <td>{row.rMultiple.value ?? 'Unavailable'}</td>
+                      )}
+                      {displayViews.columns.includes('coverage') && (
+                        <td>
+                          {[
+                            ...row.exclusionReasons,
+                            ...row.netPnl.reasons,
+                            ...row.rMultiple.reasons,
+                          ]
+                            .map((reason) => reason.replaceAll('_', ' '))
+                            .join('; ') || 'Complete'}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

@@ -5,6 +5,8 @@ import {
   journalDocumentSchema,
   type AnalyticsReportRequest,
 } from '@journal/contracts';
+import { createAccountingServices } from '../../packages/server/src/accounting/service.js';
+import { createAccountingCorrections } from '../../packages/server/src/accounting/corrections.js';
 import { createAnalyticsServices } from '../../packages/server/src/analytics/service.js';
 import { createCatalogServices } from '../../packages/server/src/financial/catalog.js';
 import { createFinancialLedger } from '../../packages/server/src/financial/ledger.js';
@@ -784,6 +786,78 @@ describe('analytics source service with immutable PostgreSQL financial and journ
     expect(attributed.summary.metrics.winRate.value).toBe('1');
   });
 
+  it.each(['financing', 'interest'] as const)(
+    'blocks complete campaign net and R for typed %s costs and preserves revision/time scope',
+    async (kind) => {
+      const scope = await account();
+      const created = await campaign(scope);
+      const legId = created.financial.legs[0]!.legId;
+      await fill(scope, legId, 'buy', '1', '100', 2);
+      await fill(scope, legId, 'sell', '1', '110', 4);
+      await close(created.trade.id);
+      const before = await report(scope);
+      expect(before.records[0]?.netPnl).toMatchObject({ state: 'available', value: '10' });
+      expect(before.records[0]?.rMultiple).toMatchObject({ state: 'available', value: '1' });
+      const expense = await createAccountingServices(fixture.services).recordExpense(
+        fixture.owner.context,
+        {
+          commandId: randomUUID(),
+          accountId: scope.id,
+          cashBucketId: scope.bucket,
+          currencyId: usd,
+          kind,
+          amount: '20',
+          economicAt: at(3),
+          orderingKey: '1',
+          description: 'Actual borrowing cost during the campaign exposure',
+        },
+      );
+      const after = await report(scope);
+      expect(after.records[0]?.grossPnl).toMatchObject({ state: 'available', value: '10' });
+      expect(after.records[0]?.netPnl).toMatchObject({
+        state: 'unavailable',
+        value: null,
+        reasons: ['standalone_costs_require_campaign_attribution'],
+      });
+      expect(after.records[0]?.rMultiple.state).toBe('unavailable');
+      expect(after.summary.counts.eligibleOutcomes).toBe(0);
+      const pinned = await report(scope, { sourceRevision: before.context.sourceRevision });
+      expect(pinned.records[0]?.netPnl.value).toBe('10');
+      await createAccountingCorrections(fixture.services).reverse(
+        fixture.owner.context,
+        expense.id,
+        {
+          commandId: randomUUID(),
+          sourceType: 'cash-event',
+          expectedSourceRevision: after.context.sourceRevision,
+          reason: 'Duplicate financing statement source',
+        },
+      );
+      const restored = await report(scope);
+      expect(restored.records[0]?.netPnl).toMatchObject({ state: 'available', value: '10' });
+      expect(restored.records[0]?.rMultiple).toMatchObject({ state: 'available', value: '1' });
+      expect(
+        (await report(scope, { sourceRevision: after.context.sourceRevision })).records[0]?.netPnl
+          .state,
+      ).toBe('unavailable');
+      await createAccountingServices(fixture.services).recordExpense(fixture.owner.context, {
+        commandId: randomUUID(),
+        accountId: scope.id,
+        cashBucketId: scope.bucket,
+        currencyId: usd,
+        kind,
+        amount: '5',
+        economicAt: at(6),
+        orderingKey: '1',
+        description: 'Later cost has no exposure overlap',
+      });
+      expect(
+        (await report(scope, { sourceRevision: before.context.sourceRevision })).records[0]?.netPnl
+          .value,
+      ).toBe('10');
+    },
+  );
+
   it('includes an execution-linked late charge only at its economic cutoff and financial revision', async () => {
     const scope = await account(),
       created = await campaign(scope);
@@ -947,6 +1021,50 @@ describe('analytics source service with immutable PostgreSQL financial and journ
     expect(result.summary.metrics.fees).toMatchObject({ state: 'available', value: '0' });
     expect(result.summary.metrics.averageR).toMatchObject({ state: 'available', value: '0.2' });
     expect(result.records[0]?.netPnl.reasons).toEqual([]);
+  });
+
+  it('agrees with inventory on a zero foreign execution fee without inventing FX for a nonzero charge', async () => {
+    const scope = await account(),
+      created = await campaign(scope);
+    const foreign = await ledger.createCashBucket(fixture.owner.context, {
+      commandId: randomUUID(),
+      accountId: scope.id,
+      currencyId: eur,
+      kind: 'settled',
+    });
+    const legId = created.financial.legs[0]!.legId;
+    const buy = await fill(scope, legId, 'buy', '1', '100', 2, {
+      fees: [{ cashBucketId: foreign.id, currencyId: eur, amount: '0', kind: 'commission' }],
+    });
+    await fill(scope, legId, 'sell', '1', '110', 3);
+    await close(created.trade.id);
+    const fxPolicy = {
+      id: 'zero-fee-without-fx/1',
+      maxAgeMilliseconds: 86_400_000,
+      sourcePriority: ['No foreign-fee FX observation'],
+    };
+    const inventory = (await ledger.positions(fixture.owner.context, { accountId: scope.id }))[0]!;
+    expect(inventory.inventory.realizedNet).toMatchObject({ status: 'available', value: '10' });
+    const zero = await report(scope, { fxPolicy });
+    expect(zero.records[0]?.netPnl).toMatchObject({ state: 'available', value: '10' });
+    expect(zero.records[0]?.fees).toMatchObject({ state: 'available', value: '0' });
+    expect(zero.summary.metrics.fees).toMatchObject({ state: 'available', value: '0' });
+
+    await ledger.recordFee(fixture.owner.context, {
+      commandId: randomUUID(),
+      accountId: scope.id,
+      executionId: buy.id,
+      cashBucketId: foreign.id,
+      currencyId: eur,
+      amount: '1',
+      kind: 'commission',
+      economicAt: at(2),
+      orderingKey: '2',
+    });
+    const nonzero = await report(scope, { fxPolicy });
+    expect(nonzero.records[0]?.fees).toMatchObject({ state: 'unavailable', value: null });
+    expect(nonzero.records[0]?.fees.reasons).toContain('missing_fee_fx');
+    expect(nonzero.records[0]?.netPnl.state).toBe('unavailable');
   });
 
   it('values an older leg with compatible later instrument-version fills and an actual quote-currency mark', async () => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { suppliedReferenceSchema } from './supplied-reference.js';
 import { accountingFxPolicySchema } from './accounting.js';
 import {
   financialDecimalSchema,
@@ -57,6 +58,7 @@ function instantMicroseconds(value: string): bigint {
 /** Campaign analytics is a bounded read, with explicit financial and metadata clocks. */
 export const analyticsReportRequestSchema = z
   .strictObject({
+    suppliedCampaignResultIds: id.array().max(100).optional(),
     accountIds,
     reportingCurrencyId: id,
     from: financialInstantSchema,
@@ -179,6 +181,7 @@ const hash = z
   .regex(/^[a-f0-9]{64}$/u)
   .nullable();
 const provenance = z.strictObject({
+  suppliedResult: suppliedReferenceSchema.optional(),
   originalPlanId: nullableId,
   originalPlanHash: hash,
   metadataPlanId: nullableId,
@@ -394,6 +397,7 @@ export const analyticsReportResponseSchema = z
       priceSourcePriority: analyticsReportRequestSchema.shape.priceSourcePriority,
       population: z.literal('campaign-attribution'),
       moneyPopulation: z.literal('selected-completed-and-open-lifetime-asof'),
+      suppliedCampaignResultIds: id.array().max(100).optional(),
       manifest: financialSchemaComponents.InventoryManifest,
     }),
     records: analyticsCampaignSchema.array(),

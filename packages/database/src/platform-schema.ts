@@ -6,6 +6,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgSchema,
   primaryKey,
   text,
@@ -142,6 +143,7 @@ export const workspaces = appSchema
         .notNull()
         .references(() => user.id),
       isDemo: boolean('is_demo').notNull().default(false),
+      restoredFromWorkspaceId: uuid('restored_from_workspace_id'),
       timezone: text('timezone').notNull().default('UTC'),
       reportingCurrency: text('reporting_currency'),
       revision: integer('revision').notNull().default(1),
@@ -157,7 +159,7 @@ export const workspaces = appSchema
       check('workspace_positive_revision', sql`${table.revision} >= 1`),
       uniqueIndex('one_personal_workspace_per_creator')
         .on(table.createdBy)
-        .where(sql`NOT ${table.isDemo}`),
+        .where(sql`NOT ${table.isDemo} AND ${table.restoredFromWorkspaceId} IS NULL`),
     ],
   )
   .enableRLS();
@@ -192,6 +194,8 @@ export const userPreferences = appSchema
       id: uuid('id').notNull().defaultRandom(),
       userId: text('user_id').notNull(),
       theme: text('theme').notNull().default('system'),
+      savedViews: jsonb('saved_views').notNull().default({}),
+      viewRevision: integer('view_revision').notNull().default(0),
       timezone: text('timezone'),
       createdAt: createdAt(),
       updatedAt: updatedAt(),
@@ -209,6 +213,11 @@ export const userPreferences = appSchema
         foreignColumns: [workspaceMemberships.workspaceId, workspaceMemberships.userId],
       }).onDelete('cascade'),
       check('preference_theme_values', sql`${table.theme} IN ('system', 'light', 'dark')`),
+      check('preference_view_revision_nonnegative', sql`${table.viewRevision} >= 0`),
+      check(
+        'preference_saved_views_bound',
+        sql`jsonb_typeof(${table.savedViews})='object' AND octet_length(${table.savedViews}::text)<=262144 AND (${table.savedViews} - ARRAY['dashboard','journal','strategies']::text[])='{}'::jsonb`,
+      ),
     ],
   )
   .enableRLS();

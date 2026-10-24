@@ -429,7 +429,6 @@ describe('Phase 14 untrusted imported monetary values', () => {
   it.each([
     ['zero quantity', { quantity: '0' }],
     ['negative quantity', { quantity: '-0.5' }],
-    ['negative price', { price: '-10' }],
     ['excess fractional precision', { price: `0.${'0'.repeat(36)}1` }],
     ['exponent text', { price: '1e-8' }],
   ])('rejects %s without corrupting an adjacent valid imported row', (_label, patch) => {
@@ -447,5 +446,17 @@ describe('Phase 14 untrusted imported monetary values', () => {
     expect(accepted.payload).toMatchObject({ ...executionPayload, accountId });
     expect(accepted.sourceId).toBe('valid');
     expect(rows[1]?.draft?.payload).not.toHaveProperty('accountId');
+  });
+  it('preserves a signed source quote until instrument-aware financial preview validates its convention', () => {
+    const original = JSON.stringify({ ...executionPayload, price: '-37.63' });
+    const [row] = canonicalCsvAdapter.parse(
+      `ID,Kind,Payload\nnegative-future,execution,${csvQuote(original)}`,
+      canonicalMapping,
+    );
+    expect(row?.raw.Payload).toBe(original);
+    expect(validateDraft(row!.draft!, accountId).payload).toMatchObject({
+      price: '-37.63',
+      accountId,
+    });
   });
 });

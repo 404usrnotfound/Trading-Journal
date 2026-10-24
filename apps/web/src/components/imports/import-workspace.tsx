@@ -1423,7 +1423,19 @@ export function ImportWorkspace({
                     <td>{value.rowCount}</td>
                     <td>{value.createdAt}</td>
                     <td>
-                      <Button variant="secondary" onClick={() => open(value)}>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() =>
+                          void run(async () => {
+                            const current = await read(
+                              `${prefix}/batches/${value.id}`,
+                              c.importBatchDetailSchema,
+                            );
+                            open(current.batch);
+                          })
+                        }
+                      >
                         Review batch
                       </Button>
                     </td>

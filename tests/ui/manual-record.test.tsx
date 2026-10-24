@@ -245,6 +245,7 @@ beforeEach(() => {
 function mount(
   mode: 'record' | 'existing' = 'record',
   role: c.WorkspaceResponse['role'] = 'owner',
+  initialTradeId: string | null = null,
 ) {
   render(
     <QueryClientProvider
@@ -254,6 +255,7 @@ function mount(
         workspace={{ ...workspace, role }}
         workspaces={[workspace]}
         initialMode={mode}
+        initialTradeId={initialTradeId}
       />
     </QueryClientProvider>,
   );
@@ -379,6 +381,89 @@ describe('manual source recording', () => {
     expect(writes.find((item) => item.path.endsWith('/execution-allocations'))?.body).toMatchObject(
       { executionId: execution.id, expectedVersion: 7 },
     );
+  });
+  it('links a historical fill after metadata publication using its immutable instrument version', async () => {
+    const originalFetch = globalThis.fetch;
+    const readVersion = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, options?: RequestInit) => {
+        if (!options?.body && path.includes('/instruments?'))
+          return json([
+            { ...instrument, version: 2, versionId: uuid(200), priceIncrement: '0.0000001' },
+          ]);
+        if (!options?.body && path.endsWith(`/instrument-versions/${instrument.versionId}`)) {
+          readVersion();
+          return json(instrument);
+        }
+        return originalFetch(path, options);
+      }),
+    );
+    mount('existing');
+    await screen.findByLabelText('Account');
+    set('Account', account.id);
+    await screen.findByRole('option', { name: /2026-10-14/ });
+    set('Recorded execution', execution.id);
+    await waitFor(() => expect(readVersion).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Preview attribution' })).toBeEnabled(),
+    );
+    set('Trade title', 'Historical allocation');
+    set('Attribution reason', 'Reviewed old fill under its source conventions');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview attribution' }));
+    await confirm('existing');
+    await screen.findByRole('link', { name: 'Review this trade' });
+    expect(writes.find((entry) => entry.path.endsWith('/journals'))?.body).toMatchObject({
+      legs: [{ instrumentVersionId: instrument.versionId }],
+    });
+    expect(
+      writes.some(
+        (entry) => entry.path.endsWith('/executions') || entry.path.endsWith('/cash-buckets'),
+      ),
+    ).toBe(false);
+  });
+  it('records an exit for a historically pinned campaign leg after metadata publication', async () => {
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, options?: RequestInit) => {
+        if (!options?.body && path.includes('/instruments?'))
+          return json([{ ...instrument, version: 2, versionId: uuid(200) }]);
+        if (!options?.body && path.endsWith(`/instrument-versions/${instrument.versionId}`))
+          return json(instrument);
+        if (!options?.body && path.endsWith(`/journals/${uuid(8)}`)) return json(detail());
+        return originalFetch(path, options);
+      }),
+    );
+    mount('record', 'owner', uuid(8));
+    await screen.findByLabelText('Account');
+    set('Account', account.id);
+    await screen.findByRole('option', {
+      name: `${instrument.name} · historical version for this trade`,
+    });
+    set('Instrument', instrument.versionId);
+    await screen.findByLabelText('Quantity (share)');
+    set('Execution side', 'sell');
+    set('Quantity (share)', execution.quantity);
+    set('Execution price', execution.price!);
+    set('Executed at (ISO time with offset)', execution.economicAt);
+    set('Source ordering key', '3');
+    set('Attribution reason', 'Exit belongs to the historically pinned campaign');
+    await waitFor(() => expect(screen.getByLabelText('Matching trade leg')).toHaveValue(uuid(9)));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview record' }));
+    await screen.findByRole('dialog');
+    await confirm();
+    await screen.findByRole('link', { name: 'Review this trade' });
+    expect(writes.find((entry) => entry.path.endsWith('/executions'))?.body).toMatchObject({
+      instrumentVersionId: instrument.versionId,
+      side: 'sell',
+    });
+    expect(
+      writes.find((entry) => entry.path.endsWith('/execution-allocations'))?.body,
+    ).toMatchObject({
+      allocations: [{ tradeLegId: uuid(9), quantity: execution.quantity }],
+    });
+    expect(writes.some((entry) => entry.path.endsWith('/journals'))).toBe(false);
   });
   it('preserves allocations belonging to another campaign instead of replacing them', async () => {
     assigned = true;

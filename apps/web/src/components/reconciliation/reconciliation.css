@@ -1,0 +1,85 @@
+.reconciliation-workspace {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.reconciliation-workspace .panel {
+  padding: 1.5rem;
+  min-width: 0;
+}
+.reconciliation-workspace form,
+.reconciliation-workspace fieldset {
+  display: grid;
+  gap: 1rem;
+}
+.reconciliation-workspace fieldset {
+  border: 1px solid var(--border);
+  padding: 1rem;
+  min-width: 0;
+}
+.reconciliation-workspace legend {
+  font-weight: 600;
+  padding: 0 0.4rem;
+}
+.reconciliation-fields,
+.reconciliation-line {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+.reconciliation-workspace .journal-field {
+  display: grid;
+  gap: 0.4rem;
+}
+.reconciliation-workspace input:not([type='checkbox']),
+.reconciliation-workspace select,
+.reconciliation-workspace textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: inherit;
+  background: var(--surface);
+  font: inherit;
+}
+.reconciliation-workspace textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+.reconciliation-workspace small {
+  font-size: 0.8rem;
+}
+.reconciliation-table {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.reconciliation-table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.reconciliation-table caption {
+  text-align: left;
+  margin-bottom: 0.6rem;
+}
+.reconciliation-table th,
+.reconciliation-table td {
+  text-align: left;
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.reconciliation-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.reconciliation-state {
+  font-weight: 600;
+}
+.reconciliation-reference {
+  overflow-wrap: anywhere;
+}

@@ -13,6 +13,9 @@ import { createFinancialLedger } from '../../packages/server/src/financial/ledge
 import { createFinancialObservations } from '../../packages/server/src/financial/observations.js';
 import { createAccountingServices } from '../../packages/server/src/accounting/service.js';
 import { createAccountingReports } from '../../packages/server/src/accounting/report.js';
+import { createAccountingCorrections } from '../../packages/server/src/accounting/corrections.js';
+import { createAccountPerformance } from '../../packages/server/src/accounting/performance.js';
+import { accountPerformanceResponseSchema } from '@journal/contracts';
 import { instrumentPlatform } from '../../scripts/performance/instrument.js';
 
 const origin = 'http://localhost:3000';
@@ -245,6 +248,60 @@ describe('portfolio accounting reconciliation on restricted real PostgreSQL', ()
   const money = (metric: { state: string; value: string | null }, value: string) =>
     expect(metric).toMatchObject({ state: 'available', value });
 
+  it('preserves complete totals in summary reports and pins recoverable dependency pages across later writes', async () => {
+    const f = await fixture();
+    await fund(f, '100');
+    await fund(f, '10', eur, at(3), 'income');
+    const request = query([f.account.id], f.source);
+    const full = accountingReportResponseSchema.parse(await reports.report(viewer, request));
+    const summary = accountingReportResponseSchema.parse(
+      await reports.report(viewer, { ...request, detail: 'summary' }),
+    );
+    const { dependencies: _fullDependencies, ...fullNumbers } = full;
+    const { dependencies: _summaryDependencies, ...summaryNumbers } = summary;
+    expect(summaryNumbers).toEqual(fullNumbers);
+    expect(summary.dependencies.coverage).toMatchObject({
+      mode: 'summary',
+      sourceIdCount: full.dependencies.sourceIds.length,
+    });
+    expect(summary.dependencies.sourceIds).toEqual([]);
+    await fund(f, '50', eur, at(4));
+    const recovered: string[] = [];
+    let offset = 0;
+    do {
+      const page = accountingReportResponseSchema.parse(
+        await reports.report(viewer, {
+          ...request,
+          sourceRevision: summary.context.sourceRevision,
+          detail: 'summary',
+          dependencyPage: { kind: 'sourceIds', offset, limit: 1 },
+        }),
+      );
+      expect(page.reconciliation).toEqual(full.reconciliation);
+      expect(page.closing).toEqual(full.closing);
+      recovered.push(...page.dependencies.sourceIds);
+      const next = page.dependencies.coverage!.page!.nextOffset;
+      if (next === null) break;
+      offset = next;
+    } while (true);
+    expect(recovered).toEqual(full.dependencies.sourceIds);
+    await expect(
+      reports.report(outsider, {
+        ...request,
+        sourceRevision: '0',
+        detail: 'summary',
+        dependencyPage: { kind: 'sourceIds', offset: 0, limit: 1 },
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      reports.report(viewer, {
+        ...request,
+        detail: 'summary',
+        dependencyPage: { kind: 'sourceIds', offset: 0, limit: 1 },
+      }),
+    ).rejects.toThrow();
+  });
+
   it('does not scan transfer legs while reporting ordinary cash postings under the runtime role', async () => {
     const f = await fixture();
     await fund(f, '100');
@@ -451,6 +508,269 @@ describe('portfolio accounting reconciliation on restricted real PostgreSQL', ()
     money(result.breakdown.tradingPnl, '0');
     money(result.reconciliation.performance, '82');
     money(result.reconciliation.variance, '0');
+  });
+
+  it('historically reverses erroneous typed income with linked withholding, preserving pinned results and idempotency', async () => {
+    const f = await fixture();
+    await fund(f, '1000');
+    const income = await accounting.recordIncome(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      cashBucketId: f.eurBucket.id,
+      currencyId: eur,
+      kind: 'dividend',
+      amount: '100',
+      withholding: '15',
+      economicAt: at(3),
+      orderingKey: '1',
+      description: 'Erroneous source amount',
+    });
+    const corrections = createAccountingCorrections(services);
+    const before = await reports.report(owner, query([f.account.id], f.source));
+    const input = {
+      commandId: randomUUID(),
+      sourceType: 'cash-event' as const,
+      expectedSourceRevision: before.context.sourceRevision,
+      reason: 'Statement confirms dividend should be ten',
+    };
+    const result = await corrections.reverse(owner, income.id, input);
+    expect(await corrections.reverse(owner, income.id, input)).toEqual(result);
+    const corrected = await reports.report(owner, query([f.account.id], f.source));
+    money(corrected.breakdown.income, '0');
+    money(corrected.breakdown.taxes, '0');
+    money(corrected.closing.equity, '1000');
+    money(corrected.reconciliation.variance, '0');
+    const retained = await reports.report(owner, {
+      ...query([f.account.id], f.source),
+      sourceRevision: before.context.sourceRevision,
+    });
+    expect(retained).toEqual(before);
+    await expect(
+      corrections.reverse(owner, income.id, {
+        ...input,
+        commandId: randomUUID(),
+        expectedSourceRevision: result.sourceRevision,
+      }),
+    ).rejects.toMatchObject({ code: 'ALREADY_REVERSED' });
+    await expect(
+      corrections.reverse(viewer, income.id, { ...input, commandId: randomUUID() }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      corrections.reverse(outsider, income.id, {
+        ...input,
+        commandId: randomUUID(),
+        expectedSourceRevision: (await corrections.sources(outsider)).sourceRevision,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    const listed = await corrections.sources(owner, { limit: 100 });
+    expect(listed.items.find((item) => item.id === income.id)).toMatchObject({ reversed: true });
+    await accounting.recordIncome(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      cashBucketId: f.eurBucket.id,
+      currencyId: eur,
+      kind: 'dividend',
+      amount: '10',
+      withholding: '1.5',
+      economicAt: at(3),
+      orderingKey: '1',
+      description: `Replacement for reversed source ${income.id}`,
+    });
+    const replacement = await reports.report(owner, query([f.account.id], f.source));
+    money(replacement.breakdown.income, '10');
+    money(replacement.breakdown.taxes, '1.5');
+    money(replacement.closing.equity, '1008.5');
+  });
+
+  it('historically reverses both pending and received owned transfers without phantom transit or boundary flows', async () => {
+    const source = await fixture();
+    const destination = await fixture();
+    await fund(source, '100');
+    const corrections = createAccountingCorrections(services);
+    for (const received of [false, true]) {
+      const transfer = await accounting.createCashTransfer(owner, {
+        commandId: randomUUID(),
+        sourceBucketId: source.eurBucket.id,
+        destinationBucketId: destination.eurBucket.id,
+        amount: '20',
+        economicAt: at(3),
+        orderingKey: '1',
+        description: 'Wrong destination',
+        ...(received ? { receiptAt: at(3) } : {}),
+      });
+      const before = await reports.report(
+        owner,
+        query([source.account.id, destination.account.id], source.source),
+      );
+      await corrections.reverse(owner, transfer.id, {
+        commandId: randomUUID(),
+        sourceType: 'transfer',
+        expectedSourceRevision: before.context.sourceRevision,
+        reason: 'Wrong destination account',
+      });
+      const after = await reports.report(
+        owner,
+        query([source.account.id, destination.account.id], source.source),
+      );
+      money(after.closing.equity, '100');
+      money(after.closing.transit, '0');
+      money(after.reconciliation.variance, '0');
+      const narrow = await reports.report(owner, query([destination.account.id], source.source));
+      money(narrow.closing.equity, '0');
+      money(narrow.breakdown.boundaryTransfers, '0');
+      await expect(
+        accounting.receiveCashTransfer(owner, transfer.id, {
+          commandId: randomUUID(),
+          economicAt: at(4),
+          orderingKey: '1',
+        }),
+      ).rejects.toMatchObject({ code: 'TRANSFER_REVERSED' });
+    }
+  });
+
+  it('provides independently known annual account TWR/MWR without external flows', async () => {
+    const f = await fixture();
+    await fund(f, '100', eur, at(2));
+    const to = '2026-01-02T12:00:00.000001Z';
+    await accounting.recordIncome(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      cashBucketId: f.eurBucket.id,
+      currencyId: eur,
+      kind: 'interest',
+      amount: '10',
+      economicAt: to,
+      orderingKey: '1',
+    });
+    const performance = createAccountPerformance(services);
+    const value = accountPerformanceResponseSchema.parse(
+      await performance(viewer, query([f.account.id], f.source, at(2), to)),
+    );
+    expect(value.twr).toEqual({ state: 'available', value: '0.1', reasons: [] });
+    expect(value.mwr).toEqual({ state: 'available', value: '0.1', reasons: [] });
+    expect(value.series.map((row) => row.nav)).toEqual(['100', '110']);
+    expect(value.series.map((row) => row.unitIndex)).toEqual(['100', '110']);
+  });
+
+  it('discovers every capital-flow boundary rather than trusting client display samples', async () => {
+    const f = await fixture();
+    await fund(f, '100', eur, at(2));
+    await fund(f, '100', eur, at(3));
+    await accounting.recordIncome(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      cashBucketId: f.eurBucket.id,
+      currencyId: eur,
+      kind: 'interest',
+      amount: '20',
+      economicAt: at(4),
+      orderingKey: '1',
+    });
+    const performance = createAccountPerformance(services);
+    const value = accountPerformanceResponseSchema.parse(
+      await performance(owner, {
+        ...query([f.account.id], f.source, at(2), at(5)),
+        checkpoints: [at(4)],
+      }),
+    );
+    expect(value.series).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ at: at(3), nav: '200', capitalFlow: '100', unitIndex: '100' }),
+      ]),
+    );
+    expect(value.twr.value).toBe('0.1');
+    expect(value.series.at(-1)).toMatchObject({ nav: '220', unitIndex: '110' });
+    await fund(f, '900', eur, at(3));
+    const pinned = accountPerformanceResponseSchema.parse(
+      await performance(owner, {
+        ...query([f.account.id], f.source, at(2), at(5)),
+        checkpoints: [at(4)],
+        sourceRevision: value.sourceRevision,
+      }),
+    );
+    expect(pinned).toEqual(value);
+    await expect(
+      performance(owner, {
+        ...query([f.account.id], f.source, at(2), at(5)),
+        checkpoints: [at(1)],
+      }),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it('does not synthesize return percentages when reporting NAV lacks required FX', async () => {
+    const f = await fixture();
+    await fund(f, '100', usd, at(2));
+    const value = accountPerformanceResponseSchema.parse(
+      await createAccountPerformance(services)(
+        viewer,
+        query([f.account.id], f.source, at(2), at(5)),
+      ),
+    );
+    expect(value.twr.state).toBe('unavailable');
+    expect(value.mwr.state).toBe('unavailable');
+    expect(value.series.every((point) => point.nav === null && point.unitIndex === null)).toBe(
+      true,
+    );
+  });
+
+  it('does not assume a flow ordering when a contribution and income share one timestamp', async () => {
+    const f = await fixture();
+    await fund(f, '100', eur, at(2));
+    await fund(f, '100', eur, at(3));
+    await accounting.recordIncome(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      cashBucketId: f.eurBucket.id,
+      currencyId: eur,
+      kind: 'interest',
+      amount: '20',
+      economicAt: at(3),
+      orderingKey: '2',
+    });
+    const value = accountPerformanceResponseSchema.parse(
+      await createAccountPerformance(services)(
+        viewer,
+        query([f.account.id], f.source, at(2), at(5)),
+      ),
+    );
+    expect(value.twr).toMatchObject({ state: 'unavailable', value: null });
+    expect(value.series.find((point) => point.capitalFlow === '100')?.reasons).toContain(
+      'ambiguous_flow_ordering',
+    );
+    expect(value.mwr.state).toBe('available');
+  });
+
+  it('reverses standalone signed tax/refund and financing sources without changing their historical classification', async () => {
+    const f = await fixture();
+    await fund(f, '100');
+    const corrections = createAccountingCorrections(services);
+    for (const kind of ['tax', 'expense'] as const) {
+      const common = {
+        commandId: randomUUID(),
+        accountId: f.account.id,
+        cashBucketId: f.eurBucket.id,
+        currencyId: eur,
+        amount: kind === 'tax' ? '-2' : '3',
+        economicAt: at(3),
+        orderingKey: '1',
+        description: 'Erroneous typed source',
+      };
+      const source =
+        kind === 'tax'
+          ? await accounting.recordTax(owner, common)
+          : await accounting.recordExpense(owner, { ...common, kind: 'financing' });
+      await corrections.reverse(owner, source.id, {
+        commandId: randomUUID(),
+        sourceType: 'cash-event',
+        expectedSourceRevision: source.sourceRevision,
+        reason: 'Duplicate statement entry',
+      });
+      const report = await reports.report(viewer, query([f.account.id], f.source));
+      money(report.closing.equity, '100');
+      money(report.breakdown.expenses, '0');
+      money(report.breakdown.taxes, '0');
+      money(report.reconciliation.variance, '0');
+    }
   });
 
   it('cancels an immediate transfer between brokers in consolidation and excludes narrower boundary flows from performance', async () => {

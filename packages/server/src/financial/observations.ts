@@ -4,6 +4,7 @@ import {
   calculateNav,
   decimal,
   decimalValue,
+  translateAmount,
   instantNanoseconds,
   selectFxRate,
   valueInventory,
@@ -35,35 +36,18 @@ import {
   requireInstrumentVersion,
 } from './reference-data.js';
 import { replayBookAt } from './ledger.js';
+import { compatiblePriceConventions } from './price-conventions.js';
+import {
+  choosePositionComponent,
+  componentReference,
+  selectComponents,
+} from '../supplied/selection.js';
 
 const fxInput = z.strictObject({
   commandId: financialUuid,
   baseCurrencyId: financialUuid,
   quoteCurrencyId: financialUuid,
   rate: financialPositiveDecimal,
-  observedAt: financialTimestamp,
-  source: financialLabel,
-  supersedesId: financialUuid.optional(),
-  reason: financialLabel.optional(),
-});
-const nonnegativeDecimal = z.unknown().transform((value, context) => {
-  try {
-    const canonical = decimal(value);
-    if (decimalValue(canonical).isNegative()) throw new Error('Nonnegative decimal required');
-    return canonical;
-  } catch {
-    context.addIssue({
-      code: 'custom',
-      message: 'A nonnegative representable decimal is required',
-    });
-    return z.NEVER;
-  }
-});
-const priceInput = z.strictObject({
-  commandId: financialUuid,
-  instrumentVersionId: financialUuid,
-  currencyId: financialUuid,
-  price: nonnegativeDecimal,
   observedAt: financialTimestamp,
   source: financialLabel,
   supersedesId: financialUuid.optional(),
@@ -79,6 +63,16 @@ const signedDecimal = z.unknown().transform((value, context) => {
     });
     return z.NEVER;
   }
+});
+const priceInput = z.strictObject({
+  commandId: financialUuid,
+  instrumentVersionId: financialUuid,
+  currencyId: financialUuid,
+  price: signedDecimal,
+  observedAt: financialTimestamp,
+  source: financialLabel,
+  supersedesId: financialUuid.optional(),
+  reason: financialLabel.optional(),
 });
 const accountValuationInput = z.strictObject({
   commandId: financialUuid,
@@ -101,6 +95,7 @@ const sourcePriority = financialLabel
   );
 const maxAgeMilliseconds = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const valuationInput = z.strictObject({
+  suppliedPositionIds: financialUuid.array().max(100).optional(),
   accountIds: financialUuid
     .array()
     .min(1)
@@ -122,6 +117,7 @@ export type AccountValuationObservationQuery = Readonly<{
   limit?: number;
 }>;
 export type FinancialValuationQuery = Readonly<{
+  suppliedPositionIds?: readonly string[];
   accountIds: readonly string[];
   reportingCurrencyId: string;
   asOf: string;
@@ -207,6 +203,14 @@ export function createFinancialObservations(platform: FinancialPlatform) {
           body.instrumentVersionId,
           false,
         );
+        if (
+          financialInstantMicros(body.observedAt) < financialInstantMicros(instrument.effectiveAt)
+        )
+          throw financialInvalid(
+            'The instrument convention is not effective at the observation instant.',
+          );
+        if (instrument.capability !== 'manual' && decimalValue(body.price).isNegative())
+          throw financialInvalid('Automatic delivered-instrument marks cannot be negative.');
         await requireCurrency(tx, context.workspaceId, body.currencyId, false);
         if (instrument.quoteCurrencyId === null)
           throw financialInvalid(
@@ -377,6 +381,19 @@ export function createFinancialObservations(platform: FinancialPlatform) {
         if (new Set(accounts.map((account) => account.environment)).size !== 1)
           throw financialInvalid('Live and paper accounts require separate valuation populations.');
         const sourceRevision = String(state?.revision ?? 0);
+        const supplied = await selectComponents(
+          tx,
+          context,
+          input.suppliedPositionIds,
+          sourceRevision,
+          'position-equity',
+        );
+        if (
+          supplied.some((item) => item.accountId === null || !accountIds.includes(item.accountId))
+        )
+          throw financialInvalid(
+            'Supplied position selections must belong to the selected accounts.',
+          );
         const fxRows = await queryRows<{
           id: string;
           base_currency_id: string;
@@ -427,7 +444,26 @@ export function createFinancialObservations(platform: FinancialPlatform) {
           source_revision: number;
         }>(
           tx,
-          sql`SELECT * FROM app.holding_books WHERE workspace_id=${context.workspaceId}::uuid AND account_id=ANY(${accountIdArray}::uuid[]) ORDER BY account_id,instrument_id LIMIT 1001`,
+          sql`SELECT b.*,COALESCE(latest.instrument_version_id,b.instrument_version_id) AS instrument_version_id
+          FROM app.holding_books b
+          LEFT JOIN LATERAL (
+            SELECT source.instrument_version_id FROM (
+              SELECT e.instrument_version_id,e.economic_at,e.source_revision FROM app.executions e
+              WHERE e.workspace_id=b.workspace_id AND e.account_id=b.account_id
+                AND NOT EXISTS (SELECT 1 FROM app.execution_supersessions s
+                  WHERE s.workspace_id=e.workspace_id AND s.original_execution_id=e.id
+                    AND s.source_revision<=${sourceRevision}::integer)
+              UNION ALL SELECT o.instrument_version_id,o.economic_at,o.source_revision FROM app.opening_lots o
+              WHERE o.workspace_id=b.workspace_id AND o.account_id=b.account_id
+              UNION ALL SELECT t.instrument_version_id,t.economic_at,t.source_revision FROM app.holding_transfers t
+              WHERE t.workspace_id=b.workspace_id AND (t.source_account_id=b.account_id OR t.destination_account_id=b.account_id)
+            ) source JOIN app.instrument_versions v ON v.workspace_id=b.workspace_id AND v.id=source.instrument_version_id
+            WHERE v.instrument_id=b.instrument_id AND source.source_revision<=${sourceRevision}::integer
+              AND source.economic_at<=${asOf}::timestamptz
+            ORDER BY source.economic_at DESC,source.source_revision DESC,v.version DESC LIMIT 1
+          ) latest ON true
+          WHERE b.workspace_id=${context.workspaceId}::uuid AND b.account_id=ANY(${accountIdArray}::uuid[])
+          ORDER BY b.account_id,b.instrument_id LIMIT 1001`,
         );
         if (books.length > 1000)
           throw financialConflict(
@@ -447,6 +483,40 @@ export function createFinancialObservations(platform: FinancialPlatform) {
             fxObservations,
           ),
         }));
+        const transit = await queryRows<{ id: string; currency_id: string; amount_raw: string }>(
+          tx,
+          sql`SELECT t.id,t.currency_id,t.amount_raw FROM app.cash_transfers t
+          LEFT JOIN app.cash_transfer_receipts r ON r.workspace_id=t.workspace_id AND r.transfer_id=t.id
+          WHERE t.workspace_id=${context.workspaceId}::uuid
+            AND t.source_account_id=ANY(${accountIdArray}::uuid[])
+            AND t.destination_account_id=ANY(${accountIdArray}::uuid[])
+            AND t.economic_at<=${asOf}::timestamptz AND t.source_revision<=${sourceRevision}::integer
+            AND NOT EXISTS (SELECT 1 FROM app.ledger_events e JOIN app.ledger_events reversed
+              ON reversed.workspace_id=e.workspace_id AND reversed.reversal_of_id=e.id
+              WHERE e.workspace_id=t.workspace_id AND e.cash_transfer_id=t.id
+                AND reversed.source_revision<=${sourceRevision}::integer)
+            AND (r.id IS NULL OR r.economic_at>${asOf}::timestamptz OR r.source_revision>${sourceRevision}::integer)
+          ORDER BY t.id LIMIT 10001`,
+        );
+        if (transit.length > 10000)
+          throw financialConflict(
+            'VALUATION_SCOPE_TOO_LARGE',
+            'Select fewer accounts for this transit valuation.',
+          );
+        for (const transfer of transit)
+          components.push({
+            id: transfer.id,
+            kind: 'asset',
+            currencyId: transfer.currency_id,
+            amount: decimal(transfer.amount_raw),
+            rate: selectFxRate(
+              transfer.currency_id,
+              reportingCurrencyId,
+              asOf,
+              input.fxPolicy,
+              fxObservations,
+            ),
+          });
         const positions = [];
         const priceDependencies = [];
         const fxDependencies = components.map((component) => ({
@@ -469,14 +539,22 @@ export function createFinancialObservations(platform: FinancialPlatform) {
           );
           const marks = await queryRows<{
             id: string;
+            instrument_version_id: string;
             price_raw: string;
             observed_at: string;
             source: string;
           }>(
             tx,
-            sql`SELECT o.id,o.price_raw,to_char(o.observed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at,o.source FROM app.price_observations o
-          WHERE o.workspace_id=${context.workspaceId}::uuid AND o.instrument_version_id=${book.instrument_version_id}::uuid AND o.observed_at<=${asOf}::timestamptz
-            AND NOT EXISTS (SELECT 1 FROM app.price_observations newer WHERE newer.workspace_id=o.workspace_id AND newer.supersedes_id=o.id)
+            sql`SELECT o.id,o.instrument_version_id,o.price_raw,to_char(o.observed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at,o.source
+          FROM app.price_observations o
+          JOIN app.instrument_versions candidate ON candidate.workspace_id=o.workspace_id AND candidate.id=o.instrument_version_id
+          JOIN app.instrument_versions reference ON reference.workspace_id=o.workspace_id AND reference.id=${book.instrument_version_id}::uuid
+          WHERE o.workspace_id=${context.workspaceId}::uuid AND ${compatiblePriceConventions('candidate', 'reference')}
+            AND candidate.effective_at<=${asOf}::timestamptz AND o.observed_at<=${asOf}::timestamptz
+            AND COALESCE((o.payload->>'sourceRevision')::numeric,0)<=${sourceRevision}::integer
+            AND NOT EXISTS (SELECT 1 FROM app.price_observations newer
+              WHERE newer.workspace_id=o.workspace_id AND newer.supersedes_id=o.id
+                AND COALESCE((newer.payload->>'sourceRevision')::numeric,0)<=${sourceRevision}::integer)
           ORDER BY o.observed_at DESC,o.id LIMIT 10001`,
           );
           if (marks.length > 10000)
@@ -501,26 +579,38 @@ export function createFinancialObservations(platform: FinancialPlatform) {
                   : 1),
           );
           const selected = eligible[0];
-          if (selected)
+          const suppliedValue = choosePositionComponent(supplied, {
+            accountId: book.account_id,
+            instrumentId: book.instrument_id,
+            inventory,
+            capability: instrument.capability,
+            asOf,
+            maxAgeMilliseconds: input.priceMaxAgeMilliseconds,
+          });
+          if (selected && !suppliedValue)
             priceDependencies.push({
-              ...selected,
-              instrumentVersionId: book.instrument_version_id,
+              id: selected.id,
+              price_raw: selected.price_raw,
+              observed_at: selected.observed_at,
+              source: selected.source,
+              instrumentVersionId: selected.instrument_version_id,
             });
+          const valueCurrency = suppliedValue?.currencyId ?? instrument.settlementCurrencyId;
           const rate: FxRateSelection =
-            instrument.settlementCurrencyId === null
+            valueCurrency === null
               ? {
                   state: 'unavailable',
                   reasons: ['incompatible_currency'],
                   missingReferences: [`${book.instrument_version_id}:settlement-currency`],
                 }
               : selectFxRate(
-                  instrument.settlementCurrencyId,
+                  valueCurrency,
                   reportingCurrencyId,
                   asOf,
                   input.fxPolicy,
                   fxObservations,
                 );
-          const valuation = valueInventory(inventory, {
+          const nativeValuation = valueInventory(inventory, {
             mark:
               selected && instrument.multiplier !== null
                 ? {
@@ -532,18 +622,55 @@ export function createFinancialObservations(platform: FinancialPlatform) {
                   }
                 : null,
             reportingCurrencyId,
-            ...(rate.state === 'available' && instrument.settlementCurrencyId !== null
+            ...(!suppliedValue && rate.state === 'available' && valueCurrency !== null
               ? {
                   markReportingFx: {
                     observationId:
                       rate.value.observationIds.join(',') || `identity:${reportingCurrencyId}`,
                     rate: rate.value.rate,
-                    baseCurrencyId: instrument.settlementCurrencyId,
+                    baseCurrencyId: valueCurrency,
                     quoteCurrencyId: reportingCurrencyId,
                   },
                 }
               : {}),
           });
+          const suppliedReporting = suppliedValue
+            ? translateAmount(
+                { amount: suppliedValue.amount, currencyId: suppliedValue.currencyId },
+                reportingCurrencyId,
+                rate,
+              )
+            : null;
+          const valuation = suppliedValue
+            ? {
+                ...nativeValuation,
+                markId: suppliedValue.id,
+                observationIds: [suppliedValue.id],
+                markedValue: {
+                  status: 'available' as const,
+                  value: decimal(suppliedValue.amount),
+                  currencyId: suppliedValue.currencyId,
+                  reasons: [],
+                },
+                reportingMarkedValue:
+                  suppliedReporting?.state === 'available'
+                    ? {
+                        status: 'available' as const,
+                        value: suppliedReporting.value.amount,
+                        currencyId: reportingCurrencyId,
+                        reasons: [],
+                      }
+                    : {
+                        status: 'unavailable' as const,
+                        value: null,
+                        currencyId: reportingCurrencyId,
+                        reasons:
+                          suppliedReporting?.state === 'unavailable'
+                            ? suppliedReporting.reasons
+                            : ['missing_fx'],
+                      },
+              }
+            : nativeValuation;
           positions.push({
             id: book.id,
             accountId: book.account_id,
@@ -552,6 +679,7 @@ export function createFinancialObservations(platform: FinancialPlatform) {
             sourceRevision,
             inventory,
             valuation,
+            ...(suppliedValue ? { suppliedValue: componentReference(suppliedValue) } : {}),
           });
           const missingReasons: readonly FinancialUnavailableReason[] =
             valuation.markedValue.status === 'unsupported'
@@ -566,7 +694,7 @@ export function createFinancialObservations(platform: FinancialPlatform) {
           components.push({
             id: book.id,
             kind: 'holding',
-            currencyId: instrument.settlementCurrencyId,
+            currencyId: valueCurrency,
             ...(valuation.markedValue.status === 'available' && valuation.markedValue.value !== null
               ? { amount: valuation.markedValue.value }
               : {

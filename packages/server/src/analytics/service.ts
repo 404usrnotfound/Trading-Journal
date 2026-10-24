@@ -101,6 +101,9 @@ export function createAnalyticsServices(platform: FinancialPlatform) {
           context: {
             accountIds: [...query.accountIds].sort(),
             reportingCurrencyId: query.reportingCurrencyId,
+            ...(query.suppliedCampaignResultIds
+              ? { suppliedCampaignResultIds: query.suppliedCampaignResultIds }
+              : {}),
             from: query.from,
             to: query.to,
             sourceRevision,

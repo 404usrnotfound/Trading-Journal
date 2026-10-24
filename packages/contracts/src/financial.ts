@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { suppliedReferenceSchema } from './supplied-reference.js';
 export const financialJsonSchema = z.json();
 
 /** Source validation only: financial arithmetic belongs to the isolated domain kernel. */
@@ -229,7 +230,7 @@ export const executionCreateSchema = z.strictObject({
   orderLegId: financialIdSchema.optional(),
   side: z.enum(['buy', 'sell']),
   quantity: positiveFinancialDecimalSchema,
-  price: nonnegativeFinancialDecimalSchema.nullable(),
+  price: financialDecimalSchema.nullable(),
   bookedPrincipal: positiveFinancialDecimalSchema.optional(),
   principalCurrencyId: financialIdSchema.optional(),
   cashBucketId: financialIdSchema.optional(),
@@ -260,7 +261,7 @@ export const openingLotCreateSchema = z.strictObject({
   instrumentVersionId: financialIdSchema,
   direction: z.enum(['long', 'short']),
   quantity: positiveFinancialDecimalSchema,
-  entryPrice: positiveFinancialDecimalSchema.optional(),
+  entryPrice: financialDecimalSchema.optional(),
   bookedPrincipal: positiveFinancialDecimalSchema.optional(),
   reason: label,
   costsComplete: z.boolean().optional(),
@@ -393,7 +394,7 @@ export const fxObservationCreateSchema = z.strictObject({
 export const priceObservationCreateSchema = z.strictObject({
   instrumentVersionId: financialIdSchema,
   currencyId: financialIdSchema,
-  price: nonnegativeFinancialDecimalSchema,
+  price: financialDecimalSchema,
   observedAt: financialInstantSchema,
   source: label,
   supersedesId: financialIdSchema.optional(),
@@ -566,6 +567,7 @@ export const positionResponseSchema = z.strictObject({
   sourceRevision: financialSourceRevisionSchema,
   inventory: inventoryResponseSchema,
   valuation: inventoryValuationResponseSchema.optional(),
+  suppliedValue: suppliedReferenceSchema.optional(),
 });
 
 export const financialCatalogQuerySchema = z.strictObject({
@@ -574,9 +576,17 @@ export const financialCatalogQuerySchema = z.strictObject({
     .transform((v) => v === 'true')
     .optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
+  afterId: financialIdSchema.optional(),
+  search: z.string().trim().min(1).max(160).optional(),
 });
 export const financialAccountQuerySchema = financialCatalogQuerySchema.extend({
   environment: z.enum(['live', 'paper']).optional(),
+});
+export const financialTradeQuerySchema = financialCatalogQuerySchema.extend({
+  unclassified: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
 });
 const includeSupersededQuery = z
   .enum(['true', 'false'])
@@ -696,6 +706,11 @@ export const financialValuationResponseSchema = z.strictObject({
     .array(),
 });
 export const financialValuationQuerySchema = z.strictObject({
+  suppliedPositionIds: z
+    .string()
+    .transform((value) => value.split(','))
+    .pipe(financialIdSchema.array().min(1).max(100))
+    .optional(),
   accountIds: z
     .string()
     .transform((value) => value.split(','))

@@ -560,7 +560,8 @@ async function rebuildBook(
       VALUES (${context.workspaceId}::uuid,${randomUUID()}::uuid,${bookId}::uuid,${match.lotId}::uuid,
         ${match.closingSourceId}::uuid,${match.quantity},${state.revision}::integer,${JSON.stringify(match)}::jsonb)`);
   }
-  await tx.execute(sql`UPDATE app.holding_books SET state=${JSON.stringify(inventory)}::jsonb,
+  await tx.execute(sql`UPDATE app.holding_books SET instrument_version_id=${instrument.id}::uuid,
+    state=${JSON.stringify(inventory)}::jsonb,
     source_revision=${state.revision}::integer WHERE workspace_id=${context.workspaceId}::uuid AND id=${bookId}::uuid`);
   await tx.execute(sql`INSERT INTO app.positions
     (workspace_id,id,holding_book_id,quantity_raw,basis_raw,source_revision,state)
@@ -579,15 +580,21 @@ export async function replayBookAt(
   book: { accountId: string; instrumentVersionId: string },
   asOf: string,
   sourceRevision: string,
+  references?: Readonly<{ account: AccountReference; instrument: InstrumentVersionReference }>,
 ): Promise<InventoryReplayResult> {
   assertEconomicInput({ economicAt: asOf, orderingKey: '0' });
-  const account = await requireAccount(tx, context.workspaceId, book.accountId, false, asOf);
-  const instrument = await requireInstrumentVersion(
-    tx,
-    context.workspaceId,
-    book.instrumentVersionId,
-    false,
-  );
+  if (
+    references &&
+    (references.account.id !== book.accountId ||
+      references.instrument.id !== book.instrumentVersionId)
+  )
+    throw financialInvalid('Cached inventory references must identify the requested holding book.');
+  const account =
+    references?.account ??
+    (await requireAccount(tx, context.workspaceId, book.accountId, false, asOf));
+  const instrument =
+    references?.instrument ??
+    (await requireInstrumentVersion(tx, context.workspaceId, book.instrumentVersionId, false));
   return rebuildBook(
     tx,
     context,
@@ -696,12 +703,22 @@ export async function campaignInventoryAt(
 ) {
   const books = await queryRows<BookRow>(
     tx,
-    sql`SELECT * FROM app.holding_books
-    WHERE workspace_id=${context.workspaceId}::uuid
-      AND (${input.accountId ?? null}::uuid IS NULL OR account_id=${input.accountId ?? null}::uuid)
-      AND (${input.instrumentId ?? null}::uuid IS NULL OR instrument_id=${input.instrumentId ?? null}::uuid)
-    ORDER BY account_id,instrument_id LIMIT 500`,
+    sql`SELECT b.* FROM app.holding_books b
+    WHERE b.workspace_id=${context.workspaceId}::uuid
+      AND (${input.accountId ?? null}::uuid IS NULL OR b.account_id=${input.accountId ?? null}::uuid)
+      AND (${input.instrumentId ?? null}::uuid IS NULL OR b.instrument_id=${input.instrumentId ?? null}::uuid)
+      AND (${input.tradeId ?? null}::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM app.trade_legs l JOIN app.instrument_versions v ON v.workspace_id=l.workspace_id AND v.id=l.instrument_version_id
+        WHERE l.workspace_id=b.workspace_id AND l.trade_id=${input.tradeId ?? null}::uuid
+          AND l.account_id=b.account_id AND v.instrument_id=b.instrument_id
+      ))
+    ORDER BY b.account_id,b.instrument_id LIMIT 501`,
   );
+  if (books.length > 500)
+    throw financialConflict(
+      'INVENTORY_SCOPE_TOO_LARGE',
+      'Select an account or instrument before reading more than 500 inventory books.',
+    );
   const populations: CampaignInventoryDto[] = [];
   const bridges: ReturnType<typeof reconcileCampaignInventory>[] = [];
   for (const book of books) {
@@ -900,8 +917,14 @@ async function insertExecution(
     input.instrumentVersionId,
     false,
   );
-  if (input.price !== null && decimalValue(input.price).isNegative())
-    throw financialInvalid('A price cannot be negative.');
+  if (financialInstantMicros(input.economicAt) < financialInstantMicros(instrument.effectiveAt))
+    throw financialInvalid('The instrument convention is not effective at the execution instant.');
+  if (
+    instrument.capability !== 'manual' &&
+    input.price !== null &&
+    decimalValue(input.price).isNegative()
+  )
+    throw financialInvalid('Automatic delivered-instrument prices cannot be negative.');
   if (input.orderLegId) {
     const leg = await requireOrderLeg(tx, context.workspaceId, input.orderLegId);
     if (
@@ -1753,7 +1776,16 @@ export function createFinancialLedger(platform: FinancialPlatform) {
           input.instrumentVersionId,
           false,
         );
-        if (input.entryPrice !== undefined) assertPositive(input.entryPrice, 'Opening price');
+        if (
+          financialInstantMicros(input.economicAt) < financialInstantMicros(instrument.effectiveAt)
+        )
+          throw financialInvalid(
+            'The instrument convention is not effective at the opening instant.',
+          );
+        if (input.entryPrice !== undefined) {
+          decimal(input.entryPrice);
+          if (instrument.capability !== 'manual') assertPositive(input.entryPrice, 'Opening price');
+        }
         if (input.bookedPrincipal !== undefined)
           assertPositive(input.bookedPrincipal, 'Opening basis');
         const id = randomUUID();
@@ -2256,8 +2288,13 @@ export function createFinancialLedger(platform: FinancialPlatform) {
         WHERE workspace_id=${context.workspaceId}::uuid
           AND (${input.accountId ?? null}::uuid IS NULL OR account_id=${input.accountId ?? null}::uuid)
           AND (${input.instrumentId ?? null}::uuid IS NULL OR instrument_id=${input.instrumentId ?? null}::uuid)
-        ORDER BY account_id,instrument_id LIMIT 500`,
+        ORDER BY account_id,instrument_id LIMIT 501`,
       );
+      if (rows.length > 500)
+        throw financialConflict(
+          'INVENTORY_SCOPE_TOO_LARGE',
+          'Select an account or instrument before reading more than 500 inventory books.',
+        );
       return rows.map((row) => ({
         id: row.id,
         accountId: row.account_id,

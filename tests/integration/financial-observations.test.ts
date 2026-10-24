@@ -13,6 +13,10 @@ import {
 } from '@journal/server';
 import type { CurrencyDto } from '../../packages/server/src/financial/catalog-types.js';
 import type { FinancialValuationQuery } from '../../packages/server/src/financial/observations.js';
+import { createAccountingReports } from '../../packages/server/src/accounting/report.js';
+import { createAccountingServices } from '../../packages/server/src/accounting/service.js';
+import { createAccountingCorrections } from '../../packages/server/src/accounting/corrections.js';
+import { INVENTORY_CALCULATION_MANIFEST, replayInventory } from '@journal/domain';
 
 const origin = 'http://localhost:3000';
 const effectiveAt = '2025-01-01T00:00:00.000001Z';
@@ -204,6 +208,526 @@ describe('financial observations and coherent multi-currency views on actual Pos
       orderingKey: '1',
     });
   }
+
+  it('keeps once-counted owned cash in transit in the retained NAV through receipt and historical restatement', async () => {
+    const source = await fixture();
+    const destination = await fixture();
+    await fund(source.account.id, source.usdBucket.id, usd.id, '100', '2025-03-01T00:00:00Z');
+    const accounting = createAccountingServices(services);
+    const transfer = await accounting.createCashTransfer(owner, {
+      commandId: randomUUID(),
+      sourceBucketId: source.usdBucket.id,
+      destinationBucketId: destination.usdBucket.id,
+      amount: '100',
+      economicAt: '2025-03-01T00:00:01Z',
+      orderingKey: '1',
+      description: 'Owned money remains in transit',
+    });
+    const q = {
+      ...query([source.account.id, destination.account.id], source.source, '2025-03-01T00:00:02Z'),
+      reportingCurrencyId: usd.id,
+    };
+    const pending = await observations.valuation(owner, q);
+    expect(pending.nav).toMatchObject({ state: 'available', value: { amount: '100' } });
+    expect(
+      pending.nav.state === 'available' &&
+        pending.nav.components.filter((component) => component.id === transfer.id),
+    ).toHaveLength(1);
+    const report = await createAccountingReports(services).report(owner, {
+      accountIds: [...q.accountIds],
+      reportingCurrencyId: usd.id,
+      from: '2025-03-01T00:00:00Z',
+      to: q.asOf,
+      fxPolicy: { ...q.fxPolicy, sourcePriority: [...q.fxPolicy.sourcePriority] },
+      priceMaxAgeMilliseconds: q.priceMaxAgeMilliseconds,
+      priceSourcePriority: [...q.priceSourcePriority],
+    });
+    expect(report.closing.equity.value).toBe('100');
+    await accounting.receiveCashTransfer(owner, transfer.id, {
+      commandId: randomUUID(),
+      economicAt: '2025-03-01T00:00:03Z',
+      orderingKey: '1',
+    });
+    const received = await observations.valuation(owner, { ...q, asOf: '2025-03-01T00:00:03Z' });
+    expect(received.nav).toMatchObject({ state: 'available', value: { amount: '100' } });
+    expect(
+      received.nav.state === 'available' &&
+        received.nav.components.some((component) => component.id === transfer.id),
+    ).toBe(false);
+    expect((await observations.valuation(owner, q)).nav).toMatchObject({
+      state: 'available',
+      value: { amount: '100' },
+    });
+    expect(
+      (await observations.valuation(owner, { ...q, reportingCurrencyId: eur.id })).nav.state,
+    ).toBe('partial');
+  });
+
+  it('removes reversed pending transit from current NAV while the pinned prior accounting revision retains its owned asset', async () => {
+    const source = await fixture();
+    const destination = await fixture();
+    await fund(source.account.id, source.usdBucket.id, usd.id, '100', '2025-03-01T00:00:00Z');
+    const transfer = await createAccountingServices(services).createCashTransfer(owner, {
+      commandId: randomUUID(),
+      sourceBucketId: source.usdBucket.id,
+      destinationBucketId: destination.usdBucket.id,
+      amount: '100',
+      economicAt: '2025-03-01T00:00:01Z',
+      orderingKey: '1',
+      description: 'Pending transfer whose source evidence is corrected',
+    });
+    const q = {
+      ...query([source.account.id, destination.account.id], source.source, '2025-03-01T00:00:02Z'),
+      reportingCurrencyId: usd.id,
+    };
+    const before = await observations.valuation(owner, q);
+    expect(before.nav).toMatchObject({ state: 'available', value: { amount: '100' } });
+    expect(
+      before.nav.state === 'available' && before.nav.components.some((c) => c.id === transfer.id),
+    ).toBe(true);
+    await createAccountingCorrections(services).reverse(owner, transfer.id, {
+      commandId: randomUUID(),
+      expectedSourceRevision: before.sourceRevision,
+      sourceType: 'transfer',
+      reason: 'Historical evidence shows no owned transfer occurred',
+    });
+    const after = await observations.valuation(owner, q);
+    expect(after.nav).toMatchObject({ state: 'available', value: { amount: '100' } });
+    expect(
+      after.nav.state === 'available' && after.nav.components.some((c) => c.id === transfer.id),
+    ).toBe(false);
+    const pinned = await createAccountingReports(services).report(owner, {
+      accountIds: [...q.accountIds],
+      reportingCurrencyId: usd.id,
+      from: '2025-03-01T00:00:00Z',
+      to: q.asOf,
+      sourceRevision: before.sourceRevision,
+      fxPolicy: { ...q.fxPolicy, sourcePriority: [...q.fxPolicy.sourcePriority] },
+      priceMaxAgeMilliseconds: q.priceMaxAgeMilliseconds,
+      priceSourcePriority: [...q.priceSourcePriority],
+    });
+    expect(pinned.closing.transit).toMatchObject({ state: 'available', value: '100' });
+    expect(pinned.closing.equity).toMatchObject({ state: 'available', value: '100' });
+  });
+
+  it('rejects future-effective source conventions and retains signed manual futures quotes without automatic P&L', async () => {
+    const f = await fixture();
+    const boundary = '2025-03-01T00:00:00.000001Z';
+    const before = '2025-03-01T00:00:00.000000Z';
+    const future = await catalog.createInstrument(
+      owner,
+      {
+        name: 'Signed source future ' + randomUUID(),
+        family: 'future',
+        subtype: 'source-settled-future',
+        economicIdentity: randomUUID(),
+        quantityUnit: 'contract',
+        quoteCurrencyId: usd.id,
+        settlementCurrencyId: usd.id,
+        multiplier: '1000',
+        quantityIncrement: '1',
+        priceIncrement: '0.01',
+        capability: 'manual',
+        effectiveAt: boundary,
+        metadata: { priceConvention: 'unit-price', settlementStyle: 'explicit-source-settlement' },
+      },
+      randomUUID(),
+    );
+    const fill = {
+      accountId: f.account.id,
+      instrumentVersionId: future.versionId,
+      side: 'buy' as const,
+      quantity: '1',
+      price: '-37.63',
+      orderingKey: '1',
+      costsComplete: true,
+      manualCashEffects: [],
+    };
+    await expect(
+      ledger.recordExecution(owner, { ...fill, commandId: randomUUID(), economicAt: before }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    await expect(
+      ledger.recordOpeningLot(owner, {
+        commandId: randomUUID(),
+        accountId: f.account.id,
+        instrumentVersionId: future.versionId,
+        direction: 'long',
+        quantity: '1',
+        entryPrice: '-37.63',
+        economicAt: before,
+        orderingKey: '1',
+        reason: 'Source convention is not yet effective',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    await expect(
+      observations.recordPriceObservation(owner, {
+        commandId: randomUUID(),
+        instrumentVersionId: future.versionId,
+        currencyId: usd.id,
+        price: '-37.63',
+        observedAt: before,
+        source: f.source,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    const execution = await ledger.recordExecution(owner, {
+      ...fill,
+      commandId: randomUUID(),
+      economicAt: boundary,
+    });
+    expect(execution.price).toBe('-37.63');
+    const opening = await ledger.recordOpeningLot(owner, {
+      commandId: randomUUID(),
+      accountId: f.account.id,
+      instrumentVersionId: future.versionId,
+      direction: 'long',
+      quantity: '1',
+      entryPrice: '-37.63',
+      economicAt: boundary,
+      orderingKey: '2',
+      reason: 'Retain the signed source entry quote without inferred basis',
+    });
+    expect(
+      (
+        await admin.pool.query(
+          'SELECT price_raw FROM app.opening_lots WHERE workspace_id=$1 AND id=$2',
+          [owner.workspaceId, opening.id],
+        )
+      ).rows[0]?.price_raw,
+    ).toBe('-37.63');
+    const mark = await observations.recordPriceObservation(owner, {
+      commandId: randomUUID(),
+      instrumentVersionId: future.versionId,
+      currencyId: usd.id,
+      price: '-37.63',
+      observedAt: boundary,
+      source: f.source,
+    });
+    expect(
+      (
+        await admin.pool.query(
+          'SELECT price_raw FROM app.price_observations WHERE workspace_id=$1 AND id=$2',
+          [owner.workspaceId, mark.id],
+        )
+      ).rows[0]?.price_raw,
+    ).toBe('-37.63');
+    const valuation = await observations.valuation(owner, {
+      ...query([f.account.id], f.source, boundary),
+      reportingCurrencyId: usd.id,
+    });
+    expect(valuation.positions[0]?.inventory.status).toBe('unsupported');
+    expect(valuation.positions[0]?.valuation.markedValue.status).toBe('unsupported');
+    expect(valuation.nav.state).toBe('partial');
+    await expect(
+      ledger.recordExecution(owner, {
+        ...fill,
+        commandId: randomUUID(),
+        instrumentVersionId: f.instrument.versionId,
+        price: '-1',
+        economicAt: boundary,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    await expect(
+      observations.recordPriceObservation(owner, {
+        commandId: randomUUID(),
+        instrumentVersionId: f.instrument.versionId,
+        currencyId: usd.id,
+        price: '-1',
+        observedAt: boundary,
+        source: f.source,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    await expect(
+      ledger.recordOpeningLot(owner, {
+        commandId: randomUUID(),
+        accountId: f.account.id,
+        instrumentVersionId: f.instrument.versionId,
+        direction: 'long',
+        quantity: '1',
+        entryPrice: '-1',
+        economicAt: boundary,
+        orderingKey: '3',
+        reason: 'Native delivered prices must remain positive',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_FINANCIAL_INPUT' });
+    await expect(
+      admin.pool.query(
+        `INSERT INTO app.price_observations(workspace_id,id,instrument_version_id,currency_id,price_raw,observed_at,source,actor_id)
+      VALUES($1,$2,$3,$4,'1',$5,'direct-guard',$6)`,
+        [owner.workspaceId, randomUUID(), future.versionId, usd.id, before, owner.actorId],
+      ),
+    ).rejects.toMatchObject({ code: '23514' });
+    await expect(
+      admin.pool.query(
+        `INSERT INTO app.price_observations(workspace_id,id,instrument_version_id,currency_id,price_raw,observed_at,source,actor_id)
+      VALUES($1,$2,$3,$4,'-1',$5,'direct-guard',$6)`,
+        [owner.workspaceId, randomUUID(), f.instrument.versionId, usd.id, boundary, owner.actorId],
+      ),
+    ).rejects.toMatchObject({ code: '23514' });
+  });
+
+  it('fails explicitly at 501 books and scopes a late-sorting campaign before applying its book limit', async () => {
+    const f = await fixture();
+    const prefix = 'scope-' + randomUUID();
+    const entries = Array.from({ length: 501 }, () => ({
+      id: randomUUID(),
+      version: randomUUID(),
+      book: randomUUID(),
+    })).sort((a, b) => a.id.localeCompare(b.id));
+    await admin.pool.query(
+      `INSERT INTO app.instruments(workspace_id,id,name,family,subtype,economic_identity,actor_id)
+      SELECT $1,x.id,$2||x.id,'custom','scope-test',$2||x.id,$3 FROM jsonb_to_recordset($4::jsonb) AS x(id uuid)`,
+      [owner.workspaceId, prefix, owner.actorId, JSON.stringify(entries)],
+    );
+    await admin.pool.query(
+      `INSERT INTO app.instrument_versions(workspace_id,id,instrument_id,version,quantity_unit,capability,effective_at,actor_id)
+      SELECT $1,x.version,x.id,1,'unit','manual',$2,$3 FROM jsonb_to_recordset($4::jsonb) AS x(id uuid,version uuid)`,
+      [owner.workspaceId, effectiveAt, owner.actorId, JSON.stringify(entries)],
+    );
+    const [{ revision }] = (
+      await admin.pool.query('SELECT revision FROM app.financial_state WHERE workspace_id=$1', [
+        owner.workspaceId,
+      ])
+    ).rows;
+    const bookRows = entries.map((item) => ({
+      ...item,
+      state: replayInventory({
+        scope: {
+          workspaceId: owner.workspaceId,
+          accountId: f.account.id,
+          instrumentId: item.id,
+          instrumentVersionId: item.version,
+          unitVersionId: 'unit',
+          settlementCurrencyId: null,
+        },
+        manifest: INVENTORY_CALCULATION_MANIFEST,
+        policy: 'fifo',
+        capability: {
+          subtype: 'scope-test',
+          nativeInventory: false,
+          shortSupported: false,
+          averageCostSupported: false,
+        },
+        sources: [],
+        sourceRevision: String(revision),
+      }),
+    }));
+    const insert = async (rows: typeof bookRows) => {
+      const client = await admin.pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `INSERT INTO app.holding_books(workspace_id,id,account_id,instrument_id,instrument_version_id,inventory_method,source_revision,state,actor_id)
+      SELECT $1,x.book,$2,x.id,x.version,'fifo',$3,x.state,$5 FROM jsonb_to_recordset($4::jsonb) AS x(id uuid,version uuid,book uuid,state jsonb)`,
+          [owner.workspaceId, f.account.id, revision, JSON.stringify(rows), owner.actorId],
+        );
+        await client.query(
+          `INSERT INTO app.positions(workspace_id,id,holding_book_id,source_revision,state,quantity_raw,basis_raw,actor_id)
+      SELECT $1,x.book,x.book,$2,x.state,x.state->'openQuantity'->>'value',x.state->'grossBasis'->>'value',$4
+      FROM jsonb_to_recordset($3::jsonb) AS x(book uuid,state jsonb)`,
+          [owner.workspaceId, revision, JSON.stringify(rows), owner.actorId],
+        );
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    };
+    await insert(bookRows.slice(0, 500));
+    expect(await ledger.positions(owner, { accountId: f.account.id })).toHaveLength(500);
+    await insert(bookRows.slice(500));
+    await expect(ledger.positions(owner, { accountId: f.account.id })).rejects.toMatchObject({
+      code: 'INVENTORY_SCOPE_TOO_LARGE',
+    });
+    await expect(
+      ledger.campaignInventory(owner, { accountId: f.account.id }),
+    ).rejects.toMatchObject({ code: 'INVENTORY_SCOPE_TOO_LARGE' });
+    const trade = await catalog.createTrade(
+      owner,
+      { title: prefix, classification: 'investing' },
+      randomUUID(),
+    );
+    await catalog.addTradeLeg(
+      owner,
+      {
+        tradeId: trade.id,
+        expectedRevision: trade.revision,
+        accountId: f.account.id,
+        instrumentVersionId: entries[500]!.version,
+        direction: 'long',
+        label: 'Last sorted book',
+      },
+      randomUUID(),
+    );
+    const late = await ledger.campaignInventory(owner, { tradeId: trade.id });
+    expect(late.bridges).toHaveLength(1);
+    expect(
+      await ledger.positions(owner, { accountId: f.account.id, instrumentId: entries[500]!.id }),
+    ).toHaveLength(1);
+  });
+
+  it('values compatible metadata versions using eligible marks and preserves historical source revisions', async () => {
+    const f = await fixture();
+    const time = (second: string) => `2025-03-01T00:00:${second}.000001Z`;
+    await fund(f.account.id, f.usdBucket.id, usd.id, '100', time('00'));
+    const buy = (instrumentVersionId: string, price: string, economicAt: string) =>
+      ledger.recordExecution(owner, {
+        commandId: randomUUID(),
+        accountId: f.account.id,
+        instrumentVersionId,
+        side: 'buy',
+        quantity: '1',
+        price,
+        cashBucketId: f.usdBucket.id,
+        economicAt,
+        orderingKey: '1',
+        costsComplete: true,
+      });
+    const mark = (instrumentVersionId: string, price: string, instant: string) =>
+      observations.recordPriceObservation(owner, {
+        commandId: randomUUID(),
+        instrumentVersionId,
+        currencyId: usd.id,
+        price,
+        observedAt: instant,
+        source: f.source,
+      });
+    await buy(f.instrument.versionId, '10', time('01'));
+    const firstMark = await mark(f.instrument.versionId, '10', time('02'));
+    const version = (expectedRevision: number, effective: string, priceIncrement: string) => ({
+      expectedRevision,
+      quantityUnit: 'share',
+      quoteCurrencyId: usd.id,
+      settlementCurrencyId: usd.id,
+      multiplier: '1',
+      quantityIncrement: '0.001',
+      priceIncrement,
+      capability: 'native-linear' as const,
+      effectiveAt: effective,
+      reason: 'Reviewed prospective tick-size change',
+      metadata: { priceConvention: 'unit-price', settlementStyle: 'delivered' },
+    });
+    const second = await catalog.appendInstrumentVersion(
+      owner,
+      f.instrument.id,
+      version(f.instrument.revision, time('03'), '0.000001'),
+      randomUUID(),
+    );
+    await buy(second.versionId, '20', time('04'));
+    const secondMark = await mark(second.versionId, '25', time('05'));
+    const currentQuery = {
+      ...query([f.account.id], f.source, time('07')),
+      reportingCurrencyId: usd.id,
+    };
+    const current = await observations.valuation(owner, currentQuery);
+    expect(current.nav).toMatchObject({ state: 'available', value: { amount: '120' } });
+    expect(current.positions[0]?.valuation.markedValue).toMatchObject({ value: '50' });
+    expect(current.priceDependencies).toEqual([
+      expect.objectContaining({ id: secondMark.id, instrumentVersionId: second.versionId }),
+    ]);
+    const position = (await ledger.positions(owner, { accountId: f.account.id }))[0]!;
+    expect(position.instrumentVersionId).toBe(position.inventory.scope.instrumentVersionId);
+
+    // Publishing a compatible convention does not require a fabricated new fill
+    // before a quote under that convention can value the existing holding.
+    const third = await catalog.appendInstrumentVersion(
+      owner,
+      f.instrument.id,
+      version(second.revision, time('05').replace('000001', '500001'), '0.0000001'),
+      randomUUID(),
+    );
+    const thirdMark = await mark(third.versionId, '30', time('06'));
+    await mark(third.versionId, '999', time('08'));
+    const unrelated = await fixture();
+    await mark(unrelated.instrument.versionId, '9999', time('06'));
+    const noNewFill = await observations.valuation(owner, currentQuery);
+    expect(noNewFill.nav).toMatchObject({ state: 'available', value: { amount: '130' } });
+    expect(noNewFill.priceDependencies[0]).toMatchObject({
+      id: thirdMark.id,
+      instrumentVersionId: third.versionId,
+    });
+    const historical = await observations.valuation(owner, {
+      ...currentQuery,
+      asOf: time('02'),
+    });
+    expect(historical.nav).toMatchObject({ state: 'available', value: { amount: '100' } });
+    expect(historical.priceDependencies[0]?.id).toBe(firstMark.id);
+
+    // A later convention may declare different borrowing economics. It is not
+    // interchangeable merely because it belongs to the same instrument.
+    const changed = await catalog.appendInstrumentVersion(
+      owner,
+      f.instrument.id,
+      {
+        ...version(third.revision, time('06').replace('000001', '500001'), '0.00000001'),
+        metadata: {
+          priceConvention: 'unit-price',
+          settlementStyle: 'delivered',
+          shortConvention: 'borrowed-delivery',
+          carryCostPolicy: 'explicit-source-charges',
+        },
+      },
+      randomUUID(),
+    );
+    await mark(changed.versionId, '999', time('06').replace('000001', '750001'));
+    expect((await observations.valuation(owner, currentQuery)).priceDependencies[0]?.id).toBe(
+      thirdMark.id,
+    );
+
+    const reports = createAccountingReports(services);
+    const reportQuery = {
+      accountIds: [f.account.id],
+      reportingCurrencyId: usd.id,
+      from: time('00'),
+      to: time('07'),
+      fxPolicy: {
+        ...currentQuery.fxPolicy,
+        sourcePriority: [...currentQuery.fxPolicy.sourcePriority],
+      },
+      priceMaxAgeMilliseconds: currentQuery.priceMaxAgeMilliseconds,
+      priceSourcePriority: [...currentQuery.priceSourcePriority],
+    };
+    const report = await reports.report(owner, reportQuery);
+    expect(report.closing.equity).toMatchObject({ state: 'available', value: '130' });
+    expect(report.dependencies.prices).toContainEqual(
+      expect.objectContaining({ observationId: thirdMark.id }),
+    );
+    const pinned = await reports.report(owner, {
+      ...reportQuery,
+      sourceRevision: firstMark.sourceRevision,
+    });
+    expect(pinned.closing.equity).toMatchObject({ state: 'available', value: '100' });
+    expect(pinned.dependencies.prices).toContainEqual(
+      expect.objectContaining({ observationId: firstMark.id }),
+    );
+    expect(pinned.dependencies.prices.some((row) => row.observationId === thirdMark.id)).toBe(
+      false,
+    );
+
+    const corrected = await observations.recordPriceObservation(owner, {
+      commandId: randomUUID(),
+      instrumentVersionId: third.versionId,
+      currencyId: usd.id,
+      price: '31',
+      observedAt: time('06'),
+      source: f.source,
+      supersedesId: thirdMark.id,
+      reason: 'Correct the statement quote without rewriting its prior revision',
+    });
+    expect((await reports.report(owner, reportQuery)).closing.equity).toMatchObject({
+      state: 'available',
+      value: '132',
+    });
+    const beforeCorrection = await reports.report(owner, {
+      ...reportQuery,
+      sourceRevision: thirdMark.sourceRevision,
+    });
+    expect(beforeCorrection.closing.equity).toMatchObject({ state: 'available', value: '130' });
+    expect(
+      beforeCorrection.dependencies.prices.some((row) => row.observationId === corrected.id),
+    ).toBe(false);
+  });
 
   it('reproduces F-05 with actual exchange amounts, fractional fills, original fee rates and historical/current NAV', async () => {
     const f = await fixture();

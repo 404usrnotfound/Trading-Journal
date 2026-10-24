@@ -10,6 +10,9 @@ import {
 } from '@journal/domain';
 import {
   dashboardCatalogSchema,
+  dashboardCatalogQuerySchema,
+  financialIdSchema,
+  type DashboardCatalogQuery,
   dashboardRequestSchema,
   dashboardResponseSchema,
   accountingMetricSchema,
@@ -39,95 +42,55 @@ function bounded<T>(rows: T[], max = 500): T[] {
   return rows;
 }
 export function createDashboardServices(platform: FinancialPlatform) {
-  async function catalog(context: AuthorizationContext) {
+  async function catalog(context: AuthorizationContext, value: DashboardCatalogQuery = {}) {
+    const input = dashboardCatalogQuerySchema.parse(value);
     return platform.withWorkspaceContext(
       context,
       async (tx) => {
-        const accounts = bounded(
-          await queryRows<{
-            id: string;
-            label: string;
-            parentId: string | null;
-            environment: 'live' | 'paper';
-          }>(
+        const scope = context.workspaceId;
+        const statements = {
+          accounts: sql`SELECT id,name AS label,broker_id AS "parentId",environment FROM app.accounts WHERE workspace_id=${scope}::uuid`,
+          brokers: sql`SELECT id,name AS label,NULL AS "parentId" FROM app.brokers WHERE workspace_id=${scope}::uuid`,
+          currencies: sql`SELECT id,name AS label,code,NULL AS "parentId" FROM app.currencies WHERE workspace_id=${scope}::uuid`,
+          portfolios: sql`SELECT v.id,v.name||' · v'||v.version AS label,v.portfolio_id AS "parentId",v.environment,v.version,ARRAY(SELECT account_id FROM app.portfolio_version_accounts a WHERE a.workspace_id=v.workspace_id AND a.version_id=v.id ORDER BY account_id) AS "accountIds" FROM app.portfolio_versions v WHERE v.workspace_id=${scope}::uuid`,
+          strategies: sql`SELECT s.id,v.definition->>'name' AS label,NULL AS "parentId" FROM app.strategies s JOIN LATERAL (SELECT definition FROM app.strategy_versions v WHERE v.workspace_id=s.workspace_id AND v.strategy_id=s.id ORDER BY version DESC LIMIT 1) v ON true WHERE s.workspace_id=${scope}::uuid`,
+          strategyVersions: sql`SELECT id,(definition->>'name')||' · v'||version AS label,strategy_id AS "parentId" FROM app.strategy_versions WHERE workspace_id=${scope}::uuid`,
+          assets: sql`SELECT id,name AS label,NULL AS "parentId",family AS "assetClass" FROM app.instruments WHERE workspace_id=${scope}::uuid`,
+          tags: sql`SELECT DISTINCT jsonb_array_elements_text(r.document->'review'->'customTags') AS id,jsonb_array_elements_text(r.document->'review'->'customTags') AS label FROM app.journal_revisions r WHERE r.workspace_id=${scope}::uuid AND NOT EXISTS(SELECT 1 FROM app.journal_revisions n WHERE n.workspace_id=r.workspace_id AND n.trade_id=r.trade_id AND n.revision>r.revision)`,
+          priceSources: sql`SELECT DISTINCT source AS id,source AS label FROM app.price_observations WHERE workspace_id=${scope}::uuid`,
+          fxSources: sql`SELECT DISTINCT source AS id,source AS label FROM app.fx_observations WHERE workspace_id=${scope}::uuid`,
+        };
+        const result: Record<string, unknown> = {};
+        const pageCursors: Record<string, string | null> = {};
+        for (const resource of Object.keys(statements) as Array<keyof typeof statements>) {
+          if (input.resource && input.resource !== resource) {
+            result[resource] = [];
+            continue;
+          }
+          const text = ['tags', 'priceSources', 'fxSources'].includes(resource);
+          if (input.afterId && !text) financialIdSchema.parse(input.afterId);
+          const maximum =
+            resource === 'priceSources' || resource === 'fxSources'
+              ? Math.min(input.limit, 64)
+              : input.limit;
+          const cursor = input.afterId ?? null;
+          const after = text
+            ? sql`(${cursor}::text IS NULL OR choices.id > ${cursor}::text)`
+            : sql`(${cursor}::uuid IS NULL OR choices.id > ${cursor}::uuid)`;
+          const rows = await queryRows<{ id: string; label: string }>(
             tx,
-            sql`SELECT id,name AS label,broker_id AS "parentId",environment FROM app.accounts WHERE workspace_id=${context.workspaceId}::uuid ORDER BY name,id LIMIT 501`,
-          ),
-        );
-        const brokers = bounded(
-          await queryRows<{ id: string; label: string; parentId: null }>(
-            tx,
-            sql`SELECT id,name AS label,NULL AS "parentId" FROM app.brokers WHERE workspace_id=${context.workspaceId}::uuid ORDER BY name,id LIMIT 501`,
-          ),
-        );
-        const currencies = bounded(
-          await queryRows<{ id: string; label: string; code: string; parentId: null }>(
-            tx,
-            sql`SELECT id,name AS label,code,NULL AS "parentId" FROM app.currencies WHERE workspace_id=${context.workspaceId}::uuid ORDER BY code,id LIMIT 501`,
-          ),
-        );
-        const portfolios = bounded(
-          await queryRows<{
-            id: string;
-            label: string;
-            parentId: string;
-            accountIds: string[];
-            environment: 'live' | 'paper';
-            version: number;
-          }>(
-            tx,
-            sql`SELECT v.id,v.name||' · v'||v.version AS label,v.portfolio_id AS "parentId",v.environment,v.version,ARRAY(SELECT account_id FROM app.portfolio_version_accounts a WHERE a.workspace_id=v.workspace_id AND a.version_id=v.id ORDER BY account_id) AS "accountIds" FROM app.portfolio_versions v WHERE v.workspace_id=${context.workspaceId}::uuid ORDER BY v.name,v.version DESC LIMIT 501`,
-          ),
-        );
-        const strategies = bounded(
-          await queryRows<{ id: string; label: string; parentId: null }>(
-            tx,
-            sql`SELECT s.id,v.definition->>'name' AS label,NULL AS "parentId" FROM app.strategies s JOIN LATERAL (SELECT definition FROM app.strategy_versions v WHERE v.workspace_id=s.workspace_id AND v.strategy_id=s.id ORDER BY version DESC LIMIT 1) v ON true WHERE s.workspace_id=${context.workspaceId}::uuid ORDER BY s.id LIMIT 501`,
-          ),
-        );
-        const strategyVersions = bounded(
-          await queryRows<{ id: string; label: string; parentId: string }>(
-            tx,
-            sql`SELECT id,definition->>'name'||' · v'||version AS label,strategy_id AS "parentId" FROM app.strategy_versions WHERE workspace_id=${context.workspaceId}::uuid ORDER BY strategy_id,version DESC LIMIT 501`,
-          ),
-        );
-        const assets = bounded(
-          await queryRows<{ id: string; label: string; parentId: null; assetClass: string }>(
-            tx,
-            sql`SELECT id,name AS label,NULL AS "parentId",family AS "assetClass" FROM app.instruments WHERE workspace_id=${context.workspaceId}::uuid ORDER BY name,id LIMIT 501`,
-          ),
-        );
-        const tags = bounded(
-          await queryRows<{ tag: string }>(
-            tx,
-            sql`SELECT DISTINCT jsonb_array_elements_text(r.document->'review'->'customTags') AS tag FROM app.journal_revisions r WHERE r.workspace_id=${context.workspaceId}::uuid AND NOT EXISTS(SELECT 1 FROM app.journal_revisions n WHERE n.workspace_id=r.workspace_id AND n.trade_id=r.trade_id AND n.revision>r.revision) ORDER BY tag LIMIT 501`,
-          ),
-        ).map((row) => row.tag);
-        const priceSources = bounded(
-          await queryRows<{ source: string }>(
-            tx,
-            sql`SELECT DISTINCT source FROM app.price_observations WHERE workspace_id=${context.workspaceId}::uuid ORDER BY source LIMIT 65`,
-          ),
-          64,
-        ).map((row) => row.source);
-        const fxSources = bounded(
-          await queryRows<{ source: string }>(
-            tx,
-            sql`SELECT DISTINCT source FROM app.fx_observations WHERE workspace_id=${context.workspaceId}::uuid ORDER BY source LIMIT 65`,
-          ),
-          64,
-        ).map((row) => row.source);
+            sql`SELECT choices.* FROM (${statements[resource]}) choices WHERE ${after}
+          AND (${input.search ?? null}::text IS NULL OR choices.label ILIKE ${`%${input.search?.replace(/[\\%_]/gu, '\\$&') ?? ''}%`}) ORDER BY choices.id LIMIT ${maximum + 1}`,
+          );
+          const page = rows.slice(0, maximum);
+          pageCursors[resource] = rows.length > maximum ? page.at(-1)!.id : null;
+          result[resource] = text ? page.map((row) => row.id) : page;
+        }
         return dashboardCatalogSchema.parse({
-          accounts,
-          brokers,
-          currencies,
-          portfolios,
-          strategies,
-          strategyVersions,
-          assets,
-          tags,
-          priceSources,
-          fxSources,
+          ...result,
+          pageCursors,
+          accountChoicesComplete:
+            !input.resource && !input.afterId && !input.search && !pageCursors.accounts,
         });
       },
       { isolationLevel: 'repeatable read', accessMode: 'read only' },
@@ -235,6 +198,9 @@ export function createDashboardServices(platform: FinancialPlatform) {
             },
           });
         const query = {
+          ...(input.suppliedCampaignResultIds
+            ? { suppliedCampaignResultIds: input.suppliedCampaignResultIds }
+            : {}),
           accountIds,
           reportingCurrencyId: input.reportingCurrencyId,
           from: input.from,
@@ -292,7 +258,13 @@ export function createDashboardServices(platform: FinancialPlatform) {
         ].some((ids) => ids.length > 0);
         if (!tradeFilters && accountIds.length <= 10) {
           const accounting = createAccountingReports(snapshot);
-          const { timezone: _timezone, metadataAsOf: _metadataAsOf, ...accountingQuery } = query;
+          const {
+            timezone: _timezone,
+            metadataAsOf: _metadataAsOf,
+            suppliedCampaignResultIds: _suppliedResults,
+            ...accountingScope
+          } = query;
+          const accountingQuery = { ...accountingScope, detail: 'summary' as const };
           const final = await accounting.report(context, accountingQuery);
           const from = financialInstantMicros(original.context.from),
             to = financialInstantMicros(original.context.to);
@@ -318,6 +290,11 @@ export function createDashboardServices(platform: FinancialPlatform) {
               equity: accountingMetricSchema.parse(final.opening.equity),
               performance: accountingMetricSchema.parse(zero),
               sourceIds: [...final.dependencies.sourceIds],
+              dependencyCoverage: final.dependencies.coverage!,
+              dependencyReport: {
+                ...accountingQuery,
+                sourceRevision: final.context.sourceRevision,
+              },
               priceObservationIds: final.dependencies.prices.map((row) => row.observationId),
               fxObservationIds: final.dependencies.fx.flatMap((row) =>
                 row.selection.state === 'available' ? row.selection.value.observationIds : [],
@@ -360,6 +337,12 @@ export function createDashboardServices(platform: FinancialPlatform) {
               equity: accountingMetricSchema.parse(current.closing.equity),
               performance: accountingMetricSchema.parse(current.reconciliation.performance),
               sourceIds: [...current.dependencies.sourceIds],
+              dependencyCoverage: current.dependencies.coverage!,
+              dependencyReport: {
+                ...accountingQuery,
+                to: at,
+                sourceRevision: current.context.sourceRevision,
+              },
               priceObservationIds: current.dependencies.prices.map((row) => row.observationId),
               fxObservationIds: current.dependencies.fx.flatMap((row) =>
                 row.selection.state === 'available' ? row.selection.value.observationIds : [],

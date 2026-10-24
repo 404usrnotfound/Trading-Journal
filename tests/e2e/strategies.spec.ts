@@ -121,8 +121,8 @@ test('strategy playbook versions retain historical rules, attachments and trade 
     'Screenshots & attachments',
   ])
     await page.locator('summary').filter({ hasText: section }).click();
-  await page.getByLabel('Name', { exact: true }).fill(name);
-  await page.getByLabel('Status', { exact: true }).selectOption('active');
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill(name);
+  await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('active');
   await page.getByLabel('Direction', { exact: true }).selectOption('long');
   for (const [label, value] of Object.entries({
     'Asset classes': 'stock, ETF',
@@ -134,7 +134,7 @@ test('strategy playbook versions retain historical rules, attachments and trade 
     'Trading style': 'Swing',
     ...narratives,
   }))
-    await page.getByLabel(label, { exact: true }).fill(value);
+    await page.getByRole('textbox', { name: label, exact: true }).fill(value);
   await page.getByLabel('Effective date & time').fill('2025-01-01T10:00');
   await page.getByRole('button', { name: 'Add checklist item', exact: true }).click();
   await page.getByLabel('Checklist item 1', { exact: true }).fill('Volume confirmed');

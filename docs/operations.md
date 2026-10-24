@@ -25,13 +25,16 @@ Treat stale backups, missing media and integrity failures as incidents even when
 both processes are alive. Daily cadence is an operator recommendation; no scheduler
 or external monitoring integration is supplied by this repository.
 
-The worker currently consumes only `platform.health-probe`. Ordinary financial
-commands, imports and bounded reports run synchronously in the web process.
-Financial transactions persist outbox facts, but a business outbox dispatcher,
-asynchronous report/import handlers, cancellation UI and generic failed-business-job
-redrive are not implemented. A healthy worker proves the infrastructure round trip,
-not completion of business work. Do not queue invented application job names or
-delete outbox facts to make a lag chart appear healthy.
+The worker consumes `platform.health-probe` and `financial.native-snapshot`.
+The [financial outbox](financial-outbox.md) dispatcher publishes a revision-safe
+native cash/holdings projection, with authenticated generation/status reads and
+an authorized refresh path. Monitor its source/processed revisions and safe
+failed/blocked state separately from process readiness. Ordinary financial
+commands, imports and bounded accounting reports still run synchronously in
+the web process. Asynchronous large-report/import handlers, cancellation UI and
+generic failed-business-job redrive are not implemented. A healthy queue probe
+does not prove every financial projection is current. Do not invent application
+job names or delete outbox facts to make a lag chart appear healthy.
 
 ## Health checks
 

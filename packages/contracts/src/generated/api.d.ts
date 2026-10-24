@@ -24,6 +24,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            accountChoicesComplete?: boolean;
                             accounts: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
@@ -70,6 +71,18 @@ export interface paths {
                             tags: string[];
                             priceSources: string[];
                             fxSources: string[];
+                            pageCursors?: {
+                                accounts?: string | null;
+                                brokers?: string | null;
+                                currencies?: string | null;
+                                portfolios?: string | null;
+                                strategies?: string | null;
+                                strategyVersions?: string | null;
+                                assets?: string | null;
+                                tags?: string | null;
+                                priceSources?: string | null;
+                                fxSources?: string | null;
+                            };
                         };
                     };
                 };
@@ -185,6 +198,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        suppliedCampaignResultIds?: components["schemas"]["FinancialId"][];
                         reportingCurrencyId: components["schemas"]["FinancialId"];
                         from: components["schemas"]["FinancialInstant"];
                         to: components["schemas"]["FinancialInstant"];
@@ -299,6 +313,21 @@ export interface paths {
                                     sourceIds: string[];
                                     priceObservationIds: components["schemas"]["FinancialId"][];
                                     fxObservationIds: components["schemas"]["FinancialId"][];
+                                    dependencyCoverage?: {
+                                        /** @enum {string} */
+                                        mode: "summary" | "page";
+                                        fxCount: number;
+                                        priceCount: number;
+                                        sourceIdCount: number;
+                                        page: {
+                                            /** @enum {string} */
+                                            kind: "fx" | "prices" | "sourceIds";
+                                            offset: number;
+                                            limit: number;
+                                            nextOffset: number | null;
+                                        } | null;
+                                    };
+                                    dependencyReport?: components["schemas"]["AccountingReportRequest"];
                                 }[];
                                 allocation: {
                                     id: string;
@@ -625,6 +654,188 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/strategies/native-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NativeSnapshotStatus"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6902,6 +7113,620 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspaceId}/accounting/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Workspace-scoped immutable portfolio definitions and owned-account cash transfer evidence. Lists are cursor-paginated, at most 100 entries per page. Transfer status can be read at an explicit economic boundary. */
+        get: {
+            parameters: {
+                query?: {
+                    cursor?: components["schemas"]["FinancialId"];
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountingCorrectionSourcesResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/accounting/native-snapshot/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Editor/owner accounting command with durable idempotency. Portfolio edits append complete immutable scope versions. Income records gross dividends or interest and optional withholding as a separate tax posting. Positive expense/tax amounts are charges and negative amounts are refunds. Cash transfers require distinct same-currency owned accounts; omitted receiptAt records departure and an evidenced monetary transit claim. A later receipt is a separate immutable command. Deposits and boundary transfers are capital flows, never trading profit. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NativeSnapshotRefreshRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountingMutationResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/accounting/corrections/{sourceId}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Editor/owner accounting command with durable idempotency. Portfolio edits append complete immutable scope versions. Income records gross dividends or interest and optional withholding as a separate tax posting. Positive expense/tax amounts are charges and negative amounts are refunds. Cash transfers require distinct same-currency owned accounts; omitted receiptAt records departure and an evidenced monetary transit claim. A later receipt is a separate immutable command. Deposits and boundary transfers are capital flows, never trading profit. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    sourceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReverseAccountingSourceRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountingMutationResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspaceId}/accounting/portfolios/{portfolioId}/archive": {
         parameters: {
             query?: never;
@@ -8136,6 +8961,565 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspaceId}/accounting/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Read-only account performance at explicit valuation checkpoints. Flow-adjusted changes and conditional TWR/MWR retain completeness and uniqueness requirements. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccountPerformanceRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountPerformanceResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/display-views/{screen}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Private per-member saved filters and column preferences. Workspace viewers may edit their own preferences. Optimistic revisions prevent overwriting another session. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    screen: components["schemas"]["DisplayViewScreen"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DisplayViewResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Private per-member saved filters and column preferences. Workspace viewers may edit their own preferences. Optimistic revisions prevent overwriting another session. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    screen: components["schemas"]["DisplayViewScreen"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DisplayViewWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DisplayViewResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspaceId}/financial/currencies/{id}/archive": {
         parameters: {
             query?: never;
@@ -9098,6 +10482,8 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
                 };
                 header?: never;
                 path: {
@@ -9424,6 +10810,8 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
                 };
                 header?: never;
                 path: {
@@ -9750,6 +11138,8 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
                     environment?: "live" | "paper";
                 };
                 header?: never;
@@ -10077,6 +11467,8 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
                 };
                 header?: never;
                 path: {
@@ -10403,6 +11795,8 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
                 };
                 header?: never;
                 path: {
@@ -10729,6 +12123,9 @@ export interface paths {
                 query?: {
                     includeArchived?: "true" | "false";
                     limit?: number;
+                    afterId?: components["schemas"]["FinancialId"];
+                    search?: string;
+                    unclassified?: "true" | "false";
                 };
                 header?: never;
                 path: {
@@ -15765,6 +17162,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
+                    suppliedPositionIds?: string;
                     accountIds: string;
                     reportingCurrencyId: components["schemas"]["FinancialId"];
                     asOf: components["schemas"]["FinancialInstant"];
@@ -16214,6 +17612,156 @@ export interface paths {
         trace?: never;
     };
     "/api/v1/workspaces/{workspaceId}/financial/instruments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstrumentResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/financial/instrument-versions/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -19986,6 +21534,3975 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspaceId}/supplied-components/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: components["schemas"]["FinancialId"];
+                    tradeId?: components["schemas"]["FinancialId"];
+                    afterId?: components["schemas"]["FinancialId"];
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuppliedComponentListResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SuppliedComponentCreate"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinancialMutationResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    after?: components["schemas"]["FinancialId"];
+                    kind?: components["schemas"]["PeriodReviewKind"];
+                    search?: string;
+                    status?: "draft" | "final";
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewList"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodReviewWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodReviewWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    after?: components["schemas"]["FinancialId"];
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewTemplateList"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodReviewTemplateWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewTemplateVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodReviewTemplateWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewTemplateVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/risk/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    after?: components["schemas"]["FinancialId"];
+                    accountId?: components["schemas"]["FinancialId"];
+                    strategyId?: components["schemas"]["FinancialId"];
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskPolicyList"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RiskPolicyWrite"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskPolicyVersion"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/risk/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RiskAssessmentRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskAssessmentResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/risk/sizing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RiskSizingRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskSizingResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reconciliation/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: components["schemas"]["FinancialId"];
+                    cursor?: components["schemas"]["FinancialId"];
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementListResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateStatementRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reconciliation/statements/{id}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: components["schemas"]["FinancialId"];
+                    cursor?: components["schemas"]["FinancialId"];
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementEvaluationListResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EvaluateStatementRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementReconciliationResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/portability/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PortableRestoreRequest"];
+                };
+            };
+            responses: {
+                /** @description Validated application DTO */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PortableRestoreResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/entries/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    after?: components["schemas"]["FinancialId"];
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewHistory"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/entries/{id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewSummary"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reviews/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    collection: "trades" | "strategy-versions";
+                    after?: components["schemas"]["FinancialId"];
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodReviewCatalog"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/risk/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    collection: "accounts" | "strategies" | "instruments" | "currencies" | "strategy-versions" | "fx-observations";
+                    after?: components["schemas"]["FinancialId"];
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskCatalogResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/risk/assessments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RiskAssessmentResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reconciliation/statements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/reconciliation/evaluations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    id: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StatementReconciliationResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/portability/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PortableArchive"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceId}/portability/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Authorized filtered JSON or spreadsheet-safe CSV. Source precision is retained in JSON; CSV is a protected presentation. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Origin: string;
+                    "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
+                };
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PortableExportRequest"];
+                };
+            };
+            responses: {
+                /** @description Filtered download */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string;
+                        "text/csv": string;
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -20572,7 +26089,7 @@ export interface components {
             /** @enum {string} */
             side: "buy" | "sell";
             quantity: components["schemas"]["PositiveFinancialDecimal"];
-            price: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
+            price: components["schemas"]["FinancialDecimal"];
             bookedPrincipal?: components["schemas"]["PositiveFinancialDecimal"];
             principalCurrencyId?: components["schemas"]["FinancialId"];
             cashBucketId?: components["schemas"]["FinancialId"];
@@ -20628,7 +26145,7 @@ export interface components {
                 /** @enum {string} */
                 side: "buy" | "sell";
                 quantity: components["schemas"]["PositiveFinancialDecimal"];
-                price: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
+                price: components["schemas"]["FinancialDecimal"];
                 bookedPrincipal?: components["schemas"]["PositiveFinancialDecimal"];
                 principalCurrencyId?: components["schemas"]["FinancialId"];
                 cashBucketId?: components["schemas"]["FinancialId"];
@@ -20723,6 +26240,24 @@ export interface components {
             sourceRevision: components["schemas"]["FinancialSourceRevision"];
             inventory: components["schemas"]["InventoryResponse"];
             valuation?: components["schemas"]["InventoryValuationResponse"];
+            suppliedValue?: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                kind: "position-equity" | "campaign-net-result";
+                amount: string;
+                /** Format: uuid */
+                currencyId: string;
+                observedAt: string;
+                source: string;
+                sourceReference: string;
+                /** @enum {string} */
+                quality: "broker-reported" | "manually-verified";
+                /** @enum {string} */
+                definitionVersion: "residual-position-equity/1" | "lifetime-campaign-net-result/1";
+                basisRevision: string;
+                sourceRevision: string;
+            };
         };
         FxConversionCreate: {
             economicAt: components["schemas"]["FinancialInstant"];
@@ -20830,7 +26365,7 @@ export interface components {
             /** @enum {string} */
             direction: "long" | "short";
             quantity: components["schemas"]["PositiveFinancialDecimal"];
-            entryPrice?: components["schemas"]["PositiveFinancialDecimal"];
+            entryPrice?: components["schemas"]["FinancialDecimal"];
             bookedPrincipal?: components["schemas"]["PositiveFinancialDecimal"];
             reason: components["schemas"]["FinancialLabel"];
             costsComplete?: boolean;
@@ -20892,7 +26427,7 @@ export interface components {
         PriceObservationCreate: {
             instrumentVersionId: components["schemas"]["FinancialId"];
             currencyId: components["schemas"]["FinancialId"];
-            price: components["schemas"]["NonnegativeFinancialDecimal"];
+            price: components["schemas"]["FinancialDecimal"];
             observedAt: components["schemas"]["FinancialInstant"];
             source: components["schemas"]["FinancialLabel"];
             supersedesId?: components["schemas"]["FinancialId"];
@@ -21551,12 +27086,8 @@ export interface components {
             expectedRevision: number;
             document: components["schemas"]["JournalDocument"];
         };
-        AccountingMutationResponse: {
-            id: components["schemas"]["FinancialId"];
-            commandId: components["schemas"]["FinancialId"];
-            sourceRevision: components["schemas"]["FinancialSourceRevision"];
-        };
-        AccountingReportRequest: {
+        AccountPerformanceRequest: {
+            suppliedPositionIds?: components["schemas"]["FinancialId"][];
             accountIds?: components["schemas"]["FinancialId"][];
             portfolioVersionId?: components["schemas"]["FinancialId"];
             reportingCurrencyId: components["schemas"]["FinancialId"];
@@ -21566,9 +27097,97 @@ export interface components {
             fxPolicy: components["schemas"]["AccountingFxPolicy"];
             priceMaxAgeMilliseconds: number;
             priceSourcePriority: string[];
+            /** @enum {string} */
+            detail?: "full" | "summary";
+            dependencyPage?: {
+                /** @enum {string} */
+                kind: "fx" | "prices" | "sourceIds";
+                offset: number;
+                limit: number;
+            };
+            checkpoints?: components["schemas"]["FinancialInstant"][];
+        };
+        AccountPerformanceResponse: {
+            accountIds: components["schemas"]["FinancialId"][];
+            reportingCurrencyId: components["schemas"]["FinancialId"];
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            from: components["schemas"]["FinancialInstant"];
+            to: components["schemas"]["FinancialInstant"];
+            /** @enum {string} */
+            method: "exact-flow-boundaries/act-365/1";
+            /** @enum {string} */
+            valuationPolicy: "report-price-and-fx-policy";
+            twr: {
+                /** @enum {string} */
+                state: "available" | "unavailable";
+                value: components["schemas"]["FinancialDecimal"];
+                reasons: string[];
+            };
+            mwr: {
+                /** @enum {string} */
+                state: "available" | "unavailable";
+                value: components["schemas"]["FinancialDecimal"];
+                reasons: string[];
+            };
+            maximumDrawdown: {
+                /** @enum {string} */
+                state: "available" | "unavailable";
+                value: components["schemas"]["FinancialDecimal"];
+                reasons: string[];
+            };
+            recoveryDurationMilliseconds: string | null;
+            series: {
+                at: components["schemas"]["FinancialInstant"];
+                nav: components["schemas"]["FinancialDecimal"];
+                capitalFlow: components["schemas"]["FinancialDecimal"];
+                unitIndex: components["schemas"]["FinancialDecimal"];
+                drawdown: components["schemas"]["FinancialDecimal"];
+                reasons: string[];
+            }[];
+        };
+        AccountingCorrectionSourcesResponse: {
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            items: {
+                id: components["schemas"]["FinancialId"];
+                /** @enum {string} */
+                sourceType: "cash-event" | "transfer";
+                kind: string;
+                description: string;
+                economicAt: components["schemas"]["FinancialInstant"];
+                currencyId: components["schemas"]["FinancialId"];
+                amount: components["schemas"]["FinancialDecimal"];
+                reversed: boolean;
+            }[];
+            nextCursor: components["schemas"]["FinancialId"] | null;
+        };
+        AccountingMutationResponse: {
+            id: components["schemas"]["FinancialId"];
+            commandId: components["schemas"]["FinancialId"];
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+        };
+        AccountingReportRequest: {
+            suppliedPositionIds?: components["schemas"]["FinancialId"][];
+            accountIds?: components["schemas"]["FinancialId"][];
+            portfolioVersionId?: components["schemas"]["FinancialId"];
+            reportingCurrencyId: components["schemas"]["FinancialId"];
+            from: components["schemas"]["FinancialInstant"];
+            to: components["schemas"]["FinancialInstant"];
+            sourceRevision?: components["schemas"]["FinancialSourceRevision"];
+            fxPolicy: components["schemas"]["AccountingFxPolicy"];
+            priceMaxAgeMilliseconds: number;
+            priceSourcePriority: string[];
+            /** @enum {string} */
+            detail?: "full" | "summary";
+            dependencyPage?: {
+                /** @enum {string} */
+                kind: "fx" | "prices" | "sourceIds";
+                offset: number;
+                limit: number;
+            };
         };
         AccountingReportResponse: {
             context: {
+                suppliedPositionIds?: components["schemas"]["FinancialId"][];
                 accountIds: components["schemas"]["FinancialId"][];
                 portfolioVersionId?: components["schemas"]["FinancialId"];
                 portfolioId: components["schemas"]["FinancialId"] | null;
@@ -21616,6 +27235,47 @@ export interface components {
                 roundingResidual: components["schemas"]["AccountingMetric"];
             };
             dependencies: {
+                suppliedValues?: {
+                    /** Format: uuid */
+                    id: string;
+                    /** @enum {string} */
+                    kind: "position-equity";
+                    amount: string;
+                    /** Format: uuid */
+                    currencyId: string;
+                    observedAt: string;
+                    source: string;
+                    sourceReference: string;
+                    /** @enum {string} */
+                    quality: "broker-reported" | "manually-verified";
+                    /** @enum {string} */
+                    definitionVersion: "residual-position-equity/1";
+                    basisRevision: string;
+                    sourceRevision: string;
+                    signedQuantity: components["schemas"]["FinancialDecimal"];
+                    /** @enum {boolean} */
+                    cashExcluded: true;
+                    /** @enum {boolean} */
+                    collateralExcluded: true;
+                    /** @enum {boolean} */
+                    settledPnlExcluded: true;
+                    /** @enum {boolean} */
+                    unsettledCashExcluded: true;
+                }[];
+                coverage?: {
+                    /** @enum {string} */
+                    mode: "summary" | "page";
+                    fxCount: number;
+                    priceCount: number;
+                    sourceIdCount: number;
+                    page: {
+                        /** @enum {string} */
+                        kind: "fx" | "prices" | "sourceIds";
+                        offset: number;
+                        limit: number;
+                        nextOffset: number | null;
+                    } | null;
+                };
                 fx: {
                     componentId: string;
                     selection: components["schemas"]["FxRateSelection"];
@@ -21750,6 +27410,12 @@ export interface components {
             description: string;
             relatedIncomeId?: components["schemas"]["FinancialId"];
         };
+        ReverseAccountingSourceRequest: {
+            /** @enum {string} */
+            sourceType: "cash-event" | "transfer";
+            expectedSourceRevision: components["schemas"]["FinancialSourceRevision"];
+            reason: string;
+        };
         UpdatePortfolioRequest: {
             name: string;
             /** @default  */
@@ -21759,6 +27425,673 @@ export interface components {
             accountIds: components["schemas"]["FinancialId"][];
             expectedVersion: components["schemas"]["FinancialRevision"];
             reason: string;
+        };
+        RiskAssessmentRequest: {
+            accountId: components["schemas"]["FinancialId"];
+            strategyVersionId: components["schemas"]["FinancialId"] & (string | null);
+            asOf: components["schemas"]["FinancialInstant"];
+            proposal: components["schemas"]["RiskProposal"];
+        };
+        RiskProposal: {
+            instrumentVersionId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            side: "long" | "short";
+            quantity: components["schemas"]["PositiveFinancialDecimal"];
+            riskAmount: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            riskCurrencyId: components["schemas"]["FinancialId"] & (string | null);
+            riskMethod: string;
+            entry: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            intendedExitAt: components["schemas"]["FinancialInstant"] & (string | null);
+        } | null;
+        RiskAssessmentResponse: {
+            id: components["schemas"]["FinancialId"];
+            accountId: components["schemas"]["FinancialId"];
+            strategyVersionId: components["schemas"]["FinancialId"] & (string | null);
+            asOf: components["schemas"]["FinancialInstant"];
+            createdAt: components["schemas"]["FinancialInstant"];
+            actorId: string;
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            /** @enum {string} */
+            definitionVersion: "risk-assessment/1";
+            /** @enum {string} */
+            state: "passed" | "breached" | "unknown" | "unconfigured";
+            policies: components["schemas"]["RiskPolicyVersion"][];
+            results: components["schemas"]["RiskLimitAssessment"][];
+            proposal: components["schemas"]["RiskProposal"];
+        };
+        RiskPolicyVersion: {
+            id: components["schemas"]["FinancialId"];
+            policyId: components["schemas"]["FinancialId"];
+            workspaceId: components["schemas"]["FinancialId"];
+            accountId: components["schemas"]["FinancialId"] & (string | null);
+            strategyId: components["schemas"]["FinancialId"] & (string | null);
+            version: number;
+            effectiveAt: components["schemas"]["FinancialInstant"];
+            createdAt: components["schemas"]["FinancialInstant"];
+            actorId: string;
+            reason: string;
+            definition: components["schemas"]["RiskDefinition"];
+        };
+        RiskDefinition: {
+            name: string;
+            limits: components["schemas"]["RiskLimit"][];
+            maxAgeMilliseconds: number;
+            priceSources: string[];
+            fxSources: string[];
+        };
+        RiskLimit: {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "trade-risk";
+            maximum: components["schemas"]["NonnegativeFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            measure: "amount" | "equity-ratio";
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "daily-loss";
+            maximum: components["schemas"]["NonnegativeFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            basis: "realized-activity" | "account-change";
+            includeIncome: boolean;
+            timezone: string;
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "weekly-loss";
+            maximum: components["schemas"]["NonnegativeFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            basis: "realized-activity" | "account-change";
+            includeIncome: boolean;
+            timezone: string;
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "positions";
+            maximum: number;
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "concentration";
+            maximum: components["schemas"]["NonnegativeFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            instrumentId: components["schemas"]["FinancialId"] & (string | null);
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "exposure";
+            maximum: components["schemas"]["NonnegativeFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            measure: "gross" | "net";
+            /** @enum {string} */
+            denominator: "amount" | "equity";
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "overnight";
+            timezone: string;
+            boundaryHour: number;
+        } | {
+            id: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "prohibited";
+            instrumentIds: components["schemas"]["FinancialId"][];
+            families: string[];
+            subtypes: string[];
+        };
+        RiskLimitAssessment: {
+            policyVersionId: components["schemas"]["FinancialId"];
+            limit: components["schemas"]["RiskLimit"];
+            fact: components["schemas"]["RiskFact"];
+            /** @enum {string} */
+            state: "passed" | "breached" | "unknown";
+            explanation: string;
+        };
+        RiskFact: {
+            value: components["schemas"]["FinancialDecimal"];
+            /** @enum {string} */
+            unit: "money" | "ratio" | "count" | "boolean";
+            currencyId: components["schemas"]["FinancialId"] & (string | null);
+            reasons: string[];
+            references: string[];
+        };
+        RiskCatalogResponse: {
+            items: {
+                id: components["schemas"]["FinancialId"];
+                label: string;
+            }[];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        RiskPolicyList: {
+            versions: components["schemas"]["RiskPolicyVersion"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        RiskPolicyWrite: {
+            policyId?: components["schemas"]["FinancialId"];
+            expectedVersion: number;
+            accountId: components["schemas"]["FinancialId"] & (string | null);
+            strategyId: components["schemas"]["FinancialId"] & (string | null);
+            effectiveAt: components["schemas"]["FinancialInstant"];
+            reason: string;
+            definition: components["schemas"]["RiskDefinition"];
+        };
+        RiskSizingRequest: {
+            accountId: components["schemas"]["FinancialId"];
+            instrumentVersionId: components["schemas"]["FinancialId"];
+            asOf: components["schemas"]["FinancialInstant"];
+            /** @enum {string} */
+            side: "long" | "short";
+            /** @enum {string} */
+            mode: "linear" | "manual";
+            currencyId: components["schemas"]["FinancialId"];
+            budget: components["schemas"]["PositiveFinancialDecimal"];
+            entry: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            stop: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            fixedCosts: components["schemas"]["NonnegativeFinancialDecimal"];
+            perUnitCosts: components["schemas"]["NonnegativeFinancialDecimal"];
+            fxObservationId: components["schemas"]["FinancialId"] & (string | null);
+            maxAgeMilliseconds: number;
+            manualRisk: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            manualQuantity: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            method: string;
+        };
+        RiskSizingResponse: {
+            /** @enum {string} */
+            state: "available" | "unknown";
+            quantity: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
+            plannedRisk: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
+            riskPerUnit: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            budget: components["schemas"]["PositiveFinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            reasons: string[];
+            /** @enum {string} */
+            mode: "linear" | "manual";
+            /** @enum {string} */
+            definitionVersion: "planned-stop-risk/1";
+            references: string[];
+            warning: string;
+        };
+        PeriodReviewCatalog: {
+            items: {
+                id: components["schemas"]["FinancialId"];
+                label: string;
+            }[];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        PeriodReviewDefinition: {
+            title: string;
+            kind: components["schemas"]["PeriodReviewKind"];
+            from: components["schemas"]["FinancialInstant"];
+            to: components["schemas"]["FinancialInstant"];
+            timezone: string;
+            /** @enum {string} */
+            status: "draft" | "final";
+            notes: string;
+            goals: string[];
+            recurringMistakes: string[];
+            emotions: string[];
+            improvementActions: {
+                id: components["schemas"]["FinancialId"];
+                text: string;
+                /** @enum {string} */
+                status: "open" | "done";
+            }[];
+            templateVersionId: components["schemas"]["FinancialId"] & (string | null);
+            answers: {
+                fieldId: components["schemas"]["FinancialId"];
+                value: string | boolean;
+            }[];
+            tradeIds: components["schemas"]["FinancialId"][];
+            strategyVersionIds: components["schemas"]["FinancialId"][];
+        };
+        /** @enum {string} */
+        PeriodReviewKind: "daily" | "session-preparation" | "session-review" | "weekly" | "monthly" | "custom";
+        PeriodReviewField: {
+            id: components["schemas"]["FinancialId"];
+            label: string;
+            /** @enum {string} */
+            type: "text" | "boolean" | "decimal";
+            required: boolean;
+            help: string;
+        };
+        PeriodReviewHistory: {
+            versions: components["schemas"]["PeriodReviewVersion"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        PeriodReviewVersion: {
+            id: components["schemas"]["FinancialId"];
+            entryId: components["schemas"]["FinancialId"];
+            version: number;
+            actorId: string;
+            createdAt: components["schemas"]["FinancialInstant"];
+            reason: string;
+            definition: components["schemas"]["PeriodReviewDefinition"];
+            template: components["schemas"]["PeriodReviewTemplateVersion"];
+        };
+        PeriodReviewTemplateVersion: {
+            id: components["schemas"]["FinancialId"];
+            templateId: components["schemas"]["FinancialId"];
+            version: number;
+            actorId: string;
+            createdAt: components["schemas"]["FinancialInstant"];
+            reason: string;
+            definition: components["schemas"]["PeriodReviewTemplateDefinition"];
+        } | null;
+        PeriodReviewTemplateDefinition: {
+            name: string;
+            instructions: string;
+            /** @enum {string} */
+            status: "active" | "archived";
+            fields: components["schemas"]["PeriodReviewField"][];
+        };
+        PeriodReviewList: {
+            entries: components["schemas"]["PeriodReviewVersion"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        PeriodReviewSummary: {
+            entryVersionId: components["schemas"]["FinancialId"];
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            generatedAt: components["schemas"]["FinancialInstant"];
+            linkedTradeCount: number;
+            reviewedTradeCount: number;
+            statusCounts: {
+                [key: string]: number;
+            };
+            missingTradeReviewIds: components["schemas"]["FinancialId"][];
+            recurringMistakes: {
+                label: string;
+                count: number;
+            }[];
+            openActionCount: number;
+            goalCount: number;
+            sourceRecords: {
+                tradeId: components["schemas"]["FinancialId"];
+                journalRevisionId: components["schemas"]["FinancialId"] & (string | null);
+                status: string;
+            }[];
+            explanation: string;
+        };
+        PeriodReviewTemplateList: {
+            templates: components["schemas"]["PeriodReviewTemplateVersion"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        PeriodReviewTemplateWrite: {
+            expectedVersion: number;
+            reason: string;
+            definition: components["schemas"]["PeriodReviewTemplateDefinition"];
+        };
+        PeriodReviewWrite: {
+            expectedVersion: number;
+            reason: string;
+            definition: components["schemas"]["PeriodReviewDefinition"];
+        };
+        SuppliedComponentCreate: {
+            amount: components["schemas"]["FinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            observedAt: components["schemas"]["FinancialInstant"];
+            source: string;
+            sourceReference: string;
+            /** @enum {string} */
+            quality: "broker-reported" | "manually-verified";
+            expectedSourceRevision: components["schemas"]["FinancialSourceRevision"];
+            supersedesId?: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "position-equity";
+            accountId: components["schemas"]["FinancialId"];
+            instrumentVersionId: components["schemas"]["FinancialId"];
+            signedQuantity: components["schemas"]["FinancialDecimal"];
+            /** @enum {string} */
+            valueDefinition: "delivered-market-value" | "residual-contract-equity";
+            /** @enum {boolean} */
+            cashExcluded: true;
+            /** @enum {boolean} */
+            collateralExcluded: true;
+            /** @enum {boolean} */
+            settledPnlExcluded: true;
+            /** @enum {boolean} */
+            unsettledCashExcluded: true;
+            /** @enum {string} */
+            accrualTreatment: "included-residual-only" | "not-applicable";
+        } | {
+            amount: components["schemas"]["FinancialDecimal"];
+            currencyId: components["schemas"]["FinancialId"];
+            observedAt: components["schemas"]["FinancialInstant"];
+            source: string;
+            sourceReference: string;
+            /** @enum {string} */
+            quality: "broker-reported" | "manually-verified";
+            expectedSourceRevision: components["schemas"]["FinancialSourceRevision"];
+            supersedesId?: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            kind: "campaign-net-result";
+            tradeId: components["schemas"]["FinancialId"];
+            /** @enum {string} */
+            resultDefinition: "completed-realized-net" | "lifetime-total-net";
+            /** @enum {boolean} */
+            costsComplete: true;
+        };
+        SuppliedComponentListResponse: {
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            items: components["schemas"]["SuppliedComponentResponse"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        SuppliedComponentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "position-equity" | "campaign-net-result";
+            amount: string;
+            /** Format: uuid */
+            currencyId: string;
+            observedAt: string;
+            source: string;
+            sourceReference: string;
+            /** @enum {string} */
+            quality: "broker-reported" | "manually-verified";
+            /** @enum {string} */
+            definitionVersion: "residual-position-equity/1" | "lifetime-campaign-net-result/1";
+            basisRevision: string;
+            sourceRevision: string;
+            scopeLabel?: string;
+            currencyCode?: string;
+            accountId: components["schemas"]["FinancialId"] & (string | null);
+            instrumentVersionId: components["schemas"]["FinancialId"] & (string | null);
+            instrumentId: components["schemas"]["FinancialId"] & (string | null);
+            tradeId: components["schemas"]["FinancialId"] & (string | null);
+            signedQuantity: components["schemas"]["FinancialDecimal"];
+            supersedesId: components["schemas"]["FinancialId"] & (string | null);
+            sourceInput: components["schemas"]["SuppliedComponentCreate"];
+        };
+        NativeFinancialSnapshot: {
+            /** @enum {string} */
+            version: "native-financial-snapshot/1";
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            /** @enum {string} */
+            economicScope: "all-recorded-events";
+            capturedAt: components["schemas"]["FinancialInstant"];
+            cash: {
+                cashBucketId: components["schemas"]["FinancialId"];
+                accountId: components["schemas"]["FinancialId"];
+                currencyId: components["schemas"]["FinancialId"];
+                /** @enum {string} */
+                category: "settled" | "unsettled" | "restricted" | "collateral_cash";
+                amount: string;
+            }[];
+            holdings: {
+                holdingBookId: components["schemas"]["FinancialId"];
+                accountId: components["schemas"]["FinancialId"];
+                instrumentId: components["schemas"]["FinancialId"];
+                instrumentVersionId: components["schemas"]["FinancialId"] & (string | null);
+                quantityUnit: string | null;
+                settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
+                quantity: {
+                    /** @enum {string} */
+                    status: "available" | "unavailable" | "unsupported";
+                    value: string | null;
+                    currencyId?: string;
+                    reasons: string[];
+                } | null;
+                /** @enum {string|null} */
+                inventoryStatus: "available" | "unavailable" | "unsupported" | null;
+                inventorySourceRevision: components["schemas"]["FinancialSourceRevision"];
+            }[];
+        };
+        NativeSnapshotRefreshRequest: {
+            reason: string;
+        };
+        NativeSnapshotStatus: {
+            /** @enum {string} */
+            state: "current" | "stale" | "pending" | "empty" | "unavailable";
+            latestSourceRevision: components["schemas"]["FinancialSourceRevision"];
+            processedSourceRevision: components["schemas"]["FinancialSourceRevision"];
+            /** @enum {string|null} */
+            jobStatus: "idle" | "leased" | "retry" | "failed" | "blocked" | null;
+            attempts: number;
+            /** @enum {string|null} */
+            lastErrorCode: "scope-too-large" | "processing-failed" | "stale-source" | "owner-unavailable" | null;
+            snapshot: components["schemas"]["NativeFinancialSnapshot"] & (Record<string, never> | null);
+        };
+        DisplayViewResponse: {
+            revision: number;
+            settings: components["schemas"]["DisplayViewSettings"];
+        };
+        DisplayViewSettings: {
+            /** @enum {string} */
+            screen: "dashboard";
+            columns: ("title" | "status" | "netPnl" | "originalR" | "coverage")[];
+            views: {
+                id: components["schemas"]["FinancialId"];
+                name: string;
+                filters: {
+                    /** Format: date */
+                    from: string;
+                    /** Format: date */
+                    to: string;
+                    currency: components["schemas"]["FinancialId"] | "";
+                    /** @enum {string} */
+                    environment: "live" | "paper";
+                    age: string;
+                    portfolioVersionId: components["schemas"]["FinancialId"] | "";
+                    accountIds: string;
+                    suppliedCampaignResultIds?: string;
+                    brokerIds: components["schemas"]["FinancialId"] | "";
+                    strategyIds: components["schemas"]["FinancialId"] | "";
+                    strategyVersionIds: components["schemas"]["FinancialId"] | "";
+                    assetIds: components["schemas"]["FinancialId"] | "";
+                    assetClasses: string;
+                    tags: string;
+                    search: string;
+                    /** @enum {string} */
+                    view: "performance" | "distributions" | "breakdowns";
+                    /** @enum {string} */
+                    curve: "equity" | "performance";
+                };
+            }[];
+        } | {
+            /** @enum {string} */
+            screen: "journal";
+            columns: ("title" | "status" | "classification" | "strategy" | "archived")[];
+            views: {
+                id: components["schemas"]["FinancialId"];
+                name: string;
+                filters: {
+                    search: string;
+                    /** @enum {string} */
+                    status: "" | "planned" | "open" | "partially_closed" | "closed" | "canceled";
+                    /** @enum {string} */
+                    includeArchived: "true" | "false";
+                    /** @enum {string} */
+                    period: "all" | "today" | "week" | "custom";
+                    from: string | "";
+                    to: string | "";
+                    accountId: components["schemas"]["FinancialId"] | "";
+                };
+            }[];
+        } | {
+            /** @enum {string} */
+            screen: "strategies";
+            columns: ("name" | "status" | "description" | "version" | "assetClasses")[];
+            views: {
+                id: components["schemas"]["FinancialId"];
+                name: string;
+                filters: {
+                    search: string;
+                    /** @enum {string} */
+                    status: "" | "draft" | "active" | "paused" | "retired";
+                    /** @enum {string} */
+                    includeArchived: "true" | "false";
+                };
+            }[];
+        };
+        /** @enum {string} */
+        DisplayViewScreen: "dashboard" | "journal" | "strategies";
+        DisplayViewWrite: {
+            expectedRevision: number;
+            settings: components["schemas"]["DisplayViewSettings"];
+        };
+        CreateStatementRequest: {
+            accountId: components["schemas"]["FinancialId"];
+            asOf: components["schemas"]["FinancialInstant"];
+            sourceName: string;
+            sourceReference: string;
+            sourceHash?: string;
+            /** @enum {string} */
+            cashDefinition: "all-owned-cash/1";
+            /** @enum {string} */
+            holdingsDefinition: "netted-account-inventory/1";
+            completeCash: boolean;
+            completeHoldings: boolean;
+            cash: {
+                currencyId: components["schemas"]["FinancialId"];
+                amount: components["schemas"]["FinancialDecimal"];
+                tolerance?: components["schemas"]["NonnegativeFinancialDecimal"];
+            }[];
+            holdings: {
+                instrumentVersionId: components["schemas"]["FinancialId"];
+                quantity: components["schemas"]["FinancialDecimal"];
+                tolerance?: components["schemas"]["NonnegativeFinancialDecimal"];
+            }[];
+            equity?: {
+                currencyId: components["schemas"]["FinancialId"];
+                amount: components["schemas"]["FinancialDecimal"];
+                tolerance?: components["schemas"]["NonnegativeFinancialDecimal"];
+                /** @enum {string} */
+                definition: "owned-cash-plus-signed-holdings/1";
+            };
+            /** @default  */
+            notes: string;
+        };
+        EvaluateStatementRequest: {
+            sourceRevision?: components["schemas"]["FinancialSourceRevision"];
+            valuationPolicy?: components["schemas"]["ReconciliationPolicy"];
+            /** @default false */
+            accept: boolean;
+            reviewNote: string;
+        };
+        ReconciliationPolicy: {
+            fxPolicy: components["schemas"]["AccountingFxPolicy"];
+            pricePolicy: components["schemas"]["AccountingPricePolicy"];
+        };
+        StatementEvaluationListResponse: {
+            items: components["schemas"]["StatementReconciliationResponse"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        StatementReconciliationResponse: {
+            id: components["schemas"]["FinancialId"];
+            statementId: components["schemas"]["FinancialId"];
+            accountId: components["schemas"]["FinancialId"];
+            asOf: components["schemas"]["FinancialInstant"];
+            createdAt: components["schemas"]["FinancialInstant"];
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            comparedRevision: components["schemas"]["FinancialSourceRevision"];
+            currentRevision: components["schemas"]["FinancialSourceRevision"];
+            stale: boolean;
+            /** @enum {string} */
+            status: "matched" | "variance" | "unavailable";
+            accepted: boolean;
+            reviewNote: string;
+            valuationPolicy?: components["schemas"]["ReconciliationPolicy"];
+            rows: components["schemas"]["StatementVariance"][];
+        };
+        StatementVariance: {
+            /** @enum {string} */
+            kind: "cash" | "holding" | "equity";
+            referenceId: components["schemas"]["FinancialId"];
+            expected: components["schemas"]["FinancialDecimal"];
+            actual: components["schemas"]["FinancialDecimal"];
+            variance: components["schemas"]["FinancialDecimal"];
+            tolerance: components["schemas"]["NonnegativeFinancialDecimal"];
+            /** @enum {string} */
+            state: "matched" | "variance" | "unavailable";
+            reasons: string[];
+        };
+        StatementListResponse: {
+            items: components["schemas"]["StatementResponse"][];
+            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+        };
+        StatementResponse: {
+            id: components["schemas"]["FinancialId"];
+            accountId: components["schemas"]["FinancialId"];
+            asOf: components["schemas"]["FinancialInstant"];
+            createdAt: components["schemas"]["FinancialInstant"];
+            sourceRevision: components["schemas"]["FinancialSourceRevision"];
+            document: components["schemas"]["CreateStatementRequest"];
+        };
+        PortableArchive: {
+            /** @enum {string} */
+            format: "journal-workspace/1";
+            schemaVersion: number;
+            calculationManifest: {
+                [key: string]: string;
+            };
+            sourceWorkspace: {
+                id: components["schemas"]["FinancialId"];
+                name: string;
+                timezone: string;
+                reportingCurrency: string | null;
+                createdAt: string;
+            };
+            exportedAt: components["schemas"]["FinancialInstant"];
+            tables: {
+                name: string;
+                rows: components["schemas"]["PortableRow"][];
+                sha256: components["schemas"]["PortableChecksum"];
+            }[];
+            media: {
+                objectId: components["schemas"]["FinancialId"];
+                size: number;
+                sha256: components["schemas"]["PortableChecksum"];
+                contentBase64: string;
+            }[];
+            verification: components["schemas"]["FinancialJson"];
+            sha256: components["schemas"]["PortableChecksum"];
+        };
+        PortableRow: {
+            [key: string]: components["schemas"]["FinancialJson"];
+        };
+        PortableChecksum: string;
+        PortableExportRequest: {
+            /** @enum {string} */
+            kind: "trades" | "executions" | "cash" | "strategies" | "reviews" | "analytics";
+            /** @enum {string} */
+            format: "json" | "csv";
+            accountIds?: components["schemas"]["FinancialId"][];
+            ids?: components["schemas"]["FinancialId"][];
+            from?: components["schemas"]["FinancialInstant"];
+            to?: components["schemas"]["FinancialInstant"];
+            analytics?: components["schemas"]["AnalyticsReportRequest"];
+        };
+        AnalyticsReportRequest: {
+            suppliedCampaignResultIds?: components["schemas"]["FinancialId"][];
+            accountIds: components["schemas"]["FinancialId"][];
+            reportingCurrencyId: components["schemas"]["FinancialId"];
+            from: components["schemas"]["FinancialInstant"];
+            to: components["schemas"]["FinancialInstant"];
+            sourceRevision?: components["schemas"]["FinancialSourceRevision"];
+            metadataAsOf?: components["schemas"]["FinancialInstant"];
+            timezone?: string;
+            fxPolicy: components["schemas"]["AccountingFxPolicy"];
+            priceMaxAgeMilliseconds: number;
+            priceSourcePriority: string[];
+            groupBy?: components["schemas"]["AnalyticsDimension"][];
+        };
+        /** @enum {string} */
+        AnalyticsDimension: "strategy" | "strategyVersion" | "asset" | "assetClass" | "broker" | "account" | "currency" | "direction" | "weekday" | "hour" | "timeframe" | "setup" | "tag" | "marketCondition";
+        PortableRestoreRequest: {
+            name: string;
+            archive: components["schemas"]["PortableArchive"];
+        };
+        PortableRestoreResponse: {
+            workspaceId: components["schemas"]["FinancialId"];
+            name: string;
+            sourceWorkspaceId: components["schemas"]["FinancialId"];
+            archiveSha256: components["schemas"]["PortableChecksum"];
+            /** @enum {boolean} */
+            verified: true;
         };
         AnalyticsMetric: {
             /** @enum {string} */
@@ -21787,6 +28120,24 @@ export interface components {
             label: string;
         };
         AnalyticsProvenance: {
+            suppliedResult?: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                kind: "position-equity" | "campaign-net-result";
+                amount: string;
+                /** Format: uuid */
+                currencyId: string;
+                observedAt: string;
+                source: string;
+                sourceReference: string;
+                /** @enum {string} */
+                quality: "broker-reported" | "manually-verified";
+                /** @enum {string} */
+                definitionVersion: "residual-position-equity/1" | "lifetime-campaign-net-result/1";
+                basisRevision: string;
+                sourceRevision: string;
+            };
             originalPlanId: components["schemas"]["FinancialId"] | null;
             originalPlanHash: string | null;
             metadataPlanId: components["schemas"]["FinancialId"] | null;
@@ -21931,21 +28282,6 @@ export interface components {
             additive: boolean;
             summary: components["schemas"]["AnalyticsSummary"];
         };
-        /** @enum {string} */
-        AnalyticsDimension: "strategy" | "strategyVersion" | "asset" | "assetClass" | "broker" | "account" | "currency" | "direction" | "weekday" | "hour" | "timeframe" | "setup" | "tag" | "marketCondition";
-        AnalyticsReportRequest: {
-            accountIds: components["schemas"]["FinancialId"][];
-            reportingCurrencyId: components["schemas"]["FinancialId"];
-            from: components["schemas"]["FinancialInstant"];
-            to: components["schemas"]["FinancialInstant"];
-            sourceRevision?: components["schemas"]["FinancialSourceRevision"];
-            metadataAsOf?: components["schemas"]["FinancialInstant"];
-            timezone?: string;
-            fxPolicy: components["schemas"]["AccountingFxPolicy"];
-            priceMaxAgeMilliseconds: number;
-            priceSourcePriority: string[];
-            groupBy?: components["schemas"]["AnalyticsDimension"][];
-        };
         AnalyticsReportResponse: {
             context: {
                 accountIds: components["schemas"]["FinancialId"][];
@@ -21966,6 +28302,7 @@ export interface components {
                 population: "campaign-attribution";
                 /** @enum {string} */
                 moneyPopulation: "selected-completed-and-open-lifetime-asof";
+                suppliedCampaignResultIds?: components["schemas"]["FinancialId"][];
                 manifest: components["schemas"]["InventoryManifest"];
             };
             records: components["schemas"]["AnalyticsCampaign"][];
@@ -22129,7 +28466,20 @@ export interface components {
             empty: "omit" | "null" | "error";
         };
         ImportHistoryResponse: {
-            items: components["schemas"]["ImportBatchResponse"][];
+            items: {
+                id: components["schemas"]["FinancialId"];
+                accountId: components["schemas"]["FinancialId"];
+                namespace: string;
+                filename: string;
+                fileHash: string;
+                adapterId: string;
+                adapterVersion: string;
+                revision: number;
+                /** @enum {string} */
+                state: "staged" | "partial" | "committed" | "reversed";
+                rowCount: number;
+                createdAt: components["schemas"]["FinancialInstant"];
+            }[];
             nextCursor: components["schemas"]["FinancialId"] & (string | null);
         };
         ImportMapping: {

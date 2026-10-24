@@ -7,7 +7,13 @@ import {
 } from './decimal.js';
 import { valueInventory } from './inventory.js';
 import { positiveDecimal } from './money.js';
-import { cashFx, conversionDifference, instantNanoseconds, selectFxRate } from './valuation.js';
+import {
+  cashFx,
+  conversionDifference,
+  createFxRateSelector,
+  instantNanoseconds,
+  selectFxRate,
+} from './valuation.js';
 import type { FxRateSelection } from './valuation.js';
 import type {
   AccountingBook,
@@ -25,6 +31,11 @@ import type {
 } from './inventory-types.js';
 
 type WorkingDecimal = ReturnType<typeof decimalValue>;
+export class AccountingDetailLimitError extends Error {
+  constructor() {
+    super('Request summary totals or a bounded dependency page for this report.');
+  }
+}
 type Work = Readonly<{
   amount: WorkingDecimal;
   known: boolean;
@@ -124,7 +135,18 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
     !input.reportingCurrencyId ||
     !/^\d+$/u.test(input.sourceRevision) ||
     !Number.isSafeInteger(input.pricePolicy.maxAgeMilliseconds) ||
-    input.pricePolicy.maxAgeMilliseconds < 0
+    input.pricePolicy.maxAgeMilliseconds < 0 ||
+    (input.detail !== undefined && !['full', 'summary'].includes(input.detail)) ||
+    (input.fullDetailLimit !== undefined &&
+      (!Number.isSafeInteger(input.fullDetailLimit) || input.fullDetailLimit < 1)) ||
+    (input.dependencyPage !== undefined &&
+      (input.detail !== 'summary' ||
+        !['fx', 'prices', 'sourceIds'].includes(input.dependencyPage.kind) ||
+        !Number.isSafeInteger(input.dependencyPage.offset) ||
+        input.dependencyPage.offset < 0 ||
+        !Number.isSafeInteger(input.dependencyPage.limit) ||
+        input.dependencyPage.limit < 1 ||
+        input.dependencyPage.limit > 200))
   )
     fail('Accounting requires a unique bounded account population and valid dated context.');
   const within = (at: string) => {
@@ -135,6 +157,21 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
   const fxDependencies: { componentId: string; selection: FxRateSelection }[] = [];
   const priceDependencies: { componentId: string; observationId: string; observedAt: string }[] =
     [];
+  const counts = { fx: 0, prices: 0 };
+  const includeDependency = (kind: 'fx' | 'prices') => {
+    const offset = counts[kind]++;
+    if (input.detail !== 'summary') {
+      if (input.fullDetailLimit !== undefined && counts.fx + counts.prices > input.fullDetailLimit)
+        throw new AccountingDetailLimitError();
+      return true;
+    }
+    const page = input.dependencyPage;
+    return page?.kind === kind && offset >= page.offset && offset < page.offset + page.limit;
+  };
+  // Validate and index the snapshot's FX history once, on the first foreign
+  // translation. Identity-only accounting retains the canonical fast path.
+  let indexedFx: ReturnType<typeof createFxRateSelector> | undefined;
+  const rateCache = new Map<string, FxRateSelection>();
   const rate = (
     currencyId: string,
     at: string,
@@ -162,15 +199,20 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
         },
       };
     } else {
-      result = selectFxRate(
-        currencyId,
-        input.reportingCurrencyId,
-        at,
-        input.fxPolicy,
-        input.fxObservations,
-      );
+      const key = JSON.stringify([currencyId, at]);
+      const cached = rateCache.get(key);
+      if (cached) result = cached;
+      else {
+        if (currencyId === input.reportingCurrencyId)
+          result = selectFxRate(currencyId, input.reportingCurrencyId, at, input.fxPolicy, []);
+        else {
+          indexedFx ??= createFxRateSelector(input.fxObservations, input.fxPolicy);
+          result = indexedFx(currencyId, input.reportingCurrencyId, at);
+        }
+        rateCache.set(key, result);
+      }
     }
-    fxDependencies.push({ componentId, selection: result });
+    if (includeDependency('fx')) fxDependencies.push({ componentId, selection: result });
     return result;
   };
   const translate = (
@@ -204,12 +246,15 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
     if (observed > requested) fail('A financial mark cannot come from the future.');
     if (requested - observed > BigInt(input.pricePolicy.maxAgeMilliseconds) * 1_000_000n)
       return null;
-    if (decimalValue(candidate.price).isNegative()) fail('A financial mark must be nonnegative.');
-    priceDependencies.push({
-      componentId: reference,
-      observationId: candidate.id,
-      observedAt: candidate.observedAt,
-    });
+    // Record-only products may have signed source quotes. The native inventory
+    // valuation validates its own nonnegative delivered-asset convention.
+    decimalValue(candidate.price);
+    if (includeDependency('prices'))
+      priceDependencies.push({
+        componentId: reference,
+        observationId: candidate.id,
+        observedAt: candidate.observedAt,
+      });
     return candidate;
   };
   const grossParts = (
@@ -306,9 +351,15 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
   const nativeOpeningUnrealized = new Map<string, Work[]>();
   const nativeClosingUnrealized = new Map<string, Work[]>();
   const addNative = (target: Map<string, Work[]>, currency: string | null, item: Work) => {
-    if (currency !== null) target.set(currency, [...(target.get(currency) ?? []), item]);
+    if (currency !== null) {
+      const items = target.get(currency) ?? [];
+      items.push(item);
+      target.set(currency, items);
+    }
   };
   const bookIds = new Set<string>();
+  const suppliedValues: NonNullable<AccountingReport['dependencies']['suppliedValues']>[number][] =
+    [];
   for (const book of input.books) {
     if (!selected.has(book.accountId) || !book.id || bookIds.has(book.id))
       fail('Holding books contain duplicate or out-of-scope ownership.');
@@ -319,7 +370,31 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
       validateInventory(book, inventory, input.sourceRevision);
       const asOf = boundary === 'opening' ? input.from : input.to;
       const candidate = boundary === 'opening' ? book.openingMark : book.closingMark;
-      const chosen = mark(candidate, asOf, `${book.id}:${boundary}`);
+      const supplied =
+        boundary === 'opening' ? book.openingSuppliedValue : book.closingSuppliedValue;
+      if (supplied) {
+        if (
+          !book.allowSupplied ||
+          supplied.kind !== 'position-equity' ||
+          supplied.definitionVersion !== 'residual-position-equity/1' ||
+          !supplied.cashExcluded ||
+          !supplied.collateralExcluded ||
+          !supplied.settledPnlExcluded ||
+          !supplied.unsettledCashExcluded ||
+          inventory.openQuantity.value === null ||
+          !decimalValue(supplied.signedQuantity).eq(inventory.openQuantity.value) ||
+          instantNanoseconds(supplied.observedAt) > instantNanoseconds(asOf) ||
+          instantNanoseconds(asOf) - instantNanoseconds(supplied.observedAt) >
+            BigInt(input.pricePolicy.maxAgeMilliseconds) * 1_000_000n
+        )
+          fail(
+            'A supplied residual position value must match its manual inventory and observation boundary.',
+          );
+        sourceIds.add(supplied.id);
+        if (!suppliedValues.some((value) => value.id === supplied.id))
+          suppliedValues.push(supplied);
+      }
+      const chosen = supplied ? null : mark(candidate, asOf, `${book.id}:${boundary}`);
       const value = valueInventory(inventory, {
         mark:
           chosen && book.multiplier !== null
@@ -327,7 +402,11 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
             : null,
       });
       const nativeMarked = sourceMetric(value.markedValue, `${book.id}:${boundary}:mark`);
-      if (nativeMarked.reasons.length === 0 && chosen !== null && book.multiplier !== null) {
+      if (supplied) {
+        (boundary === 'opening' ? openingHoldingValue : closingHoldingValue).push(
+          translate(decimalValue(supplied.amount), supplied.currencyId, asOf, supplied.id),
+        );
+      } else if (nativeMarked.reasons.length === 0 && chosen !== null && book.multiplier !== null) {
         // Retain the working mark before reporting translation. The native metric's
         // quantization is an output boundary, not an extra economic settlement.
         const workingMark = inventory.lots.reduce(
@@ -757,16 +836,16 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
     string,
     { id: string; amount: string; economicAt: string; reportingFx?: PinnedInventoryRate }[]
   >();
-  for (const posting of input.cashPostings)
-    cashActivity.set(posting.currencyId, [
-      ...(cashActivity.get(posting.currencyId) ?? []),
-      {
-        id: posting.id,
-        amount: posting.amount,
-        economicAt: posting.economicAt,
-        ...(posting.reportingFx ? { reportingFx: posting.reportingFx } : {}),
-      },
-    ]);
+  for (const posting of input.cashPostings) {
+    const activity = cashActivity.get(posting.currencyId) ?? [];
+    activity.push({
+      id: posting.id,
+      amount: posting.amount,
+      economicAt: posting.economicAt,
+      ...(posting.reportingFx ? { reportingFx: posting.reportingFx } : {}),
+    });
+    cashActivity.set(posting.currencyId, activity);
+  }
   const cashFxResult = monetaryFx('cash', openingCash, closingCash, cashActivity);
   const transitFxResult = monetaryFx('transit', transitOpening, transitClosing, transitMovements);
   const conversionEffects = sum(
@@ -956,6 +1035,7 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
       ...(input.portfolioVersionId ? { portfolioVersionId: input.portfolioVersionId } : {}),
       reportingCurrencyId: input.reportingCurrencyId,
       sourceRevision: input.sourceRevision,
+      ...(input.suppliedPositionIds ? { suppliedPositionIds: [...input.suppliedPositionIds] } : {}),
       from: input.from,
       to: input.to,
       fxPolicy: input.fxPolicy,
@@ -995,9 +1075,42 @@ export function calculateAccounting(input: AccountingInput): AccountingReport {
       roundingResidual: r(rounding),
     },
     dependencies: {
+      ...(suppliedValues.length ? { suppliedValues } : {}),
       fx: fxDependencies,
       prices: priceDependencies,
-      sourceIds: [...sourceIds].sort(),
+      sourceIds:
+        input.detail === 'summary'
+          ? input.dependencyPage?.kind === 'sourceIds'
+            ? [...sourceIds]
+                .sort()
+                .slice(
+                  input.dependencyPage.offset,
+                  input.dependencyPage.offset + input.dependencyPage.limit,
+                )
+            : []
+          : [...sourceIds].sort(),
+      ...(input.detail === 'summary'
+        ? {
+            coverage: {
+              mode: input.dependencyPage ? ('page' as const) : ('summary' as const),
+              fxCount: counts.fx,
+              priceCount: counts.prices,
+              sourceIdCount: sourceIds.size,
+              page: input.dependencyPage
+                ? {
+                    ...input.dependencyPage,
+                    nextOffset:
+                      input.dependencyPage.offset + input.dependencyPage.limit <
+                      (input.dependencyPage.kind === 'sourceIds'
+                        ? sourceIds.size
+                        : counts[input.dependencyPage.kind])
+                        ? input.dependencyPage.offset + input.dependencyPage.limit
+                        : null,
+                  }
+                : null,
+            },
+          }
+        : {}),
     },
   };
 }

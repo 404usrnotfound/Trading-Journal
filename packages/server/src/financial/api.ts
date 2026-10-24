@@ -194,7 +194,14 @@ export function createFinancialApi(
     trades: async (context: AuthorizationContext, request: Request) =>
       contract.tradeResponseSchema
         .array()
-        .parse(await catalog.listTrades(context, catalogFilter(request))),
+        .parse(
+          await catalog.listTrades(
+            context,
+            contract.financialTradeQuerySchema.parse(
+              Object.fromEntries(new URL(request.url).searchParams),
+            ),
+          ),
+        ),
     executions: async (context: AuthorizationContext, request: Request) => {
       const filter = contract.financialExecutionsQuerySchema.parse(
         Object.fromEntries(new URL(request.url).searchParams),
@@ -237,6 +244,7 @@ export function createFinancialApi(
       );
       return contract.financialValuationResponseSchema.parse(
         await observations.valuation(context, {
+          ...(query.suppliedPositionIds ? { suppliedPositionIds: query.suppliedPositionIds } : {}),
           accountIds: query.accountIds,
           reportingCurrencyId: query.reportingCurrencyId,
           asOf: query.asOf,
@@ -308,6 +316,11 @@ export function createFinancialApi(
           break;
         case 'instruments':
           value = contract.instrumentResponseSchema.parse(await catalog.getInstrument(context, id));
+          break;
+        case 'instrument-versions':
+          value = contract.instrumentResponseSchema.parse(
+            await catalog.getInstrumentVersion(context, id),
+          );
           break;
         case 'orders':
           value = contract.orderResponseSchema.parse(await catalog.getOrder(context, id));

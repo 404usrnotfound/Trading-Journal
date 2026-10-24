@@ -32,8 +32,14 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function fixture(handler: (request: Request) => Promise<Response>) {
-  const query = vi.fn(async () => ({ rows: [{ count: 1 }] }));
+function fixture(handler: (request: Request) => Promise<Response>, counters?: Map<string, number>) {
+  const query = vi.fn(async (_statement: string, parameters?: unknown[]) => {
+    if (!counters || !parameters) return { rows: [{ count: 1 }] };
+    const key = String(parameters[1]);
+    const count = Math.min((counters.get(key) ?? 0) + 1, Number(parameters[2]) + 1);
+    counters.set(key, count);
+    return { rows: [{ count }] };
+  });
   const values = vi.fn(async () => undefined);
   const database = {
     pool: { query },
@@ -104,6 +110,7 @@ describe('credential-work admission', () => {
     ];
     try {
       await started.promise;
+      const queriesBeforeRejection = first.query.mock.calls.length + second.query.mock.calls.length;
       const blockedLogin = await second.handle(request('sign-in/email', null, 3));
       const blockedChange = await first.handle(
         request('change-password', {
@@ -117,6 +124,9 @@ describe('credential-work admission', () => {
         expect(await response.json()).toMatchObject({ code: 'RATE_LIMITED' });
         expect(response.headers.getSetCookie()).toHaveLength(0);
       }
+      expect(first.query.mock.calls.length + second.query.mock.calls.length).toBe(
+        queriesBeforeRejection,
+      );
       expect(invocations).toBe(4);
       expect(peak).toBe(4);
       // Saturated credential workers do not occupy session reads or logout.
@@ -132,6 +142,34 @@ describe('credential-work admission', () => {
     expect(retry.status).toBe(200);
     expect(await retry.json()).toEqual({ ok: true });
     expect(active).toBe(0);
+  });
+
+  it('keeps an unrelated valid identity available after repeated denied attempts across gateways', async () => {
+    const counters = new Map<string, number>();
+    const verifier = vi.fn(async (input: Request) => {
+      const body = (await input.json()) as { email: string };
+      return body.email === user.email ? successfulLogin() : new Response('{}', { status: 401 });
+    });
+    const first = fixture(verifier, counters);
+    const replica = fixture(verifier, counters);
+    const statuses: number[] = [];
+    for (let index = 0; index < 100; index += 1)
+      statuses.push((await first.handle(request('sign-in/email', null, 0))).status);
+    expect(statuses.slice(0, 10)).toEqual(Array(10).fill(401));
+    expect(statuses.slice(10)).toEqual(Array(90).fill(429));
+    expect(verifier).toHaveBeenCalledTimes(10);
+    const valid = await replica.handle(
+      new Request(request('sign-in/email', null), {
+        body: JSON.stringify({ email: user.email, password: 'bounded-test-password' }),
+      }),
+    );
+    expect(valid.status).toBe(200);
+    expect(await valid.json()).toEqual({ ok: true });
+    const stillLimited = await replica.handle(request('sign-in/email', null, 0));
+    expect(stillLimited.status).toBe(429);
+    expect(stillLimited.headers.get('retry-after')).toBe('900');
+    expect(verifier).toHaveBeenCalledTimes(11);
+    expect(counters.size).toBe(2);
   });
 
   it('releases admitted work after library failures and thrown exceptions', async () => {

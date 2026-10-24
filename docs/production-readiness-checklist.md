@@ -72,8 +72,10 @@ this preparation work.
 - [x] Documentation distinguishes public liveness, authenticated web readiness,
       private worker readiness and operator storage checks. Readiness-session expiry
       and persisted login limits are included in the monitoring procedure.
-- [x] Worker scope is explicit: infrastructure health probes are implemented;
-      business outbox dispatch/heavy imports/reports/rebuild handlers are not claimed.
+- [x] Worker scope is explicit. The original Phase 16 verification covered health
+      probes; subsequent audit remediation adds the separately tested
+      [native financial outbox projection](financial-outbox.md). Heavy imports,
+      asynchronous large reports and generic rebuild handlers remain unclaimed.
 
 ## Local recovery verification
 

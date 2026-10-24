@@ -191,7 +191,12 @@ export type TradeClosureDto = {
   definitionVersion: 'campaign-closure/1';
   status: 'closed';
 };
-export type QueryFilter = { includeArchived?: boolean | undefined; limit?: number | undefined };
+export type QueryFilter = {
+  includeArchived?: boolean | undefined;
+  limit?: number | undefined;
+  afterId?: string | undefined;
+  search?: string | undefined;
+};
 
 export type AccountReference = {
   id: string;
