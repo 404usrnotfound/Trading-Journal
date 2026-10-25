@@ -1,45 +1,16 @@
 # Trading Journal
 
-A broker-independent, multi-asset trading journal. Phase 3 supplies the authenticated shell, persisted workspace preferences, PostgreSQL-backed API, private storage and durable worker. Phase 4 adds financial catalogs, balanced cash commands, ordinary share/ETF/non-rebasing spot inventory, campaign attribution, corrections and explicit price/FX valuation through authenticated APIs. Phase 5 adds strategy management screens, immutable playbook versions, explicit trade references and private strategy attachments. Phase 6 adds trade planning and review, immutable original plan/risk, draft history, private evidence and calculated ledger detail. Phase 7 adds versioned portfolio scopes, typed income/taxes/expenses, evidenced delayed cash transfers and reconciled account reporting. Phase 8 adds a tested campaign analytics API with metric definitions, explicit eligibility, original-risk R, monetary drawdown/recovery and 14 historical breakdown dimensions. Phase 9 adds a responsive dashboard with shared filters and trade drill-down. Phase 10 adds canonical import adapters, universal CSV mappings, reviewed dry runs, scoped duplicates/corrections and import history. Phase 11 audits asset conventions, adds representative seven-class fixtures and strengthens manual-instrument journal compatibility. Phase 12 refines ten user workflows with guided recording, account review, consistent navigation, period shortcuts, explicit strategy versions, confirmation and contextual help. Phase 13 reviews and hardens security boundaries, request/file budgets, browser policies and dependency risks. Phase 14 audits correctness coverage, tests a complete EUR-funded lifecycle through liquidation and withdrawal across independent oracles, PostgreSQL APIs and browser review, verifies campaign analytics and corrects zero-exposure NAV availability. Phase 15 adds reproducible large-data profiling, measured query/replay/rendering optimizations and exact financial comparisons with explicit capacity limits. Phase 16 prepares production configuration, release checks, HTTPS/session smoke tests, operational monitoring and isolated backup/recovery verification. Deployment-specific gates remain explicit and unchecked. Complete financial entry screens, advanced native accounting, bulk imports, portable workspace exports/restore and later product workflows remain deferred.
+A broker-independent, multi-asset trading journal with a PostgreSQL-backed ledger, immutable strategies and trade plans, reviewed imports, accounting and analytics, risk assessments, independent statement reconciliation, portable workspace backup/restore, period reviews, explicit supplied values and durable native worker snapshots. Automatic advanced-asset economics and production-scale reporting remain bounded; **FA-04 is open**. The [feature inventory](docs/feature-inventory.md) is the current capability baseline, and the [final audit disposition](docs/final-audit.md#remediation-outcome--24-october-2026) separates resolved findings from the remaining release gate.
+
+Start with the [quick start](docs/getting-started/quick-start.md) or the full [installation guide](docs/getting-started/installation.md). Check [system requirements](docs/getting-started/system-requirements.md), [configuration](docs/getting-started/configuration.md), [first run](docs/getting-started/first-run.md) and the [executed installation verification](docs/getting-started/verification.md). These are the canonical setup instructions; the numbered phase sections below retain historical implementation context.
 
 Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Core ledger](docs/core-ledger.md), [financial metrics](docs/financial-metrics.md), [strategy management](docs/strategies.md), [trade journal](docs/trade-journal.md), [portfolio accounting](docs/portfolio-accounting.md), [analytics definitions](docs/analytics-definitions.md), [dashboard semantics](docs/dashboard.md), [imports](docs/imports.md), the [asset-class audit](docs/asset-class-audit.md) and the [UX review](docs/ux-review.md) describe the current application. The [security review](docs/security.md) documents the threat model, fixes, operational obligations and verification limits. The [testing campaign](docs/testing-campaign.md) records coverage gaps, independently worked expectations and final validation. The [performance report](docs/performance.md) provides Phase 15 fixture and benchmark commands, measured bottlenecks, financial-equivalence evidence and capacity limits. The [deployment guide](docs/deployment.md), [operations runbook](docs/operations.md), [backup and recovery procedure](docs/backup-and-recovery.md) and [production-readiness checklist](docs/production-readiness-checklist.md) describe Phase 16 preparation and its verification limits. [Scaffold validation](docs/scaffold-validation.md), [Phase 4 validation](docs/phase-4-validation.md), [Phase 5 validation](docs/phase-5-validation.md), [Phase 6 validation](docs/phase-6-validation.md), [Phase 7 validation](docs/phase-7-validation.md), [Phase 8 validation](docs/phase-8-validation.md), [Phase 9 validation](docs/phase-9-validation.md), [Phase 10 validation](docs/phase-10-validation.md), [Phase 11 validation](docs/phase-11-validation.md) and [Phase 12 validation](docs/phase-12-validation.md) record the executed checks and limits for their increments.
 
-## Prerequisites
+## Installation and first run
 
-- Node.js **24.19.0** (`.node-version` / `.nvmrc`), Corepack, and **pnpm 10.34.6** selected by `packageManager`. Use `corepack pnpm` below rather than a different global pnpm.
-- Docker Engine and Docker Compose v2, running and accessible to your user.
-- Free loopback ports **3000**, **3101**, **5432**, **5433**; browser tests also use **3002**. The database image is pinned PostgreSQL 17 Bookworm.
-- Linux, macOS or a supported Node/Docker development environment. Browser checks need Chromium and its platform libraries.
+The supported form is a full source workspace with locked dependencies, PostgreSQL 17, separate Node web/worker processes and private filesystem storage. Local Compose runs databases only. Linux installation has recorded execution evidence; other OS claims remain bounded by the [requirements](docs/getting-started/system-requirements.md).
 
-## First setup
-
-Run from the repository root:
-
-```sh
-corepack pnpm install --frozen-lockfile
-corepack pnpm env:init
-corepack pnpm db:up
-corepack pnpm db:migrate
-corepack pnpm db:check
-corepack pnpm user:create --email you@example.com --name 'Your Name'
-corepack pnpm dev
-```
-
-The owner command prompts for a hidden password of 12–128 characters. Public registration is disabled; there is no default password. For automation, bind `BOOTSTRAP_PASSWORD` securely in the child environment instead of putting it in command arguments, shell history, `.env.example`, or source control.
-
-Visit **http://localhost:3000/sign-in**. `dev` starts web and worker together; Ctrl+C stops only its managed processes. The owner starts with an empty personal workspace. Open **Record trade** for guided account/instrument setup and actual fill recording, or **Imports** to review CSV activity before posting. Open **Strategies** to create a playbook, publish an edited version, browse history and attach a screenshot or reference document. Open **Trade journal** to create an idea or review a recorded trade, autosave a plan/review, publish a plan snapshot and attach before/during/after evidence. An idea without executions has no fabricated financial metrics. **Accounts** shows interval accounting; **Dashboard** shows consistently filtered campaign statistics and charts. The [ledger API](docs/core-ledger.md) remains available for advanced financial commands outside the guided screen. Edit the workspace's IANA timezone and optional reporting-currency code preference to test persistence; this preference is separate from the financial currency registry and the explicit reporting currency required by valuation requests.
-
-`env:init` creates an ignored `.env` with fresh local credentials and `.private/storage`, with private permissions. Rerunning it preserves existing configuration. `.env.example` documents names and placeholders; it is not a usable credentials file. Never commit `.env`, private media, database dumps, session tokens, or logs containing secrets.
-
-Compose uses the separate **trading-journal-foundation** project and persistent development volume. The test service is a separate PostgreSQL instance with temporary data. `corepack pnpm db:down` stops this project's databases without deleting the development volume. Do not use `down -v` against data you want to retain. Existing volumes from the reverted scaffold are not automatically reused or modified.
-
-For another isolated local instance, set overrides before the first `env:init`:
-
-```sh
-COMPOSE_PROJECT_NAME=trading-journal-isolated APP_ORIGIN=http://localhost:3300 POSTGRES_PORT=5542 TEST_POSTGRES_PORT=5543 WORKER_HEALTH_PORT=3311 corepack pnpm env:init
-```
-
-The generated file stores those values and derives `PORT` and database URLs. Choose an unused `E2E_PORT` when running concurrent browser checks. `WEB_HOST` defaults to `127.0.0.1`; use an explicit binding and trusted access boundary when exposing a development server.
+Follow the [installation guide](docs/getting-started/installation.md) for repository selection, dependencies, generated private configuration, database initialization/migrations, owner provisioning, development startup, optional local built assets and production boundaries. The [quick start](docs/getting-started/quick-start.md) gives the shortest new-install path. Existing installations must preserve their configuration and volumes; there is no default login or public signup. The [first-run walkthrough](docs/getting-started/first-run.md) creates explicit synthetic paper-account activity and explains the expected cash/valuation results.
 
 ## Commands and checks
 
