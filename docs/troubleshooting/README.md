@@ -40,7 +40,7 @@ Do not run integration/browser tests, migration-repeatability checks, restores o
 - Available, partial, unavailable, stale, unconfigured, infinite and zero describe different states. Read the reason. Do not replace missing money, unknown basis, missing prices/FX or unavailable ratios with zero.
 - A healthy process or balanced internal accounting bridge does not prove broker agreement, complete economics, all jobs processed or production capacity. [FA-04](../final-audit.md) remains open.
 
-Some older operational/phase paragraphs still mention schema 9, health-only worker processing or deferred portability/reconciliation. The current source requires schema 17 and implements native outbox snapshots and portable workspace workflows. These discrepancies are recorded in [verification](verification.md); the new guides use current source without rewriting historical evidence. Existing financial dictionaries and recovery procedures retain their canonical ownership.
+At Checkpoint 4, older operational/phase paragraphs still mentioned schema 9, health-only worker processing or deferred portability/reconciliation. Checkpoint 5 refreshes the current deployment/runtime/backup prose in the [operations guides](../operations/README.md); earlier phase evidence retains its original context. The current source requires schema 17 and implements native outbox snapshots and portable workspace workflows. These discrepancies are recorded in [verification](verification.md); the new guides use current source without rewriting historical evidence. Existing financial dictionaries and recovery procedures retain their canonical ownership.
 
 ## Escalation and privacy
 
