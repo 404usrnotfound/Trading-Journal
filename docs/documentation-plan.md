@@ -84,7 +84,7 @@ The following are documentation gaps in the fetched remediation baseline. They d
 
 ## Checkpoints 2–7 and proposed file structure
 
-This is the proposed allocation for the remaining checkpoints; the request supplies no separate titles for Checkpoints 2–7. Priorities are **P0** for correctness, access, data safety and essential task coverage, **P1** for maintainability/discoverability, and **P2** for presentation improvements after correctness. Each checkpoint requires its own authorization; this plan does not start it.
+The following table preserves the provisional allocation made at Checkpoint 1, before separate requests supplied checkpoint titles. The implementation allocations below supersede it for the authorized Checkpoints 2–4; unstarted Checkpoints 5–7 remain proposals. Priorities are **P0** for correctness, access, data safety and essential task coverage, **P1** for maintainability/discoverability, and **P2** for presentation improvements after correctness. Each checkpoint requires its own authorization; this plan does not start it.
 
 Paths below marked **new** are proposals, not existing documents or delivered guides. Existing files remain canonical unless an explicitly reviewed move includes redirects/link updates. Dependencies express writing/validation order; they do not require duplicate documents.
 
@@ -176,3 +176,11 @@ The first-run document covers initial access and one synthetic record plus the e
 The Checkpoint 3 request refines the proposed flat `docs/user-guide.md` into [the user manual](user-guide/README.md) and task chapters for navigation/settings, accounts/portfolios, financial recording, strategies, journals/period reviews, analytics, risk/reconciliation and imports/exports. [The guided EUR-funded example](user-guide/guided-example.md) links those tasks with independently calculated expected values. [Glossary](reference/glossary.md) and [financial concepts](reference/financial-concepts.md) explain terms and link canonical financial definitions; they do not replace the existing metric/accounting dictionaries. [Manual validation](user-guide/verification.md) owns feature coverage, source/test traceability, fresh disposable workflow results and confirmed UI/API discrepancies.
 
 The manual owns current end-user steps. Existing topic documents remain implementation/financial references and historical phase evidence; contradictory old deferrals are identified rather than copied into current tasks. API-only lifecycle, portfolio and correction operations are explicitly separated from browser controls. Checkpoint 4 architecture/API-reference work is not started by this allocation.
+
+## Checkpoint 4 implementation allocation
+
+The user-requested troubleshooting checkpoint supersedes the original provisional architecture/API allocation for Checkpoint 4 and brings troubleshooting forward from the Checkpoint 6 proposal. Architecture/API reference reconciliation remains proposed work requiring a later explicit allocation; it is not delivered by this checkpoint.
+
+The Checkpoint 4 knowledge base is [the troubleshooting index](troubleshooting/README.md), with issue chapters for installation/startup, databases/migrations, authentication/security, imports/duplicates, financial discrepancies, analytics/performance and backup/recovery. [Diagnostics](troubleshooting/diagnostics.md) owns safe log/status/configuration/schema inspection and sanitized support collection; [verification](troubleshooting/verification.md) owns fresh failure reproduction, command results and unverified resolution boundaries. Each issue follows Problem, Symptoms, Possible causes, Diagnosis, Resolution, Verification and Escalation. Normal installation/user tasks and canonical financial/recovery definitions remain linked authorities.
+
+Confirmed historical contradictions (schema 9 versus current 17, health-only worker scope and unavailable portability) are recorded against current source without rewriting phase evidence. No direct ledger edits, security bypass or database-volume deletion is offered as an ordinary remedy. Checkpoint 5 work is not started by this allocation.
