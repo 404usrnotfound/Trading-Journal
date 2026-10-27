@@ -166,6 +166,8 @@ Confirm that `/sign-in` loads, the provisioned identity reaches Overview, prefer
 
 **Status: Source-reviewed; actual production host/HTTPS deployment not verified here.** Use a separately approved, pinned full source release, Linux/native-compatible dependencies and PostgreSQL 17. Do not publish the development Compose stack or use generated development credentials as production configuration.
 
+> **Important:** The [Checkpoint 5 dependency audit](../operations/verification.md#dependency-audit-failure) reported seven advisories, including two critical, on 26 October 2026. A passing build or release-source check does not clear that failed audit gate. Review the current security findings and [release controls](../operations/upgrades-and-rollback.md) before selecting a production release.
+
 Before starting, provision the intended empty database, private persistent media mount, a service identity with appropriate filesystem permissions, supervised web/worker processes and a trusted HTTPS reverse proxy/canonical origin. Inject the [production bindings](configuration.md#production-boundary) through the service manager/secret store; keep development/test/operator bindings out of long-running services. An HTTPS `APP_ORIGIN` declares the external URL; it does not create certificates or a TLS listener.
 
 From the approved full source checkout, with the appropriate secure operator bindings for one-shot commands:

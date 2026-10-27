@@ -6,6 +6,16 @@ items remain unchecked until evidence exists for the actual host, database,
 domain, service identity and operational workload. A proposed policy or a
 configured CI step is not an executed check.
 
+The checked local items and dated summary below retain **historical Phase 16**
+evidence. Current source uses schema **17**, **seventeen** reviewed application
+migrations, [portable workspace export/restore](workspace-portability.md) and
+[native financial outbox processing](financial-outbox.md). Use the current
+[operational checklists](operations/checklists.md) and
+[Checkpoint 5 execution record](operations/verification.md) for later local
+verification. The unchanged dependency graph has **seven unresolved advisories,
+including two critical**, and [FA-04](final-audit.md) remains open. A historical
+checked box does not clear those present release gates.
+
 Use [deployment](deployment.md), [operations](operations.md) and
 [backup/recovery](backup-and-recovery.md) together. The [Phase 16 verification record](production-readiness-evidence.json) identifies
 executed commands, input/source hashes and remaining limitations. No public deployment or live-provider connection is authorized by
@@ -28,7 +38,9 @@ this preparation work.
       with recorded build IDs, source/lock hashes and semantic artifact comparison.
 - [x] Full-checkout release verification passes for the final outputs, including
       worker/domain artifacts, native Argon2 containment, static assets and all nine
-      reviewed SQL migrations. Completeness is not byte-identical reproducibility.
+      reviewed SQL migrations at Phase 16. Current source has seventeen migrations;
+      later complete-release verification is recorded separately above.
+      Completeness is not byte-identical reproducibility.
 - [x] Final API drift, formatting, lint, type, unit/property/UI, real PostgreSQL,
       migration, dependency-audit and built-app browser checks have executed results.
 - [x] Production HTTPS smoke runs against the final standalone build with a
@@ -92,9 +104,10 @@ this preparation work.
 - [x] Recovery tools reject unsafe cleanup targets and retain all existing
       databases/volumes/private configuration; only recorded owned resources are
       removed. Archive/key/media artifacts remain private and outside Git.
-- [x] Operational full-database recovery is distinguished from the deferred
-      portable workspace export/restore feature. Logical recovery does not establish
-      WAL/PITR, offsite durability or business-job redrive.
+- [x] Operational full-database recovery is distinguished from portable workspace
+      export/restore, which was deferred at Phase 16 and is now implemented.
+      Logical recovery does not establish WAL/PITR, offsite durability or generic
+      business-job redrive.
 
 ## Executed local check summary
 

@@ -4,6 +4,8 @@ Audit date: **24 October 2026**. Source baseline: **`5132900a03efabaeb3077875315
 
 ## Classification and evidence
 
+**Integration note — 27 October 2026:** the runtime baseline is unchanged. This inventory retains its scoped Checkpoint 1/H18 evidence; the [final documentation validation](documentation-validation.md) maps all 29 features to delivered guides and records later fresh checks, unsupported scope and release gates. The [audience index](README.md) owns navigation.
+
 Classification follows the [documentation standards](documentation-standards.md): **Implemented and verified**, **Implemented but unverified**, **Partially implemented**, **Planned but unavailable**, or **Deprecated**. Verification is scoped, not a guarantee about an entire asset family, acceptance scenario or deployment.
 
 **H18** below means source and test files were reviewed at this baseline, and the retained [final audit remediation outcome](final-audit.md#remediation-outcome--24-october-2026) records the passing complete suite: **913 unit/property/UI tests in 81 files, 576 PostgreSQL integration tests in 41 files and 18 browser tests**, plus lint, types, API drift, formatting and production build. The [remediation record](audit-remediation.md) supplies targeted results. These are **Historically passed** results; they do not imply a browser test exists for every feature. Fresh Checkpoint 1 checks are recorded in the [documentation plan](documentation-plan.md#checkpoint-1-validation-record).

@@ -186,7 +186,7 @@ After saved work is acknowledged, select **Sign out**. Confirm that the **Welcom
 
 ## Scope and implementation references
 
-This walkthrough ends after initial setup, one recorded fill and optional observation/import checks. Full strategies, reviews, risk, reconciliation, supplied analysis, exports and correction workflows belong in the later user documentation. Their current scope is recorded in [the feature inventory](../feature-inventory.md).
+This walkthrough ends after initial setup, one recorded fill and optional observation/import checks. Continue with the [user manual](../user-guide/README.md) for strategies, reviews, risk, reconciliation, supplied analysis, exports and correction workflows. Their current scope is recorded in [the feature inventory](../feature-inventory.md).
 
 | Subject                                 | Source and existing acceptance coverage                                                                                                                                                                                                         |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

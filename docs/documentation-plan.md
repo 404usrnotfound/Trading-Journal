@@ -2,7 +2,7 @@
 
 ## Scope and repository baseline
 
-This is Phase 19, Checkpoint 1: an audit and coverage plan for the complete repository. It establishes documentation ownership and the work proposed for Checkpoints 2–7. It does not create installation guides, user manuals or operational procedures, authorize application changes, or start Checkpoint 2.
+This plan began at Phase 19 Checkpoint 1 as an audit and coverage baseline. Its original proposals and dated evidence are retained below; the implementation allocations and [final validation](documentation-validation.md) now record the separately authorized Checkpoints 2–7. Earlier statements that a later checkpoint was not started refer to that checkpoint's original scope, not the current integration status. Application changes and production deployment remain outside this documentation work.
 
 Audit date: **24 October 2026**. Implementation baseline: **`5132900a03efabaeb307787531546987228220e7`**, the fetched post-Phase-18 remediation commit. Documentation branch: **`docs/phase-19-complete-documentation`**. The [feature inventory](feature-inventory.md) describes implemented behavior; the [environment inventory](environment-inventory.md) records configuration, versions, commands and their sources. Apply the [documentation standards](documentation-standards.md) to subsequent work.
 
@@ -84,7 +84,7 @@ The following are documentation gaps in the fetched remediation baseline. They d
 
 ## Checkpoints 2–7 and proposed file structure
 
-The following table preserves the provisional allocation made at Checkpoint 1, before separate requests supplied checkpoint titles. The implementation allocations below supersede it for the authorized Checkpoints 2–6; Checkpoint 7 remains proposed. Priorities are **P0** for correctness, access, data safety and essential task coverage, **P1** for maintainability/discoverability, and **P2** for presentation improvements after correctness. Each checkpoint requires its own authorization; this plan does not start it.
+The following table preserves the provisional allocation made at Checkpoint 1, before separate requests supplied checkpoint titles. The implementation allocations below supersede it for the authorized Checkpoints 2–7. Priorities are **P0** for correctness, access, data safety and essential task coverage, **P1** for maintainability/discoverability, and **P2** for presentation improvements after correctness. Each checkpoint has its own user authorization; this plan does not authorize another increment.
 
 Paths below marked **new** are proposals, not existing documents or delivered guides. Existing files remain canonical unless an explicitly reviewed move includes redirects/link updates. Dependencies express writing/validation order; they do not require duplicate documents.
 
@@ -196,3 +196,9 @@ The checkpoint records the current seven-advisory dependency audit failure (two 
 The user-authorized developer checkpoint is [the developer guide](developer-guide/README.md), with local development, architecture/repository/module interfaces, domain/financial boundaries, database/migrations, testing, contribution and extension/broker-adapter guidance. Existing architecture, ADRs, domain and financial references remain authoritative. The previously deferred architecture/API reconciliation is allocated here: [API reference](developer-guide/api-reference.md) and generated per-operation pages cover all 154 web operations across 119 paths plus two private worker health GETs; [verification](developer-guide/verification.md) records source-policy/schema/example/command checks and limits.
 
 Corrections are limited to documentation metadata generation and its OpenAPI/TypeScript projections, plus a reproducible documentation generator and source-reviewed guard/example annotations. Runtime handlers, behavioral contracts, financial kernels, database migrations and dependency pins are unchanged. The current seven-advisory security gate and FA-04 remain open. No invented enforced contribution policy, automatic migration generator or dynamic instrument/plugin API is introduced. Checkpoint 7 is not started.
+
+## Checkpoint 7 implementation allocation
+
+The user-authorized final integration owns the concise [root README](../README.md), [audience documentation index](README.md) and [documentation validation report](documentation-validation.md). The report consolidates the exact inventory, requirements/feature/acceptance coverage matrix, consistency corrections, security review, executed commands, fresh disposable procedure results, skipped checks, outstanding issues and review/release decision. A read-only [Markdown/link/example validator](../scripts/documentation/validate-documentation.mjs) provides repeatable checks alongside the existing API reference generator.
+
+Current prose is reconciled with delivered UI/API capabilities, schema 17, source configuration and financial boundaries. Historical evidence, accepted ADR bodies and authoritative financial formulas are preserved. Checkpoint 7 does not fill missing product features or close the current dependency/capacity gates. The documentation branch is committed/pushed for review; merge into main and production release require subsequent review and are not performed here.

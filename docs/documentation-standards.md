@@ -6,7 +6,7 @@ Baseline: Phase 19, Checkpoint 1, 24 October 2026. These conventions apply to ne
 
 The [product specification](../Trading_Journal_Codex_Prompt.md) and [requirements analysis](requirements-analysis.md) define obligations, not proof of delivery. The [feature inventory](feature-inventory.md) records current capabilities; the [environment inventory](environment-inventory.md) records the supported toolchain and commands. The [documentation plan](documentation-plan.md) assigns canonical owners and Checkpoints 2–7. Link to these sources rather than copying competing definitions.
 
-Source code, contracts, migrations and executed evidence establish implemented behavior. If design and implementation differ, state both, cite the discrepancy and retain the requirement. Do not repair a documentation discrepancy by implying that missing software exists. This checkpoint creates inventories, a plan and standards only; installation instructions, user manuals and operating procedures belong to later checkpoints.
+Source code, contracts, migrations and executed evidence establish implemented behavior. If design and implementation differ, state both, cite the discrepancy and retain the requirement. Do not repair a documentation discrepancy by implying that missing software exists. The original Checkpoint 1 created inventories, a plan and standards; separately authorized task guides and final integration are now recorded in [final validation](documentation-validation.md).
 
 ## Markdown and headings
 
@@ -89,3 +89,5 @@ As of this baseline, [FA-04](final-audit.md) remains open despite functional rem
 ## Review and acceptance
 
 Before accepting a document, check factual claims against the pinned source, validate local file targets and anchors, run the pinned Markdown formatter and `git diff --check`, and confirm that only intended files changed. Check all feature fields, command evidence, limits, permissions, examples and audience coverage. Record unresolved questions in the plan with their later checkpoint, and require cross-links to canonical references instead of duplicate sources of truth. Checkpoint 7 consolidates the evidence and coverage review; it does not overwrite earlier results.
+
+From repository root after the frozen dependency installation, run `node scripts/documentation/validate-documentation.mjs` for Markdown parsing, relative file/anchor/reference links, JSON fences, package-command existence and source-path checks. It writes a sanitized summary under ignored `work/phase-19-cp7`; it does not execute examples or request external URLs. Review its credential and sensitive-command locations manually; absence of heuristic matches is not complete secret detection. The existing API reference generator's `--check` separately validates source/projected schema examples and generated-page drift. The [final validation record](documentation-validation.md) owns actual executions, results and skipped checks.

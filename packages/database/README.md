@@ -1,5 +1,7 @@
 # Database persistence
 
+Current baseline: application schema **17**, with reviewed SQL `0000`–`0016`. The phase-specific paragraphs below describe schema evolution; they are not the complete current migration list. Use the [developer database guide](../../docs/developer-guide/database-migrations.md) for current models/tooling/safety, [database operations](../../docs/operations/database-management.md) for deployed maintenance and [final documentation validation](../../docs/documentation-validation.md) for executed evidence. The application, queue migration and runtime-role provisioning phases are separate, not one global transaction.
+
 This package contains platform persistence and the additive Phase 4 financial
 schema: reviewed Better Auth models, workspaces, memberships, display preferences,
 credential-free audit events, financial catalogs, source facts, balanced postings,

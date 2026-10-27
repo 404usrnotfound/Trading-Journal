@@ -1,164 +1,72 @@
 # Trading Journal
 
-A broker-independent, multi-asset trading journal with a PostgreSQL-backed ledger, immutable strategies and trade plans, reviewed imports, accounting and analytics, risk assessments, independent statement reconciliation, portable workspace backup/restore, period reviews, explicit supplied values and durable native worker snapshots. Automatic advanced-asset economics and production-scale reporting remain bounded; **FA-04 is open**. The [feature inventory](docs/feature-inventory.md) is the current capability baseline, and the [final audit disposition](docs/final-audit.md#remediation-outcome--24-october-2026) separates resolved findings from the remaining release gate.
+A broker-independent trading journal with an exact-decimal ledger, versioned instruments and strategies, trade journals, account accounting and campaign analytics. It preserves source evidence and makes unsupported or incomplete financial results explicit.
 
-Start with the [quick start](docs/getting-started/quick-start.md) or the full [installation guide](docs/getting-started/installation.md). Check [system requirements](docs/getting-started/system-requirements.md), [configuration](docs/getting-started/configuration.md), [first run](docs/getting-started/first-run.md) and the [executed installation verification](docs/getting-started/verification.md). These are the canonical setup instructions; the numbered phase sections below retain historical implementation context.
+## Implemented capabilities
 
-The [user manual](docs/user-guide/README.md) covers the implemented browser workflows and clearly marked API-only tasks. Follow the [EUR-funded trading example](docs/user-guide/guided-example.md), use the [glossary](docs/reference/glossary.md) and [financial concepts](docs/reference/financial-concepts.md), and consult the [manual validation record](docs/user-guide/verification.md) for fresh workflow evidence and remaining UI gaps.
+- Provisioned-user authentication, isolated workspaces and owner/editor/viewer permissions.
+- Broker/account/instrument setup, orders, executions, cash movements, actual FX conversions, fees, positions/lots and source corrections.
+- Immutable strategy versions, plans, journals, private attachments, risk assessments, period reviews and statement reconciliation.
+- Account/portfolio reporting, Dashboard analytics, reviewed CSV imports, duplicate checks, typed JSON/CSV exports and portable workspace backup/restore.
+- Advanced explicit source entry, selected supplied analysis and a durable worker projection of native cash/quantity.
 
-For failures and unexpected results, use the [troubleshooting knowledge base](docs/troubleshooting/README.md), [safe diagnostics](docs/troubleshooting/diagnostics.md) and [reproduction/verification record](docs/troubleshooting/verification.md).
+Browser and API availability differ. The [feature inventory](docs/feature-inventory.md), [user manual](docs/user-guide/README.md) and [financial capability reference](docs/instrument-capabilities.md) define the delivered scope. A family name or stored value does not establish automatic asset economics.
 
-For deployment and ongoing care, use the [operations index](docs/operations/README.md), [operational checklists](docs/operations/checklists.md) and [current verification and release risks](docs/operations/verification.md).
+## Stack and requirements
 
-For engineering work, use the [developer guide](docs/developer-guide/README.md), [complete API reference](docs/developer-guide/api-reference.md), [testing guide](docs/developer-guide/testing.md) and [developer verification record](docs/developer-guide/verification.md).
+TypeScript, Next.js/React, Node.js, PostgreSQL/Drizzle, Zod contracts, decimal financial kernels, pg-boss and Pino. The repository pins **Node 24.19.0** and **pnpm 10.34.6**; use Corepack and the full frozen dependency graph. PostgreSQL **17**, private local media and separate web/worker processes are required. Docker Engine/Compose v2 supplies local database services; it does not package the application.
 
-Read the authoritative [product specification](Trading_Journal_Codex_Prompt.md), [requirements](docs/requirements-analysis.md), [architecture](docs/architecture.md), [domain model](docs/domain-model.md), and [development plan](docs/development-plan.md). [Core ledger](docs/core-ledger.md), [financial metrics](docs/financial-metrics.md), [strategy management](docs/strategies.md), [trade journal](docs/trade-journal.md), [portfolio accounting](docs/portfolio-accounting.md), [analytics definitions](docs/analytics-definitions.md), [dashboard semantics](docs/dashboard.md), [imports](docs/imports.md), the [asset-class audit](docs/asset-class-audit.md) and the [UX review](docs/ux-review.md) describe the current application. The [security review](docs/security.md) documents the threat model, fixes, operational obligations and verification limits. The [testing campaign](docs/testing-campaign.md) records coverage gaps, independently worked expectations and final validation. The [performance report](docs/performance.md) provides Phase 15 fixture and benchmark commands, measured bottlenecks, financial-equivalence evidence and capacity limits. The [deployment guide](docs/deployment.md), [operations runbook](docs/operations.md), [backup and recovery procedure](docs/backup-and-recovery.md) and [production-readiness checklist](docs/production-readiness-checklist.md) describe Phase 16 preparation and its verification limits. [Scaffold validation](docs/scaffold-validation.md), [Phase 4 validation](docs/phase-4-validation.md), [Phase 5 validation](docs/phase-5-validation.md), [Phase 6 validation](docs/phase-6-validation.md), [Phase 7 validation](docs/phase-7-validation.md), [Phase 8 validation](docs/phase-8-validation.md), [Phase 9 validation](docs/phase-9-validation.md), [Phase 10 validation](docs/phase-10-validation.md), [Phase 11 validation](docs/phase-11-validation.md) and [Phase 12 validation](docs/phase-12-validation.md) record the executed checks and limits for their increments.
+Linux x86_64 has execution evidence. Other OS/CPU combinations and production hosts need separate verification. Default loopback ports are web **3000**, worker health **3101**, development database **5432** and disposable test database **5433**. See [system requirements](docs/getting-started/system-requirements.md) and [configuration](docs/getting-started/configuration.md) for permissions, network access and overrides.
 
-## Installation and first run
+## Quick installation and first launch
 
-The supported form is a full source workspace with locked dependencies, PostgreSQL 17, separate Node web/worker processes and private filesystem storage. Local Compose runs databases only. Linux installation has recorded execution evidence; other OS claims remain bounded by the [requirements](docs/getting-started/system-requirements.md).
+For a **new local Linux installation**, after installing prerequisites, run from a new parent directory:
 
-Follow the [installation guide](docs/getting-started/installation.md) for repository selection, dependencies, generated private configuration, database initialization/migrations, owner provisioning, development startup, optional local built assets and production boundaries. The [quick start](docs/getting-started/quick-start.md) gives the shortest new-install path. Existing installations must preserve their configuration and volumes; there is no default login or public signup. The [first-run walkthrough](docs/getting-started/first-run.md) creates explicit synthetic paper-account activity and explains the expected cash/valuation results.
-
-## Commands and checks
-
-```sh
-corepack pnpm db:migrate:check
-corepack pnpm test:unit
-corepack pnpm test:integration
-corepack pnpm api:check
-corepack pnpm format:check
-corepack pnpm lint
-corepack pnpm typecheck
-corepack pnpm build
+```bash
+git clone --branch docs/phase-19-complete-documentation --single-branch https://github.com/404usrnotfound/Trading-Journal.git Trading-Journal
+cd Trading-Journal
+corepack pnpm install --frozen-lockfile
+corepack pnpm env:init
+corepack pnpm db:up
+corepack pnpm db:migrate
+corepack pnpm db:check
+corepack pnpm user:create --email owner@example.test --name 'Example Owner'
+corepack pnpm dev
 ```
 
-`test` runs both listed test commands: unit/property/UI tests followed by real-PostgreSQL integration tests, including financial fixtures and ledger/API boundaries. `verify` combines API drift, formatting, lint, type checking, tests and the production build. Integration tests require the running test service; guards reject development bindings, ambiguous URLs and non-`_test` databases. Migration tests create/remove uniquely named temporary databases only on that test instance; its operator credential needs `CREATEDB`. Never substitute a production operator URL.
+Use your identity and enter a private password at the hidden prompt. Keep the last command running and open **http://localhost:3000/sign-in**. The initial workspace is empty. Follow [first run](docs/getting-started/first-run.md) and the [guided fictional example](docs/user-guide/guided-example.md). Ctrl+C stops the owned application launcher and preserves database records.
 
-Run browser and axe checks after building:
+The [quick start](docs/getting-started/quick-start.md) and [installation guide](docs/getting-started/installation.md) own the detailed sequence, health checks, existing-checkout precautions and external PostgreSQL variant. Preserve existing configuration/data; `env:init` does not overwrite `.env`. This documentation branch is a review target, not an automatically approved production release. Production requires the separate [deployment procedure](docs/deployment.md).
 
-```sh
-corepack pnpm exec playwright install --with-deps chromium
-corepack pnpm test:e2e
-```
+## Development and testing
 
-Playwright provisions generated test identities and starts built web assets on port 3002 against the isolated test database. Its journeys check login/logout, preferences, concurrency, keyboard access, responsive layouts and both themes, financial persistence, strategy publication and historical trade pins, journal planning/review, original-risk R, private files, viewer permissions, imports and dashboard filters/drill-down. The Phase 12 validation record identifies additional recording/account-review and confirmation coverage. Actual executed outcomes are recorded in the increment validation documents linked above; these bounded journeys do not certify the complete financial-entry roadmap. If browser downloads are unavailable but a compatible Chromium is installed, use the explicit supported override:
+Run from repository root after setup. Database-backed tests require the four guarded `TEST_*` bindings targeting a separate, explicitly disposable database. Browser tests also require built assets and Chromium; see [testing](docs/developer-guide/testing.md) before running them.
 
-```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium corepack pnpm test:e2e
-```
+| Task                             | Command                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Development web and worker       | `corepack pnpm dev`                                                                                                                   |
+| Build application artifacts      | `corepack pnpm build`                                                                                                                 |
+| API, style and types             | `corepack pnpm api:check`, `corepack pnpm format:check`, `corepack pnpm lint`, `corepack pnpm typecheck`                              |
+| Unit, property and UI tests      | `corepack pnpm test:unit`                                                                                                             |
+| PostgreSQL integration tests     | `corepack pnpm test:integration`                                                                                                      |
+| Browser/accessibility tests      | `corepack pnpm test:e2e`                                                                                                              |
+| Dependency advisory gate         | `corepack pnpm security:audit`                                                                                                        |
+| Documentation links and examples | `node scripts/documentation/validate-documentation.mjs`; `node --import tsx scripts/documentation/generate-api-reference.mjs --check` |
 
-`test:ui` runs only the React form tests. `api:generate` regenerates the checked-in OpenAPI 3.1 document and TypeScript client; `api:check` detects drift. `format` formats current implementation files; authoritative design documents are preserved rather than reformatted wholesale.
+Use [local development](docs/developer-guide/local-development.md) and [contributing](docs/developer-guide/contributing.md) for change boundaries. The [final documentation validation](docs/documentation-validation.md) records exact executions and limits; command availability alone is not a passing result.
 
-## Database, seed and recovery
+## Documentation
 
-`db:migrate` applies reviewed SQL and queue migrations under a bounded deployment lock, checks applied migration hashes/order, and provisions separate tenant, auth and job roles. Runtime services never auto-migrate or receive operator/test database credentials. Use additive reviewed migrations; never edit an applied migration or use Drizzle schema `push` on shared data. See the [database package](packages/database/README.md).
+Start at the [documentation index](docs/README.md): [getting started](docs/getting-started/quick-start.md), [user manual](docs/user-guide/README.md), [troubleshooting](docs/troubleshooting/README.md), [operations](docs/operations/README.md), [developer guide](docs/developer-guide/README.md), [API reference](docs/developer-guide/api-reference.md) and [glossary](docs/reference/glossary.md). The index also links financial definitions, architecture/ADRs, requirements and historical evidence.
 
-Optional, repeatable seed infrastructure creates a separate labeled empty demo workspace for an existing owner:
+## Security and known limitations
 
-```sh
-corepack pnpm db:seed --email you@example.com
-```
+Keep `.env`, credentials, cookies, private media and broker/account data out of Git and shared logs. There is no public signup or default login. Preserve tenant authorization, Origin/CSRF, TLS and restricted database identities. Use [security operations](docs/operations/security-operations.md), [safe diagnostics](docs/troubleshooting/diagnostics.md) and tested backup/restore procedures before upgrades or recovery.
 
-No financial examples are seeded automatically. The [manual paper-account API example](docs/core-ledger.md#manual-api-example) creates explicitly selected test facts. Without SMTP, an operator can recover an existing user's password with the same hidden-input command:
+The locked graph has a documented **seven-advisory audit failure, including two critical findings**; **FA-04 production capacity remains open**. See [current validation and release decision](docs/documentation-validation.md) and the dated [security audit](docs/operations/verification.md#dependency-audit-failure). Passing functional tests does not clear these gates.
 
-```sh
-corepack pnpm user:create --email you@example.com --reset-password
-```
+Live broker/feed/AI integrations, arbitrary runtime plugins, automatic advanced-asset lifecycle economics, a populated demo seed and universal database downgrade are unavailable. Selected campaign lifecycle/portfolio/correction tasks are API-only. Production TLS, offsite recovery, host compatibility and workload capacity require deployment-specific evidence.
 
-Recovery revokes prior sessions. There is no public recovery, invitation, or signup endpoint. Authenticated API foundations include safe session inspection/list/revocation and a fresh-session password change. Login limits persist independently per normalized email across replicas: ten attempts per 15 minutes, including successful logins. A four-handler per-process gate bounds login-counter and credential work without queuing; temporary capacity rejection does not create a shared fixed-window login lockout. Client-forwarded IP headers are not trusted. Auth auditing records identifiers/actions only; library credential/session writes and the subsequent auth audit insert are separate operations. Tenant preference updates and their audit are atomic.
+## License
 
-## Runtime and configuration
-
-All server configuration is validated before use. Production requires HTTPS `APP_ORIGIN`, a strong auth secret, distinct least-privilege database bindings, and a private persistent `STORAGE_ROOT` outside public/build directories. Worker configuration receives only its queue binding and health/log options. Optional broker, pricing, SMTP, AI or S3 credentials are not required by the scaffold. Pino logs and public errors redact credentials, cookies and internal database details.
-
-- `GET /api/v1/health/live`: public process liveness without secrets.
-- `GET /api/v1/health/ready`: authenticated application database/schema readiness.
-- Worker `http://127.0.0.1:3101/health/live` and `/health/ready`: private loopback liveness and live queue/worker readiness. No public production exposure is intended.
-- `GET /api/v1/session`, workspace reads and owner preference updates: shared Zod/OpenAPI DTOs, current membership checks, RLS and session-bound CSRF for mutations.
-- `/api/v1/workspaces/{workspaceId}/financial/{resource}`: viewer reads and editor/owner commands, strict decimal-string contracts, UUIDv4 `Idempotency-Key`, same-origin/session-CSRF checks, tenant RLS and atomic audit/outbox intent. See [core ledger](docs/core-ledger.md) for resources, filters and exact request examples.
-- `/api/v1/workspaces/{workspaceId}/strategies`: strategy CRUD, immutable history and linked trades; viewer reads, editor/owner mutations, optimistic revisions and command retries. Financial trade creation can explicitly pin a strategy version.
-- `/api/v1/workspaces/{workspaceId}/strategy-attachments`: private PNG/JPEG/WebP/PDF uploads up to 10 MiB; raster images additionally cap at 8,192 pixels per side and 16,777,216 total pixels, authorized delivery and removal of unused files. Historical version references prevent file deletion. See [strategy management](docs/strategies.md).
-- `/api/v1/workspaces/{workspaceId}/journals`: trade-detail reads, draft saves, immutable published plans, original-risk commitments, supplemental risk and saved revision history. Viewer reads and editor/owner mutations use the same authentication, CSRF and tenant boundaries. See [trade journal](docs/trade-journal.md).
-- `/api/v1/workspaces/{workspaceId}/analytics/reports`: bounded read-only campaign analytics for current viewers, with explicit financial and recorded-metadata cutoffs, tested definitions, source dependencies and missing-input states. See [analytics definitions](docs/analytics-definitions.md). It needs no new package, secret or migration; the existing setup commands apply.
-- `/api/v1/workspaces/{workspaceId}/accounting`: immutable portfolio definitions, gross income/withholding, taxes/refunds, financing expenses, cash departure/receipt and read-only revision-pinned reports. See [portfolio accounting](docs/portfolio-accounting.md) for scope boundaries, reconciliation equations and worked examples. The existing install/migration/start commands apply; no new dependency or secret is required.
-- `/api/v1/workspaces/{workspaceId}/journal-attachments`: the existing private workspace registry, with before/during/after journal and planning references. Historical journal and plan references also prevent file deletion.
-- `/api/v1/workspaces/{workspaceId}/imports`: universal/canonical CSV, immutable mapping versions, staged source rows, reviewed preview/commit, scoped duplicate detection, explicit cash/fill corrections, conservative cash reversal and paginated history. Sources are bounded private PostgreSQL text under RLS. See [imports](docs/imports.md) for contracts, limits and broker-adapter extension; no broker credentials or new dependency are required.
-
-`corepack pnpm dev:worker` starts only the development worker. After `build`, `corepack pnpm start` starts web and worker with the configured environment; `start:web` and `start:worker` start them independently. A local HTTP built-assets smoke run keeps `NODE_ENV=development` or `test`. Deployments use `NODE_ENV=production`, HTTPS at a trusted reverse proxy, persistent private media, PostgreSQL, and a separate one-shot migration job before readiness-gated rollout. The standalone web launcher copies static assets before starting. No deployment is performed by this phase; Docker Compose here supplies databases, not a production hosting platform.
-
-## Cloud workspace cache paths
-
-If the cloud image's default home/cache paths are unavailable, use supported cache overrides without changing `HOME` or disabling signatures/TLS:
-
-```sh
-export COREPACK_HOME=/workspace/.cache/trading-journal/corepack
-export XDG_CACHE_HOME=/workspace/.cache/trading-journal
-export XDG_DATA_HOME=/workspace/.cache/trading-journal/data
-export PLAYWRIGHT_BROWSERS_PATH=/workspace/.cache/trading-journal/playwright
-```
-
-Then run the same commands from the checkout. Cloud task restarts may stop services; rerun `db:up`, `db:migrate`, `db:check`, then `dev`. Preserve the private `.env` and development volume; do not regenerate credentials for a volume initialized with different passwords.
-
-## Structure
-
-```text
-apps/web           Next.js App Router UI and thin API handlers
-apps/worker        pg-boss worker, queue migrations and health probes
-packages/contracts Shared strict Zod DTOs, OpenAPI and generated client
-packages/database  Drizzle models, reviewed migrations and tenant transactions
-packages/domain    Pure decimal, postings, inventory, allocation and valuation kernel
-packages/server    Auth, authorization, financial services, config, errors, logs and storage
-packages/ui        Shared presentation components
-scripts            Setup, migration, seed, provisioning and process launchers
-tests              Unit/property, React, PostgreSQL integration and browser tests
-docs               Approved design, ADRs and verification records
-```
-
-The [Phase 2 calculation contracts](docs/financial-calculations.md), [capabilities](docs/instrument-capabilities.md) and [independent financial fixtures](docs/financial-fixtures.md) remain the requirements for financial implementation. Passing scaffold or financial backend checks does not complete AC-01–AC-16.
-
-## Phase 4 scope
-
-Financial amounts use JSON decimal strings, PostgreSQL `NUMERIC(78,36)` and an isolated Decimal.js 160-digit HALF_EVEN context. Cash events balance by currency; fills retain actual quote price separately from booked principal, and fees retain their charged currency. Native netted inventory supports FIFO, eligible average and specific lots, fractions and zero-crossing. Securities shorts additionally require explicit borrow/carry conventions; crypto spot longs do not enable short/lending wrappers. Other asset families have manual recording with nullable unknown economics and explicit cash effects; automatic advanced valuation remains unavailable.
-
-Cash and holding transfers commit synchronously with conserved lineage. Campaign FIFO attribution is distinct from account lot realization. Corrections append reversals/replacements and rebuild canonical inventory, with guards for transferred descendants and reviewed allocations. Price/FX observations and historical references retain provenance. Valuation requires explicit account IDs, reporting currency, as-of instant, source priorities and freshness windows; missing inputs produce explained null metrics or partial NAV, never invented zero.
-
-Valuation returns the current source revision, calculation manifests and selected dependencies for an as-of restatement. Archived reports and tested restore are deferred. Automated risk assessment, full broker-statement reconciliation, advanced native events, broker integrations, account-return analytics/background projections, exports and complete product journeys remain later work. Phase 7 supplies evidenced delayed cash transfers, monetary transit and the revision-pinned interval accounting API; holding transfers remain synchronous. Phase 8 supplies the separately defined campaign analytics engine. Phase 10 imports use these same financial commands and reconcile explicitly identified fill-cash rows without double posting.
-
-## Phase 5 scope
-
-Strategies are first-class workspace identities with complete immutable versions. Every saved edit publishes the next version; a trade's explicit version pin preserves its original rules, checklist, parameters and attachment references. Existing unclassified trades can receive an explicitly retrospective link. Strategy deletion archives the identity and retains history. Strategy screens support creation, editing, filters, detail, historical definitions and linked trades; all data uses server persistence.
-
-This increment adds no strategy performance metrics or automatic rule/risk assessments. Narrative rules and exact typed parameters describe the playbook without executing user expressions or inventing an R denominator. Follow [strategy management](docs/strategies.md) for exact semantics and [Phase 5 validation](docs/phase-5-validation.md) for test evidence. No additional package, service or external credential is required; existing migration and development commands apply the new additive schema.
-
-## Phase 9 dashboard
-
-Open **Analytics dashboard** from Overview or the workspace navigation. Select dates, currency and account scope, then apply filters. Performance, Distributions and Breakdowns share the same applied generation. Exact-value tables provide keyboard drill-down to supporting trades. Light/dark appearance follows the existing theme control.
-
-See [dashboard semantics](docs/dashboard.md) for populations, freshness policies, history gaps and limits, and [Phase 9 validation](docs/phase-9-validation.md) for verification evidence. Recharts is pinned in the lockfile; the existing frozen install, migration, test and startup commands remain unchanged. No new environment variable, secret or migration is needed.
-
-## Phase 10 imports
-
-Run the existing `corepack pnpm db:migrate` and `corepack pnpm db:check` after updating the checkout. Additive migration `0008_broker_agnostic_imports.sql` advances application schema readiness to version 9; prior migrations remain unchanged. Existing install, test and startup commands apply with no new secret, package or service.
-
-Open **Imports**, choose the account and a stable source namespace, upload UTF-8 CSV, configure its conventions/field mapping or choose a saved template, and stage the source. Select complete groups and review the dry run before committing; resolve row errors and explicitly acknowledge retained-column warnings. Dates, monetary signs, currency IDs, instrument versions and cost completeness are explicit. Previewing does not post financial facts. Identical reimport is a financial no-op; changed stable source IDs require review and reason.
-
-Sources are limited to 2 MiB and 1,000 rows; each reviewed selection has at most 100 rows. History and original accepted source download remain private to the workspace. Automatic reversal is conservative and limited to independent cash movements; fills and dependent history use explicit domain correction. Imported fills do not create journal campaign attribution automatically.
-
-[Import semantics and adapter extension](docs/imports.md), [ADR 0011](docs/decisions/0011-broker-agnostic-imports.md) and [CSV/mapping examples](docs/examples/imports/README.md) explain how another broker parser can use this pipeline without changing the core domain. [Phase 10 validation](docs/phase-10-validation.md) records verification progress and executed results. Delivered adapters are universal mapping and application canonical interchange; no named broker compatibility, full statement reconciliation, large background imports, exports or backup/restore is claimed.
-
-## Phase 11 asset conventions
-
-The [current operation matrix](docs/instrument-capabilities.md#current-implemented-operations) and [asset-class audit](docs/asset-class-audit.md) distinguish native ordinary stocks/ETFs/non-rebasing spot crypto, delivered currency conversions, and manual options/futures/bonds/rolling FX. Manual quantity and explicit actual cash do not establish automatic monetary basis, P&L, R or complete NAV. Broker account-value observations stay comparison evidence. Negative futures prices remain unsupported.
-
-Class-specific terms stay in immutable metadata versions rather than mandatory fields on every instrument. Compatible journal prices require matching pinned economic conventions; unknown multipliers remain nullable. See [Phase 11 validation](docs/phase-11-validation.md) for executed seven-class examples and regressions. Existing installation, schema-9 migration and development commands apply; this increment adds no dependency, secret or migration.
-
-## Phase 12 workflow refinement
-
-Use **Record trade** to enter one actual fill with an optional fee and open its linked journal; use **Trade journal** to start an idea or review existing decisions. The guided recording path displays server-confirmed progress and preserves same-page recovery when a fill was recorded but later journal allocation failed. It uses the existing decimal-safe ledger and never books another fill merely to retry a later step. After reload/navigation, inspect the recorded execution before starting again; **Link an imported / existing execution** reads effective fills and their allocation version, and links an unassigned whole fill without another cash booking.
-
-Journal period shortcuts support today's trades, the current week and historical review in the workspace timezone, with server-side filtering before pagination. Activity means current allocated fill dates, falling back to creation only for unfilled ideas. Strategy creation leads with identity/core rules; optional configuration remains available. Select an explicit immutable version when assigning a strategy, and use the selected-version performance link to review its historical outcomes. **Accounts** provides read-only interval accounting for explicit accounts or an immutable portfolio version, with live/paper separation. Deposits and owned-account transfers remain separate from performance; missing evidence remains partial or unavailable.
-
-Imports present source → review → confirmation, retain row errors and require a current valid preview before posting. Correct a stable source ID within the same account/namespace, with an audit reason; unsupported correction/reversal kinds remain blocked. Dashboard period shortcuts, metric help, shared dialogs and draft protection improve navigation without changing formulas or attribution.
-
-Weekly review uses individual trade notes/reviews and period analytics; standalone weekly notes/templates remain deferred. The guided recorder is narrower than the full ledger API, and unsupported advanced asset accounting remains explicit. See [the ten-workflow guide](docs/ux-review.md), [ADR 0012](docs/decisions/0012-workflow-ux.md) and [Phase 12 validation](docs/phase-12-validation.md). Existing install, schema-9 migration and startup commands apply; no new package, secret or migration is required.
+No license file or package license declaration is included in the reviewed repository.

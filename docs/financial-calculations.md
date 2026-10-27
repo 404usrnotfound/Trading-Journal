@@ -1,6 +1,6 @@
 # Financial calculation contracts
 
-This document completes the financial calculation definitions in [ADR 0004](decisions/0004-financial-kernel-and-ledger.md) and [ADR 0005](decisions/0005-versioned-domain-and-multicurrency.md). It accompanies the [domain model](domain-model.md). These are design contracts for later implementation, not claims that a calculation engine, database schema, or executable financial tests exist.
+This approved Phase 2 document defines the financial calculation contracts in [ADR 0004](decisions/0004-financial-kernel-and-ledger.md) and [ADR 0005](decisions/0005-versioned-domain-and-multicurrency.md), alongside the [domain model](domain-model.md). It retains the full design obligations. Later increments implement a financial kernel, database schema and executable tests; their delivered calculation populations and limits are described in [financial metrics](financial-metrics.md), [portfolio accounting](portfolio-accounting.md) and [analytics definitions](analytics-definitions.md). A definition here alone does not establish implemented support or a passing test.
 
 The authoritative requirements are in [the product specification](../Trading_Journal_Codex_Prompt.md), particularly sections 3–9 and 14. No formula in this document grants automatic support to a product whose settlement, units, or valuation convention has not passed independent fixtures.
 

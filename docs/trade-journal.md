@@ -1,6 +1,6 @@
 # Trade journal
 
-Phase 6 adds trade planning and review to the existing financial ledger and immutable strategy versions. Open **Journal** from the workspace, create an idea or select an existing trade, then record its plan and review. Financial entry remains available through the existing ledger API; this increment does not add dashboards or a broker import workflow.
+Phase 6 introduced trade planning and review on the financial ledger and immutable strategy versions. Open **Trade journal** from the workspace, create an idea or select an existing trade, then record its plan and review. Later increments provide [financial entry](advanced-financial-entry.md), [Dashboard](dashboard.md) and [CSV imports](imports.md) as separate workflows; journal edits do not post fills or cash.
 
 ## Plans and review
 
@@ -49,6 +49,6 @@ All paths below start with `/api/v1/workspaces/{workspaceId}`. Shared strict sch
 
 The complete compact journal snapshot is limited to **128 KiB** of UTF-8 JSON. Individual narratives are limited to 20,000 characters, labels to 160 characters, and review lists to 100 entries. JSON command bodies are limited to 256 KiB. UUIDs are normalized before uniqueness and reference checks. Unknown nested keys and client claims of automatic rule assessment are rejected.
 
-Migration `0005` adds journal commands, entries, revisions, plan versions, first commitments, risk additions and typed attachment references. It extends the existing registry's historical deletion protection. Additive `0006` aligns independent database label validation with exact Unicode trimming and normalized uniqueness; it rejects unreadable raw writes without rewriting historical facts. Readiness is schema version **7**. Existing ledger facts and migrations `0000`–`0004` remain unchanged. Journal-only commands serialize with the financial state but do not advance its source revision or change balances and positions.
+Migration `0005` added journal commands, entries, revisions, plan versions, first commitments, risk additions and typed attachment references. It extended the existing registry's historical deletion protection. Additive `0006` aligned independent database label validation with exact Unicode trimming and normalized uniqueness; it rejects unreadable raw writes without rewriting historical facts. Phase 6 readiness was schema **7**; the current application requires schema **17** through the complete [migration chain](developer-guide/database-migrations.md). Existing ledger facts and published migrations remain unchanged. Journal-only commands serialize with the financial state but do not advance its source revision or change balances and positions.
 
-See [Phase 6 validation](phase-6-validation.md) for executed checks and remaining limits. Daily/session/period reviews, configurable templates, performance dashboards, exports, restore and imports remain later work.
+See [Phase 6 validation](phase-6-validation.md) for that increment's executed checks. Later implemented workflows include [standalone period reviews/templates](period-reviews.md), [Dashboard](dashboard.md), [exports and workspace restore](workspace-portability.md) and [imports](imports.md). Their populations, authorization and verification remain separate from a saved trade journal.
