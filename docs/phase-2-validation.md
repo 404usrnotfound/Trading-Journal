@@ -47,4 +47,4 @@ Install, start, database connectivity, migrations, unit/integration/browser test
 
 Phase 3 must create the platform and verify all eight requested clean-environment gates. Phase 4 must implement the financial contracts with independent executable unit/property tests and real PostgreSQL integration/concurrency checks before financial features are accepted. Advanced native product formulas, triangulation, segregated books, campaign reopening, return solvers, restore fidelity and measured performance retain their explicit future gates.
 
-The domain model's [remaining decisions and gates](domain-model.md#decisions-and-gates-before-implementation) identify the operation-specific policies and evidence still required. Phase 2 documentation completion authorizes no implementation or deployment.
+The domain model's [remaining decisions and gates](domain-model.md#design-decisions-and-continuing-implementation-gates) identify the operation-specific policies and evidence still required. Phase 2 documentation completion authorizes no implementation or deployment.

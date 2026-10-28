@@ -12,6 +12,8 @@ Phase 1 was documentation only. The first Phase 3 scaffold was reverted at the u
 
 Choose a **modular monolith**: one typed domain/application codebase, a Next.js web/API process, a worker process for durable long-running tasks, PostgreSQL, and private file storage. Web and worker share a release and domain logic. No independently deployed business microservices, Redis, mandatory hosted auth, market-data feed or AI provider are needed.
 
+**Implementation boundary, reviewed 27 October 2026:** the diagram and defaults below retain the approved delivery design, including proposed storage/providers and job responsibilities. The delivered storage adapter is the private local filesystem; no S3 or application container image is supplied. Current imports, reports, exports and portable restore are bounded synchronous operations. The worker implements infrastructure probes and leased native cash/quantity snapshots through restricted database functions, not a generic import/report/restore worker. See the [implemented component diagram](developer-guide/architecture.md#the-implemented-runtime), [environment inventory](environment-inventory.md) and [native worker reference](financial-outbox.md) for the source-backed runtime.
+
 ```mermaid
 flowchart LR
     Browser[React interface] --> Web[Next.js web and same-origin API]
@@ -185,7 +187,7 @@ Session hard expiry, revocation/freshness, CSRF/origin checks, rate limits and p
 
 Default to a persistent private filesystem directory outside the public web tree. Use a narrow storage port for staging, checksum verification, promoted immutable objects, authorized reads and cleanup. Optional S3-compatible private storage supports shared media with multiple replicas; no particular cloud vendor is required.
 
-Validate byte limits, MIME/signature and allowed types; safe image/PDF rendering and authorized download are separate from trusting extension text. Initial defaults: 20 MiB per attachment, 100 MiB per source file, 100,000 source rows, 1 GiB total expanded restore. Allow JPEG/PNG/WebP/PDF attachments; no HTML/SVG execution. Source CSV/JSON remains preserved privately, not treated as a displayed document or executable instruction. Backups/exports have injection-safe presentations without destroying original provenance. Limits are reversible configuration choices, not source-specified financial restrictions.
+Validate byte limits, MIME/signature and allowed types; safe image/PDF rendering and authorized download are separate from trusting extension text. Original proposed defaults were 20 MiB per attachment, 100 MiB per source file, 100,000 source rows and 1 GiB expanded restore; these are not the delivered limits. Current limits are 10 MiB per attachment, 2 MiB/1,000 data rows for an import source, and 64 MiB/100,000 total rows for a portable archive. See [attachments](strategies.md#private-attachments), [imports](imports.md#limits-and-extension) and [portability](workspace-portability.md). Allow JPEG/PNG/WebP/PDF attachments; no HTML/SVG execution. Accepted source CSV/JSON remains private and immutable; spreadsheet-safe export is a separate presentation. Limits are source-enforced constants at this baseline, not runtime environment-variable overrides.
 
 DB metadata tracks staged/quarantined/available/deleting states, hash, size and ownership. Because filesystem/S3 and SQL cannot share a transaction, staged immutable bytes precede committed references, with retryable promotion/outbox and orphan cleanup. No successful attachment state appears until bytes are available and authorized. Never give a public bucket/key as the storage contract.
 
@@ -219,7 +221,7 @@ Validate server config with Zod at startup; fail closed for invalid production o
 
 ### Local development and migrations
 
-The repository supplies Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with persistent volumes, private local media, a separate test DB and a single command starting web plus worker. The container release uses the same interfaces; see [deployment](deployment.md) and [operations](operations.md). Setup explicitly runs reviewed migrations and owner provisioning; demo seed is isolated and real workspaces start empty.
+The repository supplies Node 24/pnpm pins, frozen installation, PostgreSQL 17 Docker Compose with a persistent development volume and disposable test instance, private local media and a single command starting web plus worker. The supported release is a complete-source installation; Compose provides database services, not an application image. See [deployment](deployment.md) and [operations](operations.md). Setup explicitly runs reviewed migrations and owner provisioning; the optional demo seed creates a labeled empty workspace and real workspaces start empty.
 
 Drizzle generates candidate migrations; developers review committed SQL for financial constraints, RLS, metadata policies and data transforms. A one-off migration runner holds a deployment lock with dedicated credentials. Web/worker never auto-migrate or use schema `push` in shared/production environments. Auth/queue upgrades are coordinated in release migrations. Use expand/backfill/contract, compatibility checks and tested restore for destructive recovery, with no automatic financial history rewrite.
 

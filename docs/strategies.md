@@ -32,7 +32,7 @@ Financial trade creation accepts an optional `strategyVersionId`. The server val
 
 An existing unclassified trade can be linked once through the strategy detail view or API, with an expected trade revision and reason. That link is labeled **retrospective**. A strategy recorded with a newly created trade is labeled **recorded with trade**; this is not proof of a frozen pre-trade plan or an original risk denominator. An existing pin cannot be reassigned or deleted through these commands.
 
-After a trade is linked to Strategy A version 1, publishing version 2 leaves the trade linked to version 1, with the original name, rules, parameters, checklist and attachment references. Linked-trade views expose version identities for later comparison. This phase does not calculate strategy win rates, expectancy or R; the illustrated future comparisons require the later documented populations and risk inputs.
+After a trade is linked to Strategy A version 1, publishing version 2 leaves the trade linked to version 1, with the original name, rules, parameters, checklist and attachment references. Linked-trade views expose version identities for comparison. Current performance links open [Dashboard analytics](analytics-definitions.md) scoped to the strategy or exact historical version; eligibility, exclusions and original-risk sufficiency still control win rates, expectancy and R. Publishing or linking a playbook never creates a financial outcome or a valid original-risk denominator.
 
 Strategy commands do not post cash, fees, quantities or inventory changes. Linking a trade changes its classification revision without replacing its executions, allocations or financial projections.
 
@@ -44,7 +44,7 @@ Uploads accept PNG, JPEG, WebP and PDF, with a maximum of 10 MiB per file. The s
 
 Reading or downloading a file rechecks authenticated workspace access. File responses use private, non-cacheable delivery and safe content headers; PDF reference documents download as attachments. SVG, HTML and executable formats are rejected. Removing an attachment from a new definition leaves the historical version's reference intact. Files referenced by any published version cannot be deleted; unused uploads can be removed through the authorized file API.
 
-The local filesystem and database do not share a transaction. The upload service manages publication and cleanup explicitly; operational backup must include both PostgreSQL and the private storage volume. This phase does not certify a complete media backup/restore product.
+The local filesystem and database do not share a transaction. The upload service manages publication and cleanup explicitly; operational backup must include both PostgreSQL and private storage. Follow the [backup/restore procedures and tested limits](operations/backup-and-restore.md); an attachment upload succeeding alone does not verify recovery.
 
 ## API and validation
 
@@ -60,6 +60,7 @@ All strategy resources are under `/api/v1/workspaces/{workspaceId}/strategies`:
 | `GET /{strategyId}/versions`             | Bounded immutable version history                             |
 | `GET /{strategyId}/versions/{versionId}` | The exact historical definition                               |
 | `GET /{strategyId}/trades`               | Bounded linked trades with their pinned versions              |
+| `GET /{strategyId}/trade-links`          | Alias for the same bounded linked-trade read                  |
 | `POST /{strategyId}/trade-links`         | Explicit retrospective link for an unclassified trade         |
 
 Private files use `/api/v1/workspaces/{workspaceId}/strategy-attachments` for upload/list and `/{attachmentId}` for download or removal. Uploads send bounded binary bytes with `Content-Type`, `X-File-Name` and `Idempotency-Key` headers.

@@ -8,7 +8,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    resource?: "accounts" | "brokers" | "currencies" | "portfolios" | "strategies" | "strategyVersions" | "assets" | "tags" | "priceSources" | "fxSources";
+                    afterId?: string;
+                    search?: string;
+                    limit?: number;
+                };
                 header?: never;
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -28,25 +33,25 @@ export interface paths {
                             accounts: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                                 /** @enum {string} */
                                 environment: "live" | "paper";
                             }[];
                             brokers: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                             }[];
                             currencies: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                                 code: string;
                             }[];
                             portfolios: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                                 accountIds: components["schemas"]["FinancialId"][];
                                 /** @enum {string} */
                                 environment: "live" | "paper";
@@ -55,17 +60,17 @@ export interface paths {
                             strategies: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                             }[];
                             strategyVersions: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                             }[];
                             assets: {
                                 id: components["schemas"]["FinancialId"];
                                 label: string;
-                                parentId: components["schemas"]["FinancialId"] & (string | null);
+                                parentId: components["schemas"]["FinancialId"] | null;
                                 assetClass: string;
                             }[];
                             tags: string[];
@@ -260,7 +265,7 @@ export interface paths {
                                 /** @default [] */
                                 tags: string[];
                             };
-                            analytics: components["schemas"]["AnalyticsReportResponse"] & (Record<string, never> | null);
+                            analytics: components["schemas"]["AnalyticsReportResponse"] | null;
                             views: {
                                 calendar: {
                                     key: string;
@@ -660,188 +665,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workspaces/{workspaceId}/strategies/native-snapshot": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    workspaceId: components["schemas"]["FinancialId"];
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Validated application DTO */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["NativeSnapshotStatus"];
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                413: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                415: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/workspaces/{workspaceId}/strategies": {
         parameters: {
             query?: never;
@@ -1028,8 +851,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -1383,8 +1207,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -1559,8 +1384,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -2297,15 +2123,186 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page. */
+        get: {
+            parameters: {
+                query?: {
+                    cursor?: components["schemas"]["FinancialId"];
+                    limit?: string;
+                };
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                    strategyId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StrategyTradesResponse"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         /** @description Editor/owner strategy command. Definitions are complete immutable snapshots, bounded to 196608 UTF-8 bytes; JSON request bodies are bounded to 262144 bytes. Changes append a version and never rewrite historical trade references. Deletion archives the identity. Late trade classification is explicitly retrospective. */
         post: {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
+                    "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -2661,7 +2658,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                     "X-File-Name": string;
@@ -3032,7 +3029,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path: {
@@ -3382,7 +3379,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                     "X-File-Name": string;
@@ -3753,7 +3750,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path: {
@@ -4111,7 +4108,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -4467,7 +4464,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -4829,7 +4826,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -5190,7 +5187,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -5737,6 +5734,204 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspaceId}/accounting/native-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Read-only viewer/editor/owner status for the durable native cash/quantity projection. Compare latest and processed source revisions, attempts and safe failure classifications. The snapshot covers all recorded events, including future-dated sources; it is not NAV or an as-of accounting report. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceId: components["schemas"]["FinancialId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Validated application DTO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NativeSnapshotStatus"];
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspaceId}/accounting/portfolios": {
         parameters: {
             query?: never;
@@ -5937,7 +6132,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -6326,7 +6521,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -6921,7 +7116,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -7328,7 +7523,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -7534,7 +7729,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -7741,7 +7936,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -7948,7 +8143,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -8154,7 +8349,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -8360,7 +8555,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -8566,7 +8761,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -9344,7 +9539,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path: {
@@ -9533,7 +9728,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -9723,7 +9918,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -9913,7 +10108,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -10103,7 +10298,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -10293,7 +10488,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -10622,7 +10817,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -10950,7 +11145,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -11279,7 +11474,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -11607,7 +11802,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -11935,7 +12130,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -12264,7 +12459,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -12454,7 +12649,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -12644,7 +12839,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -12834,7 +13029,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -13159,7 +13354,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -13349,7 +13544,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -13539,7 +13734,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -13867,7 +14062,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -14057,7 +14252,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -14247,7 +14442,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -14437,7 +14632,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -14627,7 +14822,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -14817,7 +15012,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -15145,7 +15340,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -15335,7 +15530,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -15525,7 +15720,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -15715,7 +15910,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -15906,7 +16101,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -16097,7 +16292,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -16288,7 +16483,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -16479,7 +16674,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -16670,7 +16865,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -18694,38 +18889,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
             };
         };
         put?: never;
@@ -18770,6 +18933,22 @@ export interface paths {
                 };
                 /** @description Safe problem details; no credentials or database diagnostics */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -18845,23 +19024,7 @@ export interface paths {
                     };
                 };
                 /** @description Safe problem details; no credentials or database diagnostics */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            type: string;
-                            title: string;
-                            status: number;
-                            detail: string;
-                            code: string;
-                            requestId: string;
-                        };
-                    };
-                };
-                /** @description Safe problem details; no credentials or database diagnostics */
-                503: {
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -18940,7 +19103,7 @@ export interface paths {
                     };
                 };
                 /** @description Safe problem details; no credentials or database diagnostics */
-                503: {
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -19034,6 +19197,22 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Safe problem details; no credentials or database diagnostics */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            type: string;
+                            title: string;
+                            status: number;
+                            detail: string;
+                            code: string;
+                            requestId: string;
+                        };
+                    };
+                };
             };
         };
         put?: never;
@@ -19045,6 +19224,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path: {
@@ -19381,6 +19561,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path?: never;
@@ -19556,6 +19737,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path?: never;
@@ -19729,11 +19911,13 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    Origin?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": {
                         /** Format: email */
@@ -19888,6 +20072,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                 };
                 path?: never;
@@ -20040,9 +20225,7 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    cursor?: components["schemas"]["FinancialId"];
-                };
+                query?: never;
                 header?: never;
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -20127,9 +20310,7 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    cursor?: components["schemas"]["FinancialId"];
-                };
+                query?: never;
                 header?: never;
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -20202,6 +20383,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -20461,6 +20643,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -20791,6 +20974,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -20980,6 +21164,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -21169,6 +21354,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -21358,6 +21544,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -21669,7 +21856,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -21964,7 +22151,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -22255,7 +22442,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -22548,7 +22735,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -22721,7 +22908,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -23016,7 +23203,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -23189,7 +23376,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -23652,7 +23839,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -23947,7 +24134,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -24121,7 +24308,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
                     "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
@@ -25374,9 +25561,8 @@ export interface paths {
             parameters: {
                 query?: never;
                 header: {
-                    Origin: string;
+                    Origin?: string;
                     "X-CSRF-Token": string;
-                    "Idempotency-Key": components["schemas"]["FinancialId"];
                 };
                 path: {
                     workspaceId: components["schemas"]["FinancialId"];
@@ -25613,11 +25799,11 @@ export interface components {
         };
         FinancialInstrumentMetadata: {
             quantityUnit: components["schemas"]["FinancialLabel"];
-            quoteCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            multiplier: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            quoteCurrencyId: components["schemas"]["FinancialId"] | null;
+            settlementCurrencyId: components["schemas"]["FinancialId"] | null;
+            multiplier: components["schemas"]["PositiveFinancialDecimal"] | null;
+            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
+            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
             /** @enum {string} */
             capability: "native-linear" | "manual";
             effectiveAt: components["schemas"]["FinancialInstant"];
@@ -25834,7 +26020,7 @@ export interface components {
         };
         AccountResponse: {
             name: components["schemas"]["FinancialLabel"];
-            brokerId: components["schemas"]["FinancialId"] & (string | null);
+            brokerId: components["schemas"]["FinancialId"] | null;
             /** @enum {string} */
             environment: "live" | "paper";
             /** @enum {string} */
@@ -25848,7 +26034,7 @@ export interface components {
             effectiveAt: components["schemas"]["FinancialInstant"];
             id: components["schemas"]["FinancialId"];
             revision: components["schemas"]["FinancialRevision"];
-            archivedAt: components["schemas"]["FinancialInstant"] & (string | null);
+            archivedAt: components["schemas"]["FinancialInstant"] | null;
             settingsId: components["schemas"]["FinancialId"];
             settingsVersion: components["schemas"]["FinancialRevision"];
             /** @enum {string} */
@@ -25884,7 +26070,7 @@ export interface components {
             observedAt: components["schemas"]["FinancialInstant"];
             definition: components["schemas"]["FinancialLabel"];
             source: components["schemas"]["FinancialLabel"];
-            supersedesId: components["schemas"]["FinancialId"] & (string | null);
+            supersedesId: components["schemas"]["FinancialId"] | null;
             payload: {
                 [key: string]: components["schemas"]["FinancialJson"];
             };
@@ -25911,7 +26097,7 @@ export interface components {
             sourceNamespace: components["schemas"]["FinancialLabel"];
             id: components["schemas"]["FinancialId"];
             revision: components["schemas"]["FinancialRevision"];
-            archivedAt: components["schemas"]["FinancialInstant"] & (string | null);
+            archivedAt: components["schemas"]["FinancialInstant"] | null;
         };
         BucketMovementCreate: {
             economicAt: components["schemas"]["FinancialInstant"];
@@ -25926,7 +26112,7 @@ export interface components {
         CampaignInventoryResponse: {
             sourceRevision: components["schemas"]["FinancialSourceRevision"];
             populations: {
-                tradeLegId: components["schemas"]["FinancialId"] & (string | null);
+                tradeLegId: components["schemas"]["FinancialId"] | null;
                 accountId: components["schemas"]["FinancialId"];
                 instrumentId: components["schemas"]["FinancialId"];
                 inventory: components["schemas"]["InventoryResponse"];
@@ -26049,7 +26235,7 @@ export interface components {
             effectiveAt: components["schemas"]["FinancialInstant"];
             id: components["schemas"]["FinancialId"];
             revision: components["schemas"]["FinancialRevision"];
-            archivedAt: components["schemas"]["FinancialInstant"] & (string | null);
+            archivedAt: components["schemas"]["FinancialInstant"] | null;
             conventionId: components["schemas"]["FinancialId"];
             version: components["schemas"]["FinancialRevision"];
         };
@@ -26057,7 +26243,7 @@ export interface components {
             executionId: components["schemas"]["FinancialId"];
             version: components["schemas"]["FinancialRevision"];
             allocations: {
-                tradeLegId: components["schemas"]["FinancialId"] & (string | null);
+                tradeLegId: components["schemas"]["FinancialId"] | null;
                 quantity: components["schemas"]["NonnegativeFinancialDecimal"];
             }[];
         };
@@ -26132,10 +26318,10 @@ export interface components {
             quantity: components["schemas"]["FinancialDecimal"];
             price: components["schemas"]["FinancialDecimal"];
             bookedPrincipal: components["schemas"]["FinancialDecimal"];
-            principalCurrencyId: components["schemas"]["FinancialId"] & (string | null);
+            principalCurrencyId: components["schemas"]["FinancialId"] | null;
             economicAt: components["schemas"]["FinancialInstant"];
             orderingKey: components["schemas"]["FinancialOrderingKey"];
-            supersedesId: components["schemas"]["FinancialId"] & (string | null);
+            supersedesId: components["schemas"]["FinancialId"] | null;
             payload: {
                 economicAt: components["schemas"]["FinancialInstant"];
                 orderingKey: components["schemas"]["FinancialOrderingKey"];
@@ -26306,11 +26492,11 @@ export interface components {
             subtype: components["schemas"]["FinancialLabel"];
             economicIdentity: components["schemas"]["FinancialLabel"];
             quantityUnit: components["schemas"]["FinancialLabel"];
-            quoteCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            multiplier: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            quoteCurrencyId: components["schemas"]["FinancialId"] | null;
+            settlementCurrencyId: components["schemas"]["FinancialId"] | null;
+            multiplier: components["schemas"]["PositiveFinancialDecimal"] | null;
+            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
+            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
             /** @enum {string} */
             capability: "native-linear" | "manual";
             effectiveAt: components["schemas"]["FinancialInstant"];
@@ -26324,11 +26510,11 @@ export interface components {
             subtype: components["schemas"]["FinancialLabel"];
             economicIdentity: components["schemas"]["FinancialLabel"];
             quantityUnit: components["schemas"]["FinancialLabel"];
-            quoteCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            multiplier: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            quoteCurrencyId: components["schemas"]["FinancialId"] | null;
+            settlementCurrencyId: components["schemas"]["FinancialId"] | null;
+            multiplier: components["schemas"]["PositiveFinancialDecimal"] | null;
+            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
+            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
             /** @enum {string} */
             capability: "native-linear" | "manual";
             effectiveAt: components["schemas"]["FinancialInstant"];
@@ -26337,17 +26523,17 @@ export interface components {
             };
             id: components["schemas"]["FinancialId"];
             revision: components["schemas"]["FinancialRevision"];
-            archivedAt: components["schemas"]["FinancialInstant"] & (string | null);
+            archivedAt: components["schemas"]["FinancialInstant"] | null;
             versionId: components["schemas"]["FinancialId"];
             version: components["schemas"]["FinancialRevision"];
         };
         InstrumentVersionCreate: {
             quantityUnit: components["schemas"]["FinancialLabel"];
-            quoteCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
-            multiplier: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            quoteCurrencyId: components["schemas"]["FinancialId"] | null;
+            settlementCurrencyId: components["schemas"]["FinancialId"] | null;
+            multiplier: components["schemas"]["PositiveFinancialDecimal"] | null;
+            quantityIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
+            priceIncrement: components["schemas"]["PositiveFinancialDecimal"] | null;
             /** @enum {string} */
             capability: "native-linear" | "manual";
             effectiveAt: components["schemas"]["FinancialInstant"];
@@ -26405,8 +26591,8 @@ export interface components {
             economicAt: components["schemas"]["FinancialInstant"];
             id: components["schemas"]["FinancialId"];
             revision: components["schemas"]["FinancialRevision"];
-            sourceNamespace: components["schemas"]["FinancialLabel"] & (string | null);
-            sourceId: components["schemas"]["FinancialLabel"] & (string | null);
+            sourceNamespace: components["schemas"]["FinancialLabel"] | null;
+            sourceId: components["schemas"]["FinancialLabel"] | null;
             /** @enum {string} */
             fillStatus: "unfilled" | "partially_filled" | "filled" | "overfilled";
             discrepancies: ("source-overfill" | "fill-after-terminal-intent")[];
@@ -27428,7 +27614,7 @@ export interface components {
         };
         RiskAssessmentRequest: {
             accountId: components["schemas"]["FinancialId"];
-            strategyVersionId: components["schemas"]["FinancialId"] & (string | null);
+            strategyVersionId: components["schemas"]["FinancialId"] | null;
             asOf: components["schemas"]["FinancialInstant"];
             proposal: components["schemas"]["RiskProposal"];
         };
@@ -27437,16 +27623,16 @@ export interface components {
             /** @enum {string} */
             side: "long" | "short";
             quantity: components["schemas"]["PositiveFinancialDecimal"];
-            riskAmount: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            riskCurrencyId: components["schemas"]["FinancialId"] & (string | null);
+            riskAmount: components["schemas"]["PositiveFinancialDecimal"] | null;
+            riskCurrencyId: components["schemas"]["FinancialId"] | null;
             riskMethod: string;
-            entry: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            intendedExitAt: components["schemas"]["FinancialInstant"] & (string | null);
+            entry: components["schemas"]["PositiveFinancialDecimal"] | null;
+            intendedExitAt: components["schemas"]["FinancialInstant"] | null;
         } | null;
         RiskAssessmentResponse: {
             id: components["schemas"]["FinancialId"];
             accountId: components["schemas"]["FinancialId"];
-            strategyVersionId: components["schemas"]["FinancialId"] & (string | null);
+            strategyVersionId: components["schemas"]["FinancialId"] | null;
             asOf: components["schemas"]["FinancialInstant"];
             createdAt: components["schemas"]["FinancialInstant"];
             actorId: string;
@@ -27463,8 +27649,8 @@ export interface components {
             id: components["schemas"]["FinancialId"];
             policyId: components["schemas"]["FinancialId"];
             workspaceId: components["schemas"]["FinancialId"];
-            accountId: components["schemas"]["FinancialId"] & (string | null);
-            strategyId: components["schemas"]["FinancialId"] & (string | null);
+            accountId: components["schemas"]["FinancialId"] | null;
+            strategyId: components["schemas"]["FinancialId"] | null;
             version: number;
             effectiveAt: components["schemas"]["FinancialInstant"];
             createdAt: components["schemas"]["FinancialInstant"];
@@ -27518,7 +27704,7 @@ export interface components {
             kind: "concentration";
             maximum: components["schemas"]["NonnegativeFinancialDecimal"];
             currencyId: components["schemas"]["FinancialId"];
-            instrumentId: components["schemas"]["FinancialId"] & (string | null);
+            instrumentId: components["schemas"]["FinancialId"] | null;
         } | {
             id: components["schemas"]["FinancialId"];
             /** @enum {string} */
@@ -27555,7 +27741,7 @@ export interface components {
             value: components["schemas"]["FinancialDecimal"];
             /** @enum {string} */
             unit: "money" | "ratio" | "count" | "boolean";
-            currencyId: components["schemas"]["FinancialId"] & (string | null);
+            currencyId: components["schemas"]["FinancialId"] | null;
             reasons: string[];
             references: string[];
         };
@@ -27564,17 +27750,17 @@ export interface components {
                 id: components["schemas"]["FinancialId"];
                 label: string;
             }[];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         RiskPolicyList: {
             versions: components["schemas"]["RiskPolicyVersion"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         RiskPolicyWrite: {
             policyId?: components["schemas"]["FinancialId"];
             expectedVersion: number;
-            accountId: components["schemas"]["FinancialId"] & (string | null);
-            strategyId: components["schemas"]["FinancialId"] & (string | null);
+            accountId: components["schemas"]["FinancialId"] | null;
+            strategyId: components["schemas"]["FinancialId"] | null;
             effectiveAt: components["schemas"]["FinancialInstant"];
             reason: string;
             definition: components["schemas"]["RiskDefinition"];
@@ -27589,22 +27775,22 @@ export interface components {
             mode: "linear" | "manual";
             currencyId: components["schemas"]["FinancialId"];
             budget: components["schemas"]["PositiveFinancialDecimal"];
-            entry: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            stop: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            entry: components["schemas"]["PositiveFinancialDecimal"] | null;
+            stop: components["schemas"]["PositiveFinancialDecimal"] | null;
             fixedCosts: components["schemas"]["NonnegativeFinancialDecimal"];
             perUnitCosts: components["schemas"]["NonnegativeFinancialDecimal"];
-            fxObservationId: components["schemas"]["FinancialId"] & (string | null);
+            fxObservationId: components["schemas"]["FinancialId"] | null;
             maxAgeMilliseconds: number;
-            manualRisk: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
-            manualQuantity: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            manualRisk: components["schemas"]["PositiveFinancialDecimal"] | null;
+            manualQuantity: components["schemas"]["PositiveFinancialDecimal"] | null;
             method: string;
         };
         RiskSizingResponse: {
             /** @enum {string} */
             state: "available" | "unknown";
-            quantity: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
-            plannedRisk: components["schemas"]["NonnegativeFinancialDecimal"] & (string | null);
-            riskPerUnit: components["schemas"]["PositiveFinancialDecimal"] & (string | null);
+            quantity: components["schemas"]["NonnegativeFinancialDecimal"] | null;
+            plannedRisk: components["schemas"]["NonnegativeFinancialDecimal"] | null;
+            riskPerUnit: components["schemas"]["PositiveFinancialDecimal"] | null;
             budget: components["schemas"]["PositiveFinancialDecimal"];
             currencyId: components["schemas"]["FinancialId"];
             reasons: string[];
@@ -27620,7 +27806,7 @@ export interface components {
                 id: components["schemas"]["FinancialId"];
                 label: string;
             }[];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         PeriodReviewDefinition: {
             title: string;
@@ -27640,7 +27826,7 @@ export interface components {
                 /** @enum {string} */
                 status: "open" | "done";
             }[];
-            templateVersionId: components["schemas"]["FinancialId"] & (string | null);
+            templateVersionId: components["schemas"]["FinancialId"] | null;
             answers: {
                 fieldId: components["schemas"]["FinancialId"];
                 value: string | boolean;
@@ -27660,7 +27846,7 @@ export interface components {
         };
         PeriodReviewHistory: {
             versions: components["schemas"]["PeriodReviewVersion"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         PeriodReviewVersion: {
             id: components["schemas"]["FinancialId"];
@@ -27690,7 +27876,7 @@ export interface components {
         };
         PeriodReviewList: {
             entries: components["schemas"]["PeriodReviewVersion"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         PeriodReviewSummary: {
             entryVersionId: components["schemas"]["FinancialId"];
@@ -27710,14 +27896,14 @@ export interface components {
             goalCount: number;
             sourceRecords: {
                 tradeId: components["schemas"]["FinancialId"];
-                journalRevisionId: components["schemas"]["FinancialId"] & (string | null);
+                journalRevisionId: components["schemas"]["FinancialId"] | null;
                 status: string;
             }[];
             explanation: string;
         };
         PeriodReviewTemplateList: {
             templates: components["schemas"]["PeriodReviewTemplateVersion"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         PeriodReviewTemplateWrite: {
             expectedVersion: number;
@@ -27777,7 +27963,7 @@ export interface components {
         SuppliedComponentListResponse: {
             sourceRevision: components["schemas"]["FinancialSourceRevision"];
             items: components["schemas"]["SuppliedComponentResponse"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         SuppliedComponentResponse: {
             /** Format: uuid */
@@ -27798,12 +27984,12 @@ export interface components {
             sourceRevision: string;
             scopeLabel?: string;
             currencyCode?: string;
-            accountId: components["schemas"]["FinancialId"] & (string | null);
-            instrumentVersionId: components["schemas"]["FinancialId"] & (string | null);
-            instrumentId: components["schemas"]["FinancialId"] & (string | null);
-            tradeId: components["schemas"]["FinancialId"] & (string | null);
+            accountId: components["schemas"]["FinancialId"] | null;
+            instrumentVersionId: components["schemas"]["FinancialId"] | null;
+            instrumentId: components["schemas"]["FinancialId"] | null;
+            tradeId: components["schemas"]["FinancialId"] | null;
             signedQuantity: components["schemas"]["FinancialDecimal"];
-            supersedesId: components["schemas"]["FinancialId"] & (string | null);
+            supersedesId: components["schemas"]["FinancialId"] | null;
             sourceInput: components["schemas"]["SuppliedComponentCreate"];
         };
         NativeFinancialSnapshot: {
@@ -27825,9 +28011,9 @@ export interface components {
                 holdingBookId: components["schemas"]["FinancialId"];
                 accountId: components["schemas"]["FinancialId"];
                 instrumentId: components["schemas"]["FinancialId"];
-                instrumentVersionId: components["schemas"]["FinancialId"] & (string | null);
+                instrumentVersionId: components["schemas"]["FinancialId"] | null;
                 quantityUnit: string | null;
-                settlementCurrencyId: components["schemas"]["FinancialId"] & (string | null);
+                settlementCurrencyId: components["schemas"]["FinancialId"] | null;
                 quantity: {
                     /** @enum {string} */
                     status: "available" | "unavailable" | "unsupported";
@@ -27853,7 +28039,7 @@ export interface components {
             attempts: number;
             /** @enum {string|null} */
             lastErrorCode: "scope-too-large" | "processing-failed" | "stale-source" | "owner-unavailable" | null;
-            snapshot: components["schemas"]["NativeFinancialSnapshot"] & (Record<string, never> | null);
+            snapshot: components["schemas"]["NativeFinancialSnapshot"] | null;
         };
         DisplayViewResponse: {
             revision: number;
@@ -27978,7 +28164,7 @@ export interface components {
         };
         StatementEvaluationListResponse: {
             items: components["schemas"]["StatementReconciliationResponse"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         StatementReconciliationResponse: {
             id: components["schemas"]["FinancialId"];
@@ -28011,7 +28197,7 @@ export interface components {
         };
         StatementListResponse: {
             items: components["schemas"]["StatementResponse"][];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         StatementResponse: {
             id: components["schemas"]["FinancialId"];
@@ -28400,7 +28586,7 @@ export interface components {
             groupKey: string;
             sourceKey: string;
             sourceId: string | null;
-            kind: components["schemas"]["ImportKind"] & (string | null);
+            kind: components["schemas"]["ImportKind"] | null;
             raw: {
                 [key: string]: string;
             };
@@ -28480,7 +28666,7 @@ export interface components {
                 rowCount: number;
                 createdAt: components["schemas"]["FinancialInstant"];
             }[];
-            nextCursor: components["schemas"]["FinancialId"] & (string | null);
+            nextCursor: components["schemas"]["FinancialId"] | null;
         };
         ImportMapping: {
             /**

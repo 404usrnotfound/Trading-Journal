@@ -1,19 +1,39 @@
 # Production deployment
 
-Phase 16 prepares the currently implemented application for deployment from
-approved Phase 15 commit `ed901948463a9754f977d576160d8ebcc5eea918`. It does not
-publish a service, provision a production host or certify an installation that
-has not been exercised. Use the [readiness checklist](production-readiness-checklist.md)
-and its recorded evidence before enabling traffic. The [operations guide](operations.md)
-and [backup/recovery procedure](backup-and-recovery.md) are part of the release.
+Reviewed **26 October 2026** for Phase 19 Checkpoint 5 against committed
+Checkpoint 4 `b75b04cc92dbe89bb4bf131600fd1cb0a31a77e4`, with unchanged application
+baseline `5132900a03efabaeb307787531546987228220e7`. This guide owns the current
+release topology, preparation and deployment sequence. The original Phase 16
+rehearsal used approved Phase 15 commit `ed901948463a9754f977d576160d8ebcc5eea918`;
+its dated measurements remain historical and do not certify this application on
+an actual production host. No public service is published by this guide.
+
+Use the [readiness checklist](production-readiness-checklist.md),
+[current operational checklists](operations/checklists.md) and their evidence
+before enabling traffic. The [operations guide](operations.md),
+[backup/recovery procedure](backup-and-recovery.md) and
+[upgrade/rollback decision procedure](operations/upgrades-and-rollback.md) are
+part of the release. Source-reviewed procedures and fresh/historical execution
+are separated in [operations verification](operations/verification.md).
+[FA-04](final-audit.md) remains open for production capacity; local functional
+success does not close that release gate.
+
+**Current failed release check:** the Checkpoint 5 `security:audit` run on
+26 October reported seven advisories in the unchanged locked graph: two critical,
+three high and two moderate. See [the exact audit evidence](operations/verification.md).
+The configured CI advisory step therefore does not pass this lockfile. A reviewed
+dependency/lock update and the relevant complete verification are required; this
+documentation does not apply a package fix or certify production readiness.
 
 ## Supported deployment shape
 
 Use Linux, Node **24.19.0**, pnpm **10.34.6**, PostgreSQL **17**, a trusted HTTPS
 reverse proxy, the Next.js web/API process, a separate worker and durable private
 media. Web and worker must use the same reviewed source release and dependency
-lock. No external broker, price feed, SMTP, AI or object-storage subscription is
-required for the implemented workflows.
+lock. Linux x86_64 has local rehearsal evidence; another host/CPU/libc still
+requires its own native-module, storage, TLS and startup verification. No external
+broker, price feed, SMTP, AI or object-storage subscription is required for the
+implemented workflows.
 
 The repository supplies database-only development Compose services. It does not
 supply a reviewed production application image, orchestration platform, DNS,
@@ -26,11 +46,19 @@ assets, dependencies or migration tooling.
 The implemented private store is local filesystem storage. Keep `STORAGE_ROOT`
 on a persistent private mount and use a single web replica unless an equivalent
 shared filesystem and its consistency/permission behavior have been verified.
-An S3 adapter and portable workspace JSON export/restore remain deferred; the
-operational PostgreSQL-plus-media recovery procedure is a separate capability.
-The current worker processes infrastructure health probes, not business imports,
-outbox dispatch, report offloading or projection rebuilds. Do not base a rollout
-on those future workflows.
+An S3 adapter remains unavailable. Owner-authorized
+[portable workspace archive/restore](user-guide/imports-and-exports.md) is
+implemented, but restores a separate workspace with different identity/session
+semantics; it is not operational PostgreSQL-plus-media recovery.
+
+The worker processes health probes and the durable financial outbox, publishing
+generation-safe native cash/quantity snapshots through narrowly authorized queue
+functions. It does not execute asynchronous bulk imports/reports or compute NAV.
+A native snapshot covers all recorded source events, including future-dated
+activity; it is not an as-of portfolio valuation. Inspect its separate
+[authenticated status and refresh contract](financial-outbox.md) when relevant.
+Health/queue readiness does not prove every workspace projection is current,
+and large-history delivery capacity remains within the open FA-04 gate.
 
 ## Configuration and secrets
 
@@ -97,6 +125,7 @@ deployment checks.
    corepack pnpm --version
    corepack pnpm install --frozen-lockfile
    corepack pnpm api:check
+   corepack pnpm format:check
    corepack pnpm lint
    corepack pnpm typecheck
    corepack pnpm test:unit
@@ -106,10 +135,20 @@ deployment checks.
    corepack pnpm --silent release:check > release-manifest.json
    ```
 
-   Test commands require their isolated PostgreSQL test bindings, never a
-   production operator URL. Build imports are lazy and do not require production
-   runtime secrets. Supply any build-network proxy/CA through the build platform;
-   do not turn off certificate or package-integrity verification.
+   Run these commands from the new versioned repository root, with the full
+   dependency graph and approved toolchain. Installation/build create dependencies
+   and outputs; `release:check` redirects its source/artifact JSON to a local
+   report. Unit/UI tests are local; integration setup modifies only its verified
+   disposable `TEST_*` database. Never supply a production operator URL to tests.
+   The advisory audit requires registry access and is time-dependent. Build
+   imports are lazy and do not require production runtime secrets. Supply
+   build-network proxy/CA through the build platform; do not turn off certificate
+   or package-integrity verification.
+
+   The [CI workflow](../.github/workflows/ci.yml) additionally declares isolated
+   migration repeatability, controlled HTTPS/recovery and browser checks. Execute
+   those in their intended disposable environment and retain the approved
+   release's actual results; a configured workflow is not a passing hosted run.
 
 4. Retain the release manifest, lock/source/migration hashes, build ID and check
    results with the deployment record. `release:check` verifies declared inputs
@@ -124,8 +163,8 @@ deployment checks.
    writes; a fully read-only release filesystem has not been established by this
    launch path. Private media belongs on its separate persistent mount.
 
-The source-only rehearsal exposed an implicit Tailwind build input: without Git
-metadata, automatic source detection scanned dependencies and generated output
+The historical **Phase 16** source-only rehearsal exposed an implicit Tailwind
+build input: without Git metadata, automatic source detection scanned dependencies and generated output
 (28,846 files / 136,338 candidates), while the checkout scanned 85 files / 2,383
 candidates. Their generated CSS differed despite matching application sources.
 `globals.css` now disables automatic detection and explicitly names the web and UI
@@ -162,12 +201,17 @@ successful hosted CI run; the latter must be recorded for the approved release.
    Runtime-password provisioning follows. These are separate phases, not one
    global advisory lock or an atomic all-schema release transaction. The release
    controller must serialize the complete job. On failure, keep traffic gated,
-   investigate sanitized diagnostics and rerun the reviewed command; do not
-   start replicas on a partially completed release.
+   investigate the failed phase and sanitized diagnostics, then rerun the same
+   reviewed command only after the cause/target/history are understood. Do not
+   start replicas on a partially completed release. The
+   [upgrade decision procedure](operations/upgrades-and-rollback.md) distinguishes
+   a retry, compatible code reversion and coordinated recovery.
 
 4. Do not edit applied SQL, use Drizzle `push`, auto-migrate in a replica or use
    a destructive down migration to roll back financial history. Current runtime
-   compatibility is application schema **9** and PostgreSQL **17**. A schema
+   compatibility is application schema **17** and PostgreSQL **17**, with
+   reviewed migrations `0000`–`0016`. Readiness requires the exact schema version;
+   older code with another required schema cannot be assumed compatible. A schema
    readiness check is not a substitute for migration-history verification.
 5. Run the live operational preflight from the intended service environment:
 
@@ -176,7 +220,14 @@ successful hosted CI run; the latter must be recorded for the approved release.
    corepack pnpm db:check
    ```
 
-   Read its individual results and pending gates. The preflight's owned storage
+   `db:migrate` above changes schema/queue state and resets restricted runtime
+   role passwords/grants to the configured values. `db:check` performs read-only
+   application-role connectivity/schema checks. `ops:preflight` performs read-only
+   database/role/TLS checks plus one temporary private storage write/read/hash/delete
+   probe; it is not a purely read-only command. Keep operator credentials out of
+   runtime children and coordinate password changes with service restart.
+
+   Read the preflight's individual results and pending gates. Its owned storage
    probe is temporary and removed; a successful probe proves current access,
    not persistence, free-space policy, redundancy or backup coverage. Deployment
    identity, database transport and certificate checks must apply to the real
@@ -242,7 +293,22 @@ backup discards subsequent committed changes and requires an explicit recovery
 decision. Never delete volumes or replace media alone as a rollback shortcut.
 
 Operational backups include authentication/session material and private media,
-so protect them as secrets. A portable workspace export would have different
-identity and credential semantics and is not implemented here. Production
+so protect them as secrets. Implemented portable workspace archives restore a
+new workspace under the requesting owner; they do not preserve operational
+identity/session/queue topology or replace a coordinated recovery set. Production
 approval, certificate/backup/alert ownership, accepted RPO/RTO, capacity for the
 actual workload and a real deployment rehearsal remain explicit checklist gates.
+
+The detailed [upgrade and rollback guide](operations/upgrades-and-rollback.md)
+owns the stop/retry/revert/recover decision table. It does not assume down
+migrations, cross-version database recovery or proven zero-downtime upgrades.
+[Current verification](operations/verification.md) records what actually ran;
+[Phase 16 production-readiness evidence](production-readiness-evidence.json)
+remains the dated local rehearsal. Source authorities are the
+[release verifier](../scripts/release-check.ts),
+[application migration runner](../packages/database/src/migrate.ts),
+[runtime readiness check](../packages/database/src/readiness.ts),
+[queue migrator](../apps/worker/src/migrate.ts),
+[production preflight](../scripts/operations/production-preflight.ts),
+[service launchers](../scripts/run.ts) and
+[process isolation/cleanup](../scripts/processes.ts).

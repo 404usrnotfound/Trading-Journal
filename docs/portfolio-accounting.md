@@ -95,18 +95,18 @@ Unmatched differences remain **reconciliation variance**, with missing or contra
 
 All endpoints are beneath `/api/v1/workspaces/{workspaceId}/accounting`. Reads require current viewer membership. Mutations require editor/owner membership, same-origin/session CSRF and a UUIDv4 `Idempotency-Key`; facts, durable response, revision, audit and outbox commit together. Identical retries replay the original response, and changed content under the same identity conflicts. JSON bodies and read populations are bounded.
 
-| Method     | Resource                   | Input / behavior                                                                      |
-| ---------- | -------------------------- | ------------------------------------------------------------------------------------- |
-| GET / POST | `portfolios`               | List / create a versioned account scope                                               |
-| GET / POST | `portfolios/{id}`          | Read / publish a full next definition with `expectedVersion` and `reason`             |
-| GET        | `portfolios/{id}/versions` | Immutable definition history                                                          |
-| POST       | `portfolios/{id}/archive`  | Append archival version; preserve history                                             |
-| POST       | `income`                   | `kind: dividend                                                                       | interest`, positive gross `amount`, optional nonnegative `withholding`, account/bucket/currency, economic instant and ordering key |
-| POST       | `taxes`                    | Signed nonzero `amount`: positive charge, negative refund; optional `relatedIncomeId` |
-| POST       | `expenses`                 | Signed nonzero charge/refund; `kind: financing                                        | interest                                                                                                                           | other` |
-| GET / POST | `transfers`                | List actual state / record departure; optional same-instant `receiptAt`               |
-| POST       | `transfers/{id}/receipt`   | Actual receipt instant and ordering key                                               |
-| POST       | `reports`                  | Read-only query; viewers allowed; creates no financial command or revision            |
+| Method     | Resource                   | Input / behavior                                                                                                                                    |
+| ---------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET / POST | `portfolios`               | List / create a versioned account scope                                                                                                             |
+| GET / POST | `portfolios/{id}`          | Read / publish a full next definition with `expectedVersion` and `reason`                                                                           |
+| GET        | `portfolios/{id}/versions` | Immutable definition history                                                                                                                        |
+| POST       | `portfolios/{id}/archive`  | Append archival version; preserve history                                                                                                           |
+| POST       | `income`                   | `kind: dividend\|interest`, positive gross `amount`, optional nonnegative `withholding`, account/bucket/currency, economic instant and ordering key |
+| POST       | `taxes`                    | Signed nonzero `amount`: positive charge, negative refund; optional `relatedIncomeId`                                                               |
+| POST       | `expenses`                 | Signed nonzero charge/refund; `kind: financing\|interest\|other`                                                                                    |
+| GET / POST | `transfers`                | List actual state / record departure; optional same-instant `receiptAt`                                                                             |
+| POST       | `transfers/{id}/receipt`   | Actual receipt instant and ordering key                                                                                                             |
+| POST       | `reports`                  | Read-only query; viewers allowed; creates no financial command or revision                                                                          |
 
 Use the generated [OpenAPI contract](../packages/contracts/openapi.json) for exact schemas and pagination. Reports accept at most 100 accounts, 1,000 holding books and 10,000 observations per bounded population; larger requests fail explicitly rather than returning silent omissions. Heavy historical projections and asynchronous reports remain future work.
 
@@ -185,4 +185,4 @@ Buy one USD share for USD 100 at rate `0.8`. The requested interval begins later
 
 Independent Decimal/property tests and real-PostgreSQL reconciliation tests cover these identities, scoped transfers, partial closes, shorts, fractional holdings, costs, refunds, immutable membership, tenant boundaries and revision-pinned corrections. HTTP tests cover authentication, CSRF, idempotency, validation and viewer reports. Executed outcomes are recorded in [Phase 7 validation](phase-7-validation.md).
 
-This increment delivers accounting APIs and the domain engine. Portfolio screens, charts, TWR/MWR, performance percentages, strategy analytics, automated broker reconciliation, imports, tax-law calculations and advanced instrument-native settlement modules remain later work. Existing broker account-value observations stay separate observations; they cannot silently overwrite calculated equity or plug a reconciliation variance.
+Phase 7 delivered the accounting APIs and domain engine. Later increments provide the [Accounts UI and conditional TWR/MWR series](account-performance-and-corrections.md), [Dashboard/strategy analytics](analytics-definitions.md), [CSV imports](imports.md) and [manual independent statement reconciliation](statement-reconciliation.md). Automated broker connectivity, jurisdictional tax calculations and advanced instrument-native settlement modules remain unavailable. Existing whole-account observations stay separate comparison evidence; they cannot silently overwrite calculated equity or plug a reconciliation variance. Explicit selected [supplied position components](supplied-values.md) follow their own residual-value safeguards.

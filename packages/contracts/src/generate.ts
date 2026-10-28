@@ -136,7 +136,7 @@ registry.registerPath({
   method: 'get',
   path: '/api/v1/workspaces/{workspaceId}/dashboard/catalog',
   security: [{ sessionCookie: [] }],
-  request: { params: strategyCollectionParams },
+  request: { params: strategyCollectionParams, query: dashboard.dashboardCatalogQuerySchema },
   responses: {
     200: response(dashboard.dashboardCatalogSchema),
     400: problem,
@@ -219,7 +219,6 @@ const strategyProblems = {
   500: problem,
 };
 for (const [suffix, params, query, output] of [
-  ['/native-snapshot', strategyCollectionParams, undefined, outbox.nativeSnapshotStatusSchema],
   [
     '',
     strategyCollectionParams,
@@ -241,6 +240,12 @@ for (const [suffix, params, query, output] of [
   ],
   [
     '/{strategyId}/trades',
+    strategyIdentityParams,
+    strategies.strategyTradesQuerySchema,
+    strategies.strategyTradesResponseSchema,
+  ],
+  [
+    '/{strategyId}/trade-links',
     strategyIdentityParams,
     strategies.strategyTradesQuerySchema,
     strategies.strategyTradesResponseSchema,
@@ -293,7 +298,9 @@ for (const [method, suffix, params, input, output] of [
       'Editor/owner strategy command. Definitions are complete immutable snapshots, bounded to 196608 UTF-8 bytes; JSON request bodies are bounded to 262144 bytes. Changes append a version and never rewrite historical trade references. Deletion archives the identity. Late trade classification is explicitly retrospective.',
     request: {
       params,
-      headers: strategyMutationHeaders,
+      headers: strategyMutationHeaders.extend({
+        'Idempotency-Key': financial.financialIdSchema,
+      }),
       body: { required: true, content: { 'application/json': { schema: input } } },
     },
     responses: { 200: response(output), ...strategyProblems },
@@ -482,6 +489,7 @@ const accountingSourceIdentityParams = strategyCollectionParams.extend({
   sourceId: financial.financialIdSchema,
 });
 for (const [suffix, params, query, output] of [
+  ['/native-snapshot', strategyCollectionParams, undefined, outbox.nativeSnapshotStatusSchema],
   [
     '/portfolios',
     strategyCollectionParams,
@@ -518,7 +526,9 @@ for (const [suffix, params, query, output] of [
     path: accountingPrefix + suffix,
     security: [{ sessionCookie: [] }],
     description:
-      'Workspace-scoped immutable portfolio definitions and owned-account cash transfer evidence. Lists are cursor-paginated, at most 100 entries per page. Transfer status can be read at an explicit economic boundary.',
+      suffix === '/native-snapshot'
+        ? 'Read-only viewer/editor/owner status for the durable native cash/quantity projection. Compare latest and processed source revisions, attempts and safe failure classifications. The snapshot covers all recorded events, including future-dated sources; it is not NAV or an as-of accounting report.'
+        : 'Workspace-scoped immutable portfolio definitions and owned-account cash transfer evidence. Lists are cursor-paginated, at most 100 entries per page. Transfer status can be read at an explicit economic boundary.',
     request: { params, ...(query ? { query } : {}) },
     responses: { 200: response(output), ...strategyProblems, 429: problem },
   });
@@ -860,7 +870,14 @@ for (const [path, schema, secured] of [
     method: 'get',
     path,
     ...(secured ? { security: [{ sessionCookie: [] }] } : {}),
-    responses: { 200: response(schema), 401: problem, 503: problem },
+    responses:
+      path === '/api/v1/health/live'
+        ? { 200: response(schema) }
+        : path === '/api/v1/health/ready'
+          ? { 200: response(schema), 401: problem, 503: problem, 500: problem }
+          : path === '/api/v1/session'
+            ? { 200: response(schema), 500: problem }
+            : { 200: response(schema), 401: problem, 500: problem },
   });
 }
 registry.registerPath({
@@ -868,7 +885,7 @@ registry.registerPath({
   path: '/api/v1/workspaces/{workspaceId}',
   security: [{ sessionCookie: [] }],
   request: { params: z.object({ workspaceId: z.uuid() }) },
-  responses: { 200: response(workspaceResponseSchema), 401: problem, 404: problem },
+  responses: { 200: response(workspaceResponseSchema), 401: problem, 404: problem, 500: problem },
 });
 registry.registerPath({
   method: 'patch',
@@ -876,7 +893,7 @@ registry.registerPath({
   security: [{ sessionCookie: [] }],
   request: {
     params: z.object({ workspaceId: z.uuid() }),
-    headers: z.object({ 'X-CSRF-Token': z.string().min(1) }),
+    headers: z.object({ Origin: z.url(), 'X-CSRF-Token': z.string().min(1) }),
     body: {
       required: true,
       content: { 'application/json': { schema: workspacePreferencesUpdateSchema } },
@@ -931,7 +948,7 @@ for (const [path, schema] of [
     path,
     security: [{ sessionCookie: [] }],
     request: {
-      headers: z.object({ 'X-CSRF-Token': z.string().min(1) }),
+      headers: z.object({ Origin: z.url(), 'X-CSRF-Token': z.string().min(1) }),
       body: { required: true, content: { 'application/json': { schema } } },
     },
     responses: {
@@ -950,7 +967,10 @@ for (const [path, schema] of [
 registry.registerPath({
   method: 'post',
   path: '/api/auth/sign-in/email',
-  request: { body: { content: { 'application/json': { schema: signInSchema } } } },
+  request: {
+    headers: z.object({ Origin: z.url() }),
+    body: { required: true, content: { 'application/json': { schema: signInSchema } } },
+  },
   responses: {
     200: response(authActionResponseSchema),
     400: problem,
@@ -967,7 +987,7 @@ registry.registerPath({
   path: '/api/auth/sign-out',
   security: [{ sessionCookie: [] }],
   request: {
-    headers: z.object({ 'X-CSRF-Token': z.string().min(1) }),
+    headers: z.object({ Origin: z.url(), 'X-CSRF-Token': z.string().min(1) }),
     body: { required: true, content: { 'application/json': { schema: z.object({}).strict() } } },
   },
   responses: {
@@ -994,7 +1014,9 @@ for (const [suffix, schema] of [
     security: [{ sessionCookie: [] }],
     request: {
       params: importParams,
-      query: z.object({ cursor: financial.financialIdSchema.optional() }),
+      ...(suffix === 'batches'
+        ? { query: z.object({ cursor: financial.financialIdSchema.optional() }) }
+        : {}),
     },
     responses: { 200: response(schema), 401: problem, 404: problem, 409: problem },
   });
@@ -1063,6 +1085,7 @@ for (const [suffix, input, output, params] of [
     request: {
       params,
       headers: z.object({
+        Origin: z.url(),
         'X-CSRF-Token': z.string().min(1),
         'Idempotency-Key': financial.financialIdSchema,
       }),
@@ -1243,7 +1266,7 @@ registry.registerPath({
     'Authorized filtered JSON or spreadsheet-safe CSV. Source precision is retained in JSON; CSV is a protected presentation.',
   request: {
     params: remediationParams,
-    headers: commandHeaders,
+    headers: strategyMutationHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: portability.portableExportRequestSchema } },
@@ -1266,12 +1289,91 @@ registry.registerPath({
   },
 });
 
+/**
+ * The pinned zod-to-openapi string transformer strips a bare closing slash,
+ * but retains `/u` from RegExp.toString(). JSON Schema patterns contain the
+ * expression only, without JavaScript delimiters or flags. Normalize only the
+ * confirmed anchored Unicode suffix; runtime Zod schemas remain unchanged.
+ */
+function normalizeUnicodePatterns(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const child of value) normalizeUnicodePatterns(child);
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  const object = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(object)) {
+    if (
+      key === 'pattern' &&
+      typeof child === 'string' &&
+      child.startsWith('^') &&
+      child.endsWith('$/u')
+    )
+      object[key] = child.slice(0, -2);
+    else normalizeUnicodePatterns(child);
+  }
+}
+
+/**
+ * The pinned generator emits named nullable modifiers as an intersection of
+ * the non-null reference and a nullable type. That intersection rejects null.
+ * Normalize only its exact reference/type-only two-arm form into a union;
+ * leave other intersections and any surrounding metadata/constraints intact.
+ */
+function normalizeNullableReferences(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const child of value) normalizeNullableReferences(child);
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  const object = value as Record<string, unknown>;
+  const intersection = object.allOf;
+  if (Array.isArray(intersection) && intersection.length === 2 && !('anyOf' in object)) {
+    const [reference, nullable] = intersection as unknown[];
+    if (
+      reference !== null &&
+      typeof reference === 'object' &&
+      Object.keys(reference).length === 1 &&
+      '$ref' in reference &&
+      typeof reference.$ref === 'string' &&
+      reference.$ref.startsWith('#/components/schemas/') &&
+      nullable !== null &&
+      typeof nullable === 'object' &&
+      Object.keys(nullable).length === 1 &&
+      'type' in nullable &&
+      Array.isArray(nullable.type) &&
+      nullable.type.length === 2 &&
+      ['string', 'object'].includes(String(nullable.type[0])) &&
+      nullable.type[1] === 'null'
+    ) {
+      delete object.allOf;
+      object.anyOf = [reference, { type: 'null' }];
+    }
+  }
+  for (const child of Object.values(object)) normalizeNullableReferences(child);
+}
+
 const document = new OpenApiGeneratorV31(registry.definitions).generateDocument({
   openapi: '3.1.0',
   info: { title: 'Trading Journal Foundation API', version: '0.1.0' },
 });
+normalizeUnicodePatterns(document);
+normalizeNullableReferences(document);
 const json = JSON.stringify(document, null, 2) + '\n';
-const types = astToString(await openapiTS(document as Parameters<typeof openapiTS>[0]));
+// Keep the wire contract exact, but do not require browser callers to set the
+// browser-owned Origin header themselves. Non-browser clients must still send
+// the canonical Origin required by OpenAPI and the server's mutation guards.
+const typedDocument = structuredClone(document);
+for (const pathItem of Object.values(typedDocument.paths ?? {}))
+  for (const method of ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const)
+    for (const parameter of pathItem[method]?.parameters ?? [])
+      if (
+        !('$ref' in parameter) &&
+        parameter.in === 'header' &&
+        parameter.name.toLowerCase() === 'origin'
+      )
+        parameter.required = false;
+const types = astToString(await openapiTS(typedDocument as Parameters<typeof openapiTS>[0]));
 const target = fileURLToPath(new URL('../openapi.json', import.meta.url));
 const generated = fileURLToPath(new URL('./generated/api.d.ts', import.meta.url));
 if (process.argv.includes('--check')) {

@@ -132,14 +132,14 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
           },
           "reportingCurrency": {
             "type": [
               "string",
               "null"
             ],
-            "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+            "pattern": "^[A-Z][A-Z0-9]{1,15}$"
           },
           "revision": {
             "type": "integer",
@@ -188,14 +188,14 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 128,
-                  "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                  "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                 },
                 "reportingCurrency": {
                   "type": [
                     "string",
                     "null"
                   ],
-                  "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+                  "pattern": "^[A-Z][A-Z0-9]{1,15}$"
                 },
                 "revision": {
                   "type": "integer",
@@ -227,14 +227,14 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
           },
           "reportingCurrency": {
             "type": [
               "string",
               "null"
             ],
-            "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+            "pattern": "^[A-Z][A-Z0-9]{1,15}$"
           },
           "expectedRevision": {
             "type": "integer",
@@ -464,7 +464,7 @@
       "PositiveFinancialDecimal": {
         "type": "string",
         "maxLength": 512,
-        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
       },
       "FinancialSourceIdentity": {
         "type": "object",
@@ -489,67 +489,52 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "quoteCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "settlementCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "multiplier": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "quantityIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "priceIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -728,7 +713,7 @@
           "null"
         ],
         "maxLength": 512,
-        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
       },
       "InventoryPinnedRate": {
         "type": "object",
@@ -817,7 +802,7 @@
           "null"
         ],
         "maxLength": 80,
-        "pattern": "^(?:0|[1-9]\\d*)$/u"
+        "pattern": "^(?:0|[1-9]\\d*)$"
       },
       "InventoryLot": {
         "type": "object",
@@ -1371,7 +1356,7 @@
       "FinancialSourceRevision": {
         "type": "string",
         "maxLength": 10,
-        "pattern": "^(?:0|[1-9]\\d*)$/u"
+        "pattern": "^(?:0|[1-9]\\d*)$"
       },
       "CurrencyAmountResponse": {
         "type": "object",
@@ -1537,15 +1522,12 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "brokerId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -1595,15 +1577,12 @@
             "$ref": "#/components/schemas/FinancialRevision"
           },
           "archivedAt": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialInstant"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -1754,15 +1733,12 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "supersedesId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -1871,15 +1847,12 @@
             "$ref": "#/components/schemas/FinancialRevision"
           },
           "archivedAt": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialInstant"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -1945,15 +1918,12 @@
               "type": "object",
               "properties": {
                 "tradeLegId": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/components/schemas/FinancialId"
                     },
                     {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "null"
                     }
                   ]
                 },
@@ -2491,15 +2461,12 @@
             "$ref": "#/components/schemas/FinancialRevision"
           },
           "archivedAt": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialInstant"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -2542,15 +2509,12 @@
               "type": "object",
               "properties": {
                 "tradeLegId": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/components/schemas/FinancialId"
                     },
                     {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "null"
                     }
                   ]
                 },
@@ -2577,7 +2541,7 @@
       "NonnegativeFinancialDecimal": {
         "type": "string",
         "maxLength": 512,
-        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
       },
       "ExecutionAllocation": {
         "type": "object",
@@ -2861,15 +2825,12 @@
             "$ref": "#/components/schemas/FinancialDecimal"
           },
           "principalCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -2880,15 +2841,12 @@
             "$ref": "#/components/schemas/FinancialOrderingKey"
           },
           "supersedesId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -3027,7 +2985,7 @@
               },
               "sourceFingerprint": {
                 "type": "string",
-                "pattern": "^[a-f0-9]{64}$/u"
+                "pattern": "^[a-f0-9]{64}$"
               }
             },
             "required": [
@@ -3609,67 +3567,52 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "quoteCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "settlementCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "multiplier": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "quantityIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "priceIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -3725,67 +3668,52 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "quoteCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "settlementCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "multiplier": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "quantityIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "priceIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -3812,15 +3740,12 @@
             "$ref": "#/components/schemas/FinancialRevision"
           },
           "archivedAt": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialInstant"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -3859,67 +3784,52 @@
             "$ref": "#/components/schemas/FinancialLabel"
           },
           "quoteCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "settlementCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "multiplier": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "quantityIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "priceIncrement": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -4150,28 +4060,22 @@
             "$ref": "#/components/schemas/FinancialRevision"
           },
           "sourceNamespace": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialLabel"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "sourceId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialLabel"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -5432,7 +5336,7 @@
           },
           "definitionHash": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "changeReason": {
             "$ref": "#/components/schemas/StrategyChangeReason"
@@ -5680,7 +5584,7 @@
           },
           "sha256": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "createdAt": {
             "type": "string",
@@ -6388,7 +6292,7 @@
           },
           "definitionHash": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "createdAt": {
             "$ref": "#/components/schemas/FinancialInstant"
@@ -7014,7 +6918,7 @@
           },
           "documentHash": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           }
         },
         "required": [
@@ -7407,7 +7311,7 @@
               "string",
               "null"
             ],
-            "pattern": "^(0|[1-9]\\d*)$/u"
+            "pattern": "^(0|[1-9]\\d*)$"
           },
           "series": {
             "type": "array",
@@ -8746,15 +8650,12 @@
             "$ref": "#/components/schemas/FinancialId"
           },
           "strategyVersionId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -8793,28 +8694,22 @@
             "$ref": "#/components/schemas/PositiveFinancialDecimal"
           },
           "riskAmount": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "riskCurrencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -8823,28 +8718,22 @@
             "maxLength": 2000
           },
           "entry": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "intendedExitAt": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialInstant"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -8871,15 +8760,12 @@
             "$ref": "#/components/schemas/FinancialId"
           },
           "strategyVersionId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -8955,28 +8841,22 @@
             "$ref": "#/components/schemas/FinancialId"
           },
           "accountId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "strategyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9234,15 +9114,12 @@
                 "$ref": "#/components/schemas/FinancialId"
               },
               "instrumentId": {
-                "allOf": [
+                "anyOf": [
                   {
                     "$ref": "#/components/schemas/FinancialId"
                   },
                   {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "null"
                   }
                 ]
               }
@@ -9427,15 +9304,12 @@
             ]
           },
           "currencyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9486,15 +9360,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -9515,15 +9386,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -9546,28 +9414,22 @@
             "maximum": 2147483646
           },
           "accountId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "strategyId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9626,28 +9488,22 @@
             "$ref": "#/components/schemas/PositiveFinancialDecimal"
           },
           "entry": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "stop": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9658,15 +9514,12 @@
             "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
           },
           "fxObservationId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9676,28 +9529,22 @@
             "maximum": 9007199254740991
           },
           "manualRisk": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "manualQuantity": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9737,41 +9584,32 @@
             ]
           },
           "quantity": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "plannedRisk": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/NonnegativeFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "riskPerUnit": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/PositiveFinancialDecimal"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -9850,15 +9688,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -9959,15 +9794,12 @@
             "maxItems": 100
           },
           "templateVersionId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -10090,15 +9922,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -10235,15 +10064,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -10324,15 +10150,12 @@
                   "$ref": "#/components/schemas/FinancialId"
                 },
                 "journalRevisionId": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/components/schemas/FinancialId"
                     },
                     {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "null"
                     }
                   ]
                 },
@@ -10378,15 +10201,12 @@
             }
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -10646,15 +10466,12 @@
             "maxItems": 100
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -10725,54 +10542,42 @@
             "maxLength": 160
           },
           "accountId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "instrumentVersionId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "instrumentId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
           "tradeId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -10780,15 +10585,12 @@
             "$ref": "#/components/schemas/FinancialDecimal"
           },
           "supersedesId": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -10865,7 +10667,7 @@
                 "amount": {
                   "type": "string",
                   "maxLength": 512,
-                  "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+                  "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
                 }
               },
               "required": [
@@ -10894,15 +10696,12 @@
                   "$ref": "#/components/schemas/FinancialId"
                 },
                 "instrumentVersionId": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/components/schemas/FinancialId"
                     },
                     {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "null"
                     }
                   ]
                 },
@@ -10913,15 +10712,12 @@
                   ]
                 },
                 "settlementCurrencyId": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/components/schemas/FinancialId"
                     },
                     {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "null"
                     }
                   ]
                 },
@@ -10945,7 +10741,7 @@
                         "null"
                       ],
                       "maxLength": 512,
-                      "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$/u"
+                      "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
                     },
                     "currencyId": {
                       "type": "string"
@@ -11072,15 +10868,12 @@
             ]
           },
           "snapshot": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/NativeFinancialSnapshot"
               },
               {
-                "type": [
-                  "object",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -11604,7 +11397,7 @@
           },
           "sourceHash": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "cashDefinition": {
             "type": "string",
@@ -11767,15 +11560,12 @@
             "maxItems": 100
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -11925,15 +11715,12 @@
             "maxItems": 100
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -12041,7 +11828,7 @@
                 "name": {
                   "type": "string",
                   "maxLength": 80,
-                  "pattern": "^[a-z][a-z0-9_]*$/u"
+                  "pattern": "^[a-z][a-z0-9_]*$"
                 },
                 "rows": {
                   "type": "array",
@@ -12122,7 +11909,7 @@
       },
       "PortableChecksum": {
         "type": "string",
-        "pattern": "^[a-f0-9]{64}$/u"
+        "pattern": "^[a-f0-9]{64}$"
       },
       "PortableExportRequest": {
         "type": "object",
@@ -12212,7 +11999,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
           },
           "fxPolicy": {
             "$ref": "#/components/schemas/AccountingFxPolicy"
@@ -12567,7 +12354,7 @@
               "string",
               "null"
             ],
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "metadataPlanId": {
             "anyOf": [
@@ -12584,7 +12371,7 @@
               "string",
               "null"
             ],
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "metadataPlanSource": {
             "type": [
@@ -12612,7 +12399,7 @@
               "string",
               "null"
             ],
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "strategyId": {
             "anyOf": [
@@ -12639,7 +12426,7 @@
               "string",
               "null"
             ],
-            "pattern": "^[a-f0-9]{64}$/u"
+            "pattern": "^[a-f0-9]{64}$"
           },
           "strategyLinkTiming": {
             "type": [
@@ -13439,7 +13226,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 128,
-                "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
               },
               "workspaceRevision": {
                 "$ref": "#/components/schemas/FinancialRevision"
@@ -13921,15 +13708,12 @@
             "maxLength": 160
           },
           "kind": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ImportKind"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           },
@@ -14169,7 +13953,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 160,
-            "pattern": "^[a-zA-Z][a-zA-Z0-9]*(?:\\.(?:[a-zA-Z][a-zA-Z0-9]*|\\d+))*$/u"
+            "pattern": "^[a-zA-Z][a-zA-Z0-9]*(?:\\.(?:[a-zA-Z][a-zA-Z0-9]*|\\d+))*$"
           },
           "column": {
             "type": "string",
@@ -14292,15 +14076,12 @@
             "maxItems": 50
           },
           "nextCursor": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/FinancialId"
               },
               {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "null"
               }
             ]
           }
@@ -14563,6 +14344,57 @@
             "required": true,
             "name": "workspaceId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "accounts",
+                "brokers",
+                "currencies",
+                "portfolios",
+                "strategies",
+                "strategyVersions",
+                "assets",
+                "tags",
+                "priceSources",
+                "fxSources"
+              ]
+            },
+            "required": false,
+            "name": "resource",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "required": false,
+            "name": "afterId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 200
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -14588,15 +14420,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           },
@@ -14630,15 +14459,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           }
@@ -14664,15 +14490,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           },
@@ -14702,15 +14525,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           },
@@ -14757,15 +14577,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           }
@@ -14791,15 +14608,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           }
@@ -14825,15 +14639,12 @@
                             "type": "string"
                           },
                           "parentId": {
-                            "allOf": [
+                            "anyOf": [
                               {
                                 "$ref": "#/components/schemas/FinancialId"
                               },
                               {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": "null"
                               }
                             ]
                           },
@@ -15214,7 +15025,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                    "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                   },
                   "fxPolicy": {
                     "$ref": "#/components/schemas/AccountingFxPolicy"
@@ -15410,15 +15221,12 @@
                       "additionalProperties": false
                     },
                     "analytics": {
-                      "allOf": [
+                      "anyOf": [
                         {
                           "$ref": "#/components/schemas/AnalyticsReportResponse"
                         },
                         {
-                          "type": [
-                            "object",
-                            "null"
-                          ]
+                          "type": "null"
                         }
                       ]
                     },
@@ -16570,407 +16378,6 @@
         }
       }
     },
-    "/api/v1/workspaces/{workspaceId}/strategies/native-snapshot": {
-      "get": {
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "description": "Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page.",
-        "parameters": [
-          {
-            "schema": {
-              "$ref": "#/components/schemas/FinancialId"
-            },
-            "required": true,
-            "name": "workspaceId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Validated application DTO",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NativeSnapshotStatus"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/workspaces/{workspaceId}/strategies": {
       "get": {
         "security": [
@@ -16999,7 +16406,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -17452,6 +16859,14 @@
             },
             "required": true,
             "name": "X-CSRF-Token",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
             "in": "header"
           }
         ],
@@ -18297,6 +17712,14 @@
             "required": true,
             "name": "X-CSRF-Token",
             "in": "header"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -18732,6 +18155,14 @@
             "required": true,
             "name": "X-CSRF-Token",
             "in": "header"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -19163,7 +18594,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -20007,7 +19438,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -20399,6 +19830,431 @@
       }
     },
     "/api/v1/workspaces/{workspaceId}/strategies/{strategyId}/trade-links": {
+      "get": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Workspace-scoped strategy and immutable version history. Lists are cursor-paginated, at most 100 entries per page.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "strategyId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[1-9]\\d?|100)$",
+              "default": "25"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StrategyTradesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -20439,6 +20295,14 @@
             },
             "required": true,
             "name": "X-CSRF-Token",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
             "in": "header"
           }
         ],
@@ -21318,7 +21182,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9][0-9]?|100)$/u",
+              "pattern": "^(?:[1-9][0-9]?|100)$",
               "default": "100"
             },
             "required": false,
@@ -23064,7 +22928,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9][0-9]?|100)$/u",
+              "pattern": "^(?:[1-9][0-9]?|100)$",
               "default": "100"
             },
             "required": false,
@@ -24355,7 +24219,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -26131,7 +25995,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -27001,7 +26865,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -27871,7 +27735,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -28679,6 +28543,448 @@
         }
       }
     },
+    "/api/v1/workspaces/{workspaceId}/accounting/native-snapshot": {
+      "get": {
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Read-only viewer/editor/owner status for the durable native cash/quantity projection. Compare latest and processed source revisions, attempts and safe failure classifications. The snapshot covers all recorded events, including future-dated sources; it is not NAV or an as-of accounting report.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/FinancialId"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated application DTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NativeSnapshotStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/accounting/portfolios": {
       "get": {
         "security": [
@@ -28707,7 +29013,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -30598,7 +30904,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -31058,7 +31364,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?:[1-9]\\d?|100)$/u",
+              "pattern": "^(?:[1-9]\\d?|100)$",
               "default": "25"
             },
             "required": false,
@@ -58906,88 +59212,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
           }
         }
       }
@@ -59037,6 +59261,47 @@
             }
           },
           "401": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Safe problem details; no credentials or database diagnostics",
             "content": {
               "application/problem+json": {
@@ -59171,48 +59436,7 @@
               }
             }
           },
-          "401": {
-            "description": "Safe problem details; no credentials or database diagnostics",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "detail",
-                    "code",
-                    "requestId"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "503": {
+          "500": {
             "description": "Safe problem details; no credentials or database diagnostics",
             "content": {
               "application/problem+json": {
@@ -59299,14 +59523,14 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 128,
-                            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                           },
                           "reportingCurrency": {
                             "type": [
                               "string",
                               "null"
                             ],
-                            "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+                            "pattern": "^[A-Z][A-Z0-9]{1,15}$"
                           },
                           "revision": {
                             "type": "integer",
@@ -59375,7 +59599,7 @@
               }
             }
           },
-          "503": {
+          "500": {
             "description": "Safe problem details; no credentials or database diagnostics",
             "content": {
               "application/problem+json": {
@@ -59468,14 +59692,14 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 128,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                      "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                     },
                     "reportingCurrency": {
                       "type": [
                         "string",
                         "null"
                       ],
-                      "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+                      "pattern": "^[A-Z][A-Z0-9]{1,15}$"
                     },
                     "revision": {
                       "type": "integer",
@@ -59577,6 +59801,47 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Safe problem details; no credentials or database diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
           }
         }
       },
@@ -59599,6 +59864,15 @@
           {
             "schema": {
               "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
               "minLength": 1
             },
             "required": true,
@@ -59617,14 +59891,14 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                    "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                   },
                   "reportingCurrency": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+                    "pattern": "^[A-Z][A-Z0-9]{1,15}$"
                   },
                   "expectedRevision": {
                     "type": "integer",
@@ -59670,14 +59944,14 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 128,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$/u"
+                      "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
                     },
                     "reportingCurrency": {
                       "type": [
                         "string",
                         "null"
                       ],
-                      "pattern": "^[A-Z][A-Z0-9]{1,15}$/u"
+                      "pattern": "^[A-Z][A-Z0-9]{1,15}$"
                     },
                     "revision": {
                       "type": "integer",
@@ -60324,6 +60598,15 @@
           {
             "schema": {
               "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
               "minLength": 1
             },
             "required": true,
@@ -60723,6 +61006,15 @@
           {
             "schema": {
               "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
               "minLength": 1
             },
             "required": true,
@@ -61107,7 +61399,19 @@
     },
     "/api/auth/sign-in/email": {
       "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -61453,6 +61757,15 @@
           }
         ],
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
           {
             "schema": {
               "type": "string",
@@ -61803,14 +62116,6 @@
             "required": true,
             "name": "workspaceId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "$ref": "#/components/schemas/FinancialId"
-            },
-            "required": false,
-            "name": "cursor",
-            "in": "query"
           }
         ],
         "responses": {
@@ -61965,14 +62270,6 @@
             "required": true,
             "name": "workspaceId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "$ref": "#/components/schemas/FinancialId"
-            },
-            "required": false,
-            "name": "cursor",
-            "in": "query"
           }
         ],
         "responses": {
@@ -62125,6 +62422,15 @@
             "required": true,
             "name": "workspaceId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
           },
           {
             "schema": {
@@ -62712,6 +63018,15 @@
             "required": true,
             "name": "workspaceId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
           },
           {
             "schema": {
@@ -63406,6 +63721,15 @@
           {
             "schema": {
               "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
               "minLength": 1
             },
             "required": true,
@@ -63837,6 +64161,15 @@
             "required": true,
             "name": "batchId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
           },
           {
             "schema": {
@@ -64276,6 +64609,15 @@
           {
             "schema": {
               "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
               "minLength": 1
             },
             "required": true,
@@ -64707,6 +65049,15 @@
             "required": true,
             "name": "batchId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "required": true,
+            "name": "Origin",
+            "in": "header"
           },
           {
             "schema": {
@@ -73920,14 +74271,6 @@
             },
             "required": true,
             "name": "X-CSRF-Token",
-            "in": "header"
-          },
-          {
-            "schema": {
-              "$ref": "#/components/schemas/FinancialId"
-            },
-            "required": true,
-            "name": "Idempotency-Key",
             "in": "header"
           }
         ],
